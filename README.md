@@ -32,7 +32,7 @@ Con nodemon:
 
 O usar pm2:
 
-```pm start back/app.js --name "tres-app"```
+```pm2 start back/app.js --name "tres-app"```
 
 Actualizar todo en el servidor:
 
@@ -46,25 +46,21 @@ Para inspeccionar la base de datos:
 
 ## Endpoints
 
-GET / - Documentación de la API y endpoints disponibles
-GET /health - Estado del servicio
-GET /pdf - Interfaz web para generación de PDF
-GET /api/pdf - Descarga directa del PDF completo de la tesis
-GET /api/3d/structure - Estructura jerárquica de notas para visualización 3D
-GET /api/3d/note/:id/content - Contenido específico de una nota (HTML/Markdown)
-GET /api/3d/search?q=query - Búsqueda de notas por término (case-insensitive)
-GET /api/3d/health - Estado específico de la API 3D
+- GET / - Documentación de la API y endpoints disponibles
+- GET /health - Estado del servicio
+- GET /pdf - Interfaz web para generación de PDF
+- GET /api/pdf - Descarga directa del PDF completo de la tesis
+- GET /api/3d/structure - Estructura jerárquica de notas para visualización 3D
+- GET /api/3d/note/:id/content - Contenido específico de una nota (HTML/Markdown)
+- GET /api/3d/search?q=query - Búsqueda de notas por término (case-insensitive)
+- GET /api/3d/health - Estado específico de la API 3D
 
 ## Contexto Técnico
 
-Base de datos: SQLite de Trilium Notes (tablas: notes, branches, blobs)
-Estructura: Árbol jerárquico con parentNoteId y notePosition
-Raíz: Nota "Tres" o "Tres Estudios Abiertos"
-Filtros: Excluye automáticamente notas con título "Hidden Notes" y sus hijos
-Procesamiento: HTML a Markdown para PDF, JSON optimizado para Three.js
-Arquitectura: Modular (routes/services/utils) con NoteService como núcleo principal
-Funciones recientes:
+- Base de datos: SQLite de Trilium Notes (tablas: notes, branches, blobs)
+- Estructura: Árbol jerárquico con parentNoteId y notePosition
+- Raíz: Nota "Tres" o "Tres Estudios Abiertos"
+- Filtros: Excluye automáticamente notas con título "Hidden Notes" y sus hijos
+- Procesamiento: HTML a Markdown para PDF, JSON optimizado para Three.js
+- Arquitectura: Modular (routes/services/utils) con NoteService como núcleo principal
 
-* Búsqueda de notas por título
-* Consulta de contenido de notas individuales
-* Construcción de árbol ordenado por notePosition
