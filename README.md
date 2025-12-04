@@ -44,6 +44,12 @@ Para inspeccionar la base de datos:
 
 ```node inspect-db.mjs```
 
+## Copia
+
+Para copiar la base de datos: 
+
+```docker cp identificador:/home/node/trilium-data/document.db /home/usuaio/trilium-backup.db```
+
 ## Endpoints
 
 - GET / - Documentación de la API y endpoints disponibles

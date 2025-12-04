@@ -1,6 +1,6 @@
 // services/noteService.js
 import { getDatabase } from '../config/database.js';
-import { buildTree, findNodeByTitle, filtrarHiddenNotes } from '../utils/treeBuilder.js';
+import { buildTree, findNodeByTitle, filtrarHiddenNotes, findNodeById } from '../utils/treeBuilder.js';
 
 export class NoteService {
   async getNotesAndBranches() {
@@ -89,7 +89,78 @@ export class NoteService {
     }
   }
 
-  // Nuevo método específico para Three.js
+  // NUEVO MÉTODO: Obtener contenido de una nota específica por ID
+  async getNoteContent(noteId) {
+    try {
+      const { notes } = await this.getNotesAndBranches();
+      
+      // Buscar la nota por ID
+      const note = notes.find(n => n.noteId === noteId);
+      
+      if (!note) {
+        console.log(`Nota no encontrada por ID: ${noteId}`);
+        return null;
+      }
+
+      console.log(`Nota encontrada: "${note.title}" (ID: ${noteId})`);
+      
+      // Devolver el contenido completo de la nota
+      return {
+        id: note.noteId,
+        noteId: note.noteId, // Mantener compatibilidad
+        title: note.title,
+        content: note.content || ''
+      };
+      
+    } catch (error) {
+      console.error(`Error obteniendo contenido de nota ${noteId}:`, error);
+      throw error;
+    }
+  }
+
+  // Método para obtener múltiples notas por IDs (útil para referencias)
+  async getNotesByIds(noteIds) {
+    try {
+      const { notes } = await this.getNotesAndBranches();
+      
+      return noteIds.map(id => {
+        const note = notes.find(n => n.noteId === id);
+        return note ? {
+          id: note.noteId,
+          noteId: note.noteId,
+          title: note.title,
+          content: note.content || ''
+        } : null;
+      }).filter(note => note !== null);
+      
+    } catch (error) {
+      console.error(`Error obteniendo múltiples notas:`, error);
+      throw error;
+    }
+  }
+
+  // NUEVO MÉTODO: Buscar nota por título (case-insensitive)
+  async findNoteByTitle(title) {
+    try {
+      const { notes } = await this.getNotesAndBranches();
+      
+      const lowerTitle = title.toLowerCase();
+      const note = notes.find(n => n.title.toLowerCase().includes(lowerTitle));
+      
+      return note ? {
+        id: note.noteId,
+        noteId: note.noteId,
+        title: note.title,
+        content: note.content || ''
+      } : null;
+      
+    } catch (error) {
+      console.error(`Error buscando nota por título "${title}":`, error);
+      throw error;
+    }
+  }
+
+  // Método específico para Three.js (existente)
   async getStructureForThreeJS() {
     const root = await this.getCompleteTree();
     
@@ -102,6 +173,7 @@ export class NoteService {
     
     return {
       id: node.noteId,
+      noteId: node.noteId, // Mantener compatibilidad
       title: node.title,
       type: nodeType,
       content: node.content ? this.extractContentPreview(node.content) : '',
@@ -122,5 +194,30 @@ export class NoteService {
     
     // Extraer un preview del contenido (primeros 200 caracteres)
     return contentStr.substring(0, 200) + (contentStr.length > 200 ? '...' : '');
+  }
+
+  // NUEVO MÉTODO: Resolver referencias en contenido
+  async resolveReferences(content) {
+    if (!content) return { content: '', references: [] };
+    
+    const references = [];
+    const contentStr = Buffer.isBuffer(content) ? content.toString('utf8') : content;
+    
+    // Extraer referencias usando regex
+    const referenceRegex = /<a class="reference-link" href="#root\/[^/]+\/([^"]+)">([^<]+)<\/a>/gi;
+    let match;
+    
+    while ((match = referenceRegex.exec(contentStr)) !== null) {
+      references.push({
+        noteId: match[1],
+        text: match[2].replace(/&nbsp;/g, ' '),
+        originalHref: match[0]
+      });
+    }
+    
+    return {
+      content: contentStr,
+      references: references
+    };
   }
 }
