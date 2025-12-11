@@ -23,3 +23,5 @@ magical_blackwell.db
 document.db
 *.db-shm
 *.db-wal
+
+sketches

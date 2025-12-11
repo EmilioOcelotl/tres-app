@@ -1,541 +1,542 @@
-// main.js - VERSIÓN CON BOTÓN DE VOLVER
+// main.js - THREE.js Cyberpunk Note Explorer
 // ===========================================
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js';
+import { LuminosityHighPassShader } from 'three/examples/jsm/shaders/LuminosityHighPassShader.js';
+
 // Configuración global
 const CONFIG = {
-  apiBase: '/api/3d',
-  colors: {
-    primary: '#2c3e50',
-    secondary: '#3498db',
-    accent: '#e74c3c',
-    reference: '#d35400',
-    background: '#f9f9f9'
-  }
+    apiBase: '/api/3d',
+    colors: {
+        background: 0x050510,
+        mainChapter: 0x4e00ff, // Púrpura
+        subChapter: 0x00c8ff,  // Cian
+        note: 0x33ff00,        // Verde
+        highlight: 0xffffff,
+        connection: 0x00ffff,
+        arrow: 0xff00ff
+    },
+    scene: {
+        mainRadius: 25,
+        secondaryRadius: 10,
+        noteRadius: 4,
+        fogDensity: 0.015
+    }
 };
 
 // Estado de la aplicación
 const AppState = {
-  currentNote: null,
-  noteHistory: [],
-  historyIndex: -1,
-  loadedNotes: new Map()
+    currentNote: null,
+    loadedNotes: new Map(),
+    allNoteObjects: [] // To store all Three.js note objects for raycasting
 };
+
+// THREE.js Variables
+let scene, camera, renderer, controls, composer, bloomPass;
+let raycaster, mouse;
+let selectedObject = null;
+const originalMaterials = new WeakMap();
+const highlightMaterial = new THREE.MeshPhongMaterial({
+    color: CONFIG.colors.highlight,
+    emissive: CONFIG.colors.highlight,
+    emissiveIntensity: 1.0,
+    shininess: 100
+});
+
+// Layers for bloom effect
+const BLOOM_LAYER = 1;
+const bloomLayer = new THREE.Layers();
+bloomLayer.set(BLOOM_LAYER);
+
+// Groups for different types of buildings/notes
+const mainBuildings = new THREE.Group();
+const secondaryBuildings = new THREE.Group();
+const noteBuildings = new THREE.Group();
+const connections = new THREE.Group();
+const connectionArrows = new THREE.Group();
+
+// UI Elements
+const loadingScreen = document.getElementById('loading-screen');
+const noteDisplayOverlay = document.getElementById('note-display-overlay');
+const overlayTitle = document.getElementById('overlay-title');
+const overlayContent = document.getElementById('overlay-content');
+const closeOverlayButton = document.getElementById('close-overlay');
 
 // ===========================================
 // Funciones de API
 // ===========================================
 
 async function fetchTree() {
-  try {
-    const res = await fetch(`${CONFIG.apiBase}/structure`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-    const json = await res.json();
-    if (!json.success) throw new Error('Error al obtener estructura');
-    
-    console.log(`Árbol cargado: ${json.metadata.totalNodes} nodos`);
-    return json.data;
-    
-  } catch (error) {
-    console.error('Error en fetchTree:', error);
-    throw error;
-  }
+    try {
+        const res = await fetch(`${CONFIG.apiBase}/structure`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const json = await res.json();
+        if (!json.success) throw new Error('Error al obtener estructura');
+
+        console.log(`Árbol cargado: ${json.metadata.totalNodes} nodos`);
+        return json.data;
+
+    } catch (error) {
+        console.error('Error en fetchTree:', error);
+        throw error;
+    }
 }
 
 async function fetchNoteContent(noteId, useCache = true) {
-  if (useCache && AppState.loadedNotes.has(noteId)) {
-    console.log(`Usando cache para nota: ${noteId}`);
-    return AppState.loadedNotes.get(noteId);
-  }
-  
-  try {
-    const res = await fetch(`${CONFIG.apiBase}/note/${noteId}/content`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-    const json = await res.json();
-    if (!json.success) throw new Error('Error al obtener contenido de la nota');
-    
-    console.log(`Nota cargada: "${json.data.title}" (ID: ${noteId})`);
-    
-    AppState.loadedNotes.set(noteId, json.data);
-    return json.data;
-    
-  } catch (error) {
-    console.error(`Error cargando nota ${noteId}:`, error);
-    throw error;
-  }
+    if (useCache && AppState.loadedNotes.has(noteId)) {
+        console.log(`Usando cache para nota: ${noteId}`);
+        return AppState.loadedNotes.get(noteId);
+    }
+
+    try {
+        const res = await fetch(`${CONFIG.apiBase}/note/${noteId}/content`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const json = await res.json();
+        if (!json.success) throw new Error('Error al obtener contenido de la nota');
+
+        console.log(`Nota cargada: "${json.data.title}" (ID: ${noteId})`);
+
+        AppState.loadedNotes.set(noteId, json.data);
+        return json.data;
+
+    } catch (error) {
+        console.error(`Error cargando nota ${noteId}:`, error);
+        throw error;
+    }
 }
 
 // ===========================================
-// Funciones de UI - Árbol de navegación
+// THREE.js Scene Setup
 // ===========================================
 
-function createTreeNode(node, depth = 0) {
-  const li = document.createElement('li');
-  li.className = 'tree-node';
-  li.dataset.noteId = node.id;
-  li.dataset.depth = depth;
-  
-  // Contenedor del título con ícono
-  const titleContainer = document.createElement('div');
-  titleContainer.className = 'tree-node-title';
-  
-  // Ícono de expansión si tiene hijos
-  if (node.children && node.children.length > 0) {
-    const expandIcon = document.createElement('span');
-    expandIcon.className = 'expand-icon';
-    expandIcon.textContent = '▶';
-    titleContainer.appendChild(expandIcon);
-  }
-  
-  const titleText = document.createElement('span');
-  titleText.textContent = node.title;
-  titleContainer.appendChild(titleText);
-  
-  li.appendChild(titleContainer);
-  
-  // Click en el nodo
-  li.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    
-    // Manejar expansión si se hace clic en el ícono
-    if (e.target.classList.contains('expand-icon')) {
-      const ul = li.querySelector('ul');
-      if (ul) {
-        const isCollapsed = ul.style.display === 'none';
-        ul.style.display = isCollapsed ? 'block' : 'none';
-        e.target.textContent = isCollapsed ? '▼' : '▶';
-        e.target.style.transform = isCollapsed ? 'rotate(90deg)' : 'rotate(0deg)';
-      }
-      return;
-    }
-    
-    await loadAndDisplayNote(node.id);
-    
-    // Añadir al historial
-    addToHistory(node.id);
-  });
-  
-  // Crear hijos si existen
-  if (node.children && node.children.length > 0) {
-    const ul = document.createElement('ul');
-    ul.style.cssText = `
-      padding-left: ${20 + (depth * 10)}px;
-      margin: 4px 0;
-      display: ${depth < 2 ? 'block' : 'none'};
-    `;
-    
-    node.children.forEach(child => {
-      ul.appendChild(createTreeNode(child, depth + 1));
+function initThreeScene() {
+    // Scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(CONFIG.colors.background);
+    scene.fog = new THREE.FogExp2(CONFIG.colors.background, CONFIG.scene.fogDensity);
+
+    // Camera
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 25, 60);
+    camera.lookAt(0, 0, 0);
+
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.getElementById('scene-container').appendChild(renderer.domElement);
+
+    // Controls
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI * 0.9;
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0x222244);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0x55aaff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    // Post-processing (Bloom)
+    const renderScene = new RenderPass(scene, camera);
+    bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        1.5, // strength
+        0.5, // radius
+        0    // threshold
+    );
+    composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // Add groups to scene
+    scene.add(mainBuildings);
+    scene.add(secondaryBuildings);
+    scene.add(noteBuildings);
+    scene.add(connections);
+    scene.add(connectionArrows);
+
+    // Grid Helper
+    const gridSize = 70;
+    const gridDivisions = 35;
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x00ffff, 0x444477);
+    gridHelper.position.y = 0.01;
+    scene.add(gridHelper);
+
+    // Raycaster for interaction
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+
+    window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener('click', onClick, false);
+    closeOverlayButton.addEventListener('click', hideNoteOverlay);
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+
+    // Update animated arrows (if any) - Placeholder for future animated connections
+    connectionArrows.children.forEach(arrow => {
+        if (arrow.userData.update) {
+            arrow.userData.update();
+        }
     });
-    
-    // Configurar ícono de expansión inicial
-    if (depth < 2) {
-      const icon = li.querySelector('.expand-icon');
-      if (icon) {
-        icon.textContent = '▼';
-        icon.style.transform = 'rotate(90deg)';
-      }
+
+    TWEEN.update(); // Update TWEEN animations
+    composer.render();
+}
+
+// ===========================================
+// 3D Note Visualization
+// ===========================================
+
+function createNoteObjects(tree) {
+    // Clear existing objects
+    mainBuildings.children = [];
+    secondaryBuildings.children = [];
+    noteBuildings.children = [];
+    AppState.allNoteObjects = [];
+
+    // This will be a recursive function to build the 3D city
+    // For now, let's create a placeholder structure similar to viz.html
+    // but using the actual tree data.
+
+    const chapterColors = [
+        new THREE.Color(0x4e00ff), // Púrpura
+        new THREE.Color(0x00c8ff), // Cian
+        new THREE.Color(0xff0077), // Rosa
+        new THREE.Color(0x33ff00), // Verde
+        new THREE.Color(0xffaa00), // Naranja
+        new THREE.Color(0xaa00ff)  // Violeta
+    ];
+
+    // Assuming 'tree' is the root note/chapter
+    // We'll treat its children as main chapters, their children as subchapters, and so on.
+    // This is a simplified approach and might need refinement based on actual data structure.
+
+    if (!tree || !tree.children) {
+        console.warn("No tree data or children found to visualize.");
+        return;
     }
-    
-    li.appendChild(ul);
-  }
-  
-  return li;
-}
 
-// ===========================================
-// Funciones de UI - Visualización de notas
-// ===========================================
+    tree.children.forEach((mainChapterNode, i) => {
+        const angle = (i / tree.children.length) * Math.PI * 2;
+        const x = Math.cos(angle) * CONFIG.scene.mainRadius;
+        const z = Math.sin(angle) * CONFIG.scene.mainRadius;
 
-async function loadAndDisplayNote(noteId) {
-  try {
-    const note = await fetchNoteContent(noteId);
-    displayNoteContent(note);
-    
-    // Actualizar estado
-    AppState.currentNote = note;
-    
-    // Resaltar nodo activo
-    highlightActiveNode(noteId);
-    
-  } catch (error) {
-    console.error('Error cargando nota:', error);
-    alert(`No se pudo cargar la nota: ${error.message}`);
-  }
-}
+        const mainColor = chapterColors[i % chapterColors.length];
+        const mainBuilding = createBuilding(mainChapterNode, new THREE.Vector3(x, 0, z), mainColor, "main");
+        mainBuildings.add(mainBuilding);
+        AppState.allNoteObjects.push(mainBuilding);
 
-function displayNoteContent(note) {
-  const titleEl = document.getElementById('note-title');
-  const contentEl = document.getElementById('note-content');
+        if (mainChapterNode.children) {
+            mainChapterNode.children.forEach((subChapterNode, j) => {
+                const secondaryAngle = (j / mainChapterNode.children.length) * Math.PI * 2;
+                const sX = x + Math.cos(secondaryAngle) * CONFIG.scene.secondaryRadius;
+                const sZ = z + Math.sin(secondaryAngle) * CONFIG.scene.secondaryRadius;
 
-  // Actualizar título
-  titleEl.textContent = note.title;
-  
-  // Mostrar contenido HTML procesado
-  contentEl.innerHTML = note.content.html || '<p>No hay contenido</p>';
-  
-  // Aplicar funcionalidad a los enlaces de referencia
-  processReferenceLinks(contentEl);
-  
-  // Aplicar estilos básicos al contenido
-  applyContentStyles(contentEl);
-}
+                const subColor = mainColor.clone().offsetHSL(0, 0, 0.1); // Slightly lighter
+                const subBuilding = createBuilding(subChapterNode, new THREE.Vector3(sX, 0, sZ), subColor, "secondary");
+                secondaryBuildings.add(subBuilding);
+                AppState.allNoteObjects.push(subBuilding);
 
-function processReferenceLinks(container) {
-  container.querySelectorAll('a.ref-link').forEach(link => {
-    const noteId = link.getAttribute('data-note-id');
-    
-    // Añadir clase CSS para estilos
-    link.classList.add('ref-link');
-    
-    // Tooltip
-    link.title = `Clic para cargar esta referencia`;
-    
-    // Evento click
-    link.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      try {
-        await loadAndDisplayNote(noteId);
-        
-        // Añadir al historial
-        addToHistory(noteId);
-        
-      } catch (err) {
-        console.error('Error cargando nota referenciada:', err);
-        alert(`No se pudo cargar la nota referenciada: ${noteId}`);
-      }
+                if (subChapterNode.children) {
+                    subChapterNode.children.forEach((noteNode, k) => {
+                        const noteAngle = (k / subChapterNode.children.length) * Math.PI * 2;
+                        const nX = sX + Math.cos(noteAngle) * CONFIG.scene.noteRadius;
+                        const nZ = sZ + Math.sin(noteAngle) * CONFIG.scene.noteRadius;
+
+                        const noteColor = subColor.clone().offsetHSL(0, 0, 0.2); // Even lighter
+                        const noteBuilding = createBuilding(noteNode, new THREE.Vector3(nX, 0, nZ), noteColor, "note");
+                        noteBuildings.add(noteBuilding);
+                        AppState.allNoteObjects.push(noteBuilding);
+                    });
+                }
+            });
+        }
     });
-  });
+
+    // TODO: Implement connections if the note data provides relational information
 }
 
-function applyContentStyles(container) {
-  // Estilos para elementos HTML básicos
-  container.querySelectorAll('em, i').forEach(el => {
-    el.style.fontStyle = 'italic';
-  });
-  
-  container.querySelectorAll('strong, b').forEach(el => {
-    el.style.fontWeight = 'bold';
-  });
-  
-  container.querySelectorAll('ul, ol').forEach(el => {
-    el.style.marginLeft = '24px';
-    el.style.marginBottom = '16px';
-  });
-  
-  container.querySelectorAll('li').forEach(el => {
-    el.style.marginBottom = '8px';
-  });
-  
-  container.querySelectorAll('p').forEach(el => {
-    el.style.marginBottom = '16px';
-    el.style.lineHeight = '1.6';
-  });
-}
+function createBuilding(nodeData, position, color, type) {
+    let height, width, depth;
+    let emissiveIntensity, shininess;
 
-function highlightActiveNode(noteId) {
-  // Remover activo de todos los nodos
-  document.querySelectorAll('#tree-root .tree-node').forEach(node => {
-    node.classList.remove('active');
-  });
-  
-  // Aplicar activo al nodo actual
-  const activeNode = document.querySelector(`#tree-root .tree-node[data-note-id="${noteId}"]`);
-  if (activeNode) {
-    activeNode.classList.add('active');
-    
-    // Asegurar que todos los padres estén expandidos
-    let parent = activeNode.parentElement;
-    while (parent && parent.tagName === 'UL') {
-      const parentLi = parent.parentElement;
-      const expandIcon = parentLi?.querySelector('.expand-icon');
-      if (expandIcon) {
-        expandIcon.textContent = '▼';
-        expandIcon.style.transform = 'rotate(90deg)';
-      }
-      parent.style.display = 'block';
-      parent = parentLi?.parentElement;
+    switch (type) {
+        case "main":
+            height = 6 + Math.random() * 2; // 6-8
+            width = 3 + Math.random();      // 3-4
+            depth = 3 + Math.random();      // 3-4
+            emissiveIntensity = 0.6;
+            shininess = 40;
+            break;
+        case "secondary":
+            height = 3 + Math.random() * 2; // 3-5
+            width = 1.8 + Math.random() * 0.6; // 1.8-2.4
+            depth = 1.8 + Math.random() * 0.6; // 1.8-2.4
+            emissiveIntensity = 0.4;
+            shininess = 30;
+            break;
+        case "note":
+            height = 1 + Math.random(); // 1-2
+            width = 0.8 + Math.random() * 0.4; // 0.8-1.2
+            depth = 0.8 + Math.random() * 0.4; // 0.8-1.2
+            emissiveIntensity = 0.3;
+            shininess = 20;
+            break;
+        default:
+            height = 1; width = 1; depth = 1;
+            emissiveIntensity = 0.2;
+            shininess = 10;
     }
-  }
-}
 
-// ===========================================
-// Historial de navegación
-// ===========================================
+    const geometry = new THREE.BoxGeometry(width, height, depth);
+    const material = new THREE.MeshPhongMaterial({
+        color: color,
+        emissive: color.clone().multiplyScalar(0.2),
+        emissiveIntensity: emissiveIntensity,
+        shininess: shininess
+    });
 
-function addToHistory(noteId) {
-  // Evitar duplicados consecutivos
-  if (AppState.historyIndex >= 0 && AppState.noteHistory[AppState.historyIndex] === noteId) {
-    return;
-  }
-  
-  // Si estamos en medio del historial, cortar el futuro
-  if (AppState.historyIndex < AppState.noteHistory.length - 1) {
-    AppState.noteHistory = AppState.noteHistory.slice(0, AppState.historyIndex + 1);
-  }
-  
-  AppState.noteHistory.push(noteId);
-  AppState.historyIndex = AppState.noteHistory.length - 1;
-  
-  updateNavigationControls();
-}
+    const building = new THREE.Mesh(geometry, material);
+    building.position.set(position.x, height / 2, position.z);
 
-function goBack() {
-  if (AppState.historyIndex > 0) {
-    AppState.historyIndex--;
-    loadAndDisplayNote(AppState.noteHistory[AppState.historyIndex]);
-    updateNavigationControls();
-  }
-}
+    // Add wireframe
+    const edges = new THREE.EdgesGeometry(geometry);
+    const wireframe = new THREE.LineSegments(
+        edges,
+        new THREE.LineBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.4
+        })
+    );
+    building.add(wireframe);
 
-function goForward() {
-  if (AppState.historyIndex < AppState.noteHistory.length - 1) {
-    AppState.historyIndex++;
-    loadAndDisplayNote(AppState.noteHistory[AppState.historyIndex]);
-    updateNavigationControls();
-  }
-}
+    // Store original material
+    originalMaterials.set(building, material);
 
-function updateNavigationControls() {
-  const backBtn = document.getElementById('btn-back');
-  const forwardBtn = document.getElementById('btn-forward');
-  
-  if (backBtn) {
-    backBtn.disabled = AppState.historyIndex <= 0;
-    backBtn.style.opacity = AppState.historyIndex <= 0 ? '0.5' : '1';
-    backBtn.style.cursor = AppState.historyIndex <= 0 ? 'not-allowed' : 'pointer';
-  }
-  
-  if (forwardBtn) {
-    forwardBtn.disabled = AppState.historyIndex >= AppState.noteHistory.length - 1;
-    forwardBtn.style.opacity = AppState.historyIndex >= AppState.noteHistory.length - 1 ? '0.5' : '1';
-    forwardBtn.style.cursor = AppState.historyIndex >= AppState.noteHistory.length - 1 ? 'not-allowed' : 'pointer';
-  }
+    // Attach note data to the 3D object
+    building.userData = {
+        type: type,
+        id: nodeData.id,
+        title: nodeData.title,
+        color: color.getHex(),
+        originalPosition: building.position.clone(),
+        originalScale: building.scale.clone()
+    };
+
+    return building;
 }
 
 // ===========================================
-// Controles de navegación UI
+// Interaction and Selection
 // ===========================================
 
-function createNavigationControls() {
-  // Crear contenedor de controles
-  const navContainer = document.createElement('div');
-  navContainer.id = 'navigation-controls';
-  navContainer.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    gap: 8px;
-    z-index: 100;
-    background: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border: 1px solid #e0e0e0;
-  `;
-  
-  navContainer.innerHTML = `
-    <button id="btn-back" style="
-      padding: 6px 12px;
-      background: ${CONFIG.colors.primary};
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 14px;
-      transition: all 0.2s;
-    ">
-      <span style="font-size: 16px;">←</span>
-      Volver
-    </button>
-    <button id="btn-forward" style="
-      padding: 6px 12px;
-      background: ${CONFIG.colors.primary};
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 14px;
-      transition: all 0.2s;
-    ">
-      Adelante
-      <span style="font-size: 16px;">→</span>
-    </button>
-  `;
-  
-  document.body.appendChild(navContainer);
-  
-  // Eventos de navegación
-  document.getElementById('btn-back').addEventListener('click', goBack);
-  document.getElementById('btn-forward').addEventListener('click', goForward);
-  
-  // Atajos de teclado
-  document.addEventListener('keydown', (e) => {
-    if (e.altKey && e.key === 'ArrowLeft') {
-      e.preventDefault();
-      goBack();
-    } else if (e.altKey && e.key === 'ArrowRight') {
-      e.preventDefault();
-      goForward();
+function onClick(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(AppState.allNoteObjects, true);
+
+    if (intersects.length > 0) {
+        let object = intersects[0].object;
+        // Find the parent mesh that has the userData (the actual building)
+        while (object && !object.userData.id) {
+            object = object.parent;
+        }
+        if (object && object.userData.id) {
+            selectNoteObject(object);
+        }
+    } else {
+        deselectNoteObject();
     }
-  });
+}
+
+async function selectNoteObject(object) {
+    if (selectedObject === object) {
+        // If the same object is clicked, deselect it
+        deselectNoteObject();
+        return;
+    }
+
+    // Restore previously selected object
+    if (selectedObject) {
+        deselectNoteObject();
+    }
+
+    // Select new object
+    selectedObject = object;
+    
+    // Animate to front
+    const targetPosition = new THREE.Vector3().copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-10)); // 10 units in front of camera
+    targetPosition.y = object.userData.originalPosition.y; // Keep original height
+    
+    // Scale up slightly
+    new TWEEN.Tween(object.scale)
+        .to({ x: object.userData.originalScale.x * 1.2, y: object.userData.originalScale.y * 1.2, z: object.userData.originalScale.z * 1.2 }, 500)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .start();
+
+    new TWEEN.Tween(object.position)
+        .to(targetPosition, 500)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .start();
+
+    // Apply highlight material
+    const originalMaterial = originalMaterials.get(selectedObject);
+    if (originalMaterial) {
+        selectedObject.material = highlightMaterial;
+        selectedObject.layers.enable(BLOOM_LAYER);
+    }
+    highlightMaterial.color.setHex(object.userData.color); // Update highlight color
+
+    // Display note content in overlay
+    const noteData = await fetchNoteContent(object.userData.id);
+    displayNoteInOverlay(noteData);
+}
+
+function deselectNoteObject() {
+    if (selectedObject) {
+        // Restore original material and position/scale
+        const originalMaterial = originalMaterials.get(selectedObject);
+        if (originalMaterial) {
+            selectedObject.material = originalMaterial;
+            selectedObject.layers.disable(BLOOM_LAYER);
+        }
+        
+        new TWEEN.Tween(selectedObject.scale)
+            .to(selectedObject.userData.originalScale, 500)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+
+        new TWEEN.Tween(selectedObject.position)
+            .to(selectedObject.userData.originalPosition, 500)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+
+        selectedObject = null;
+        hideNoteOverlay();
+    }
 }
 
 // ===========================================
-// CSS adicional dinámico
+// UI Overlay Functions
 // ===========================================
 
-function addDynamicStyles() {
-  const style = document.createElement('style');
-  style.textContent = `
-    /* Animaciones */
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    #note-content {
-      animation: fadeIn 0.5s;
-    }
-    
-    /* Encabezados en el contenido */
-    #note-content h1, #note-content h2, #note-content h3, #note-content h4 {
-      color: #2c3e50;
-      margin-top: 24px;
-      margin-bottom: 16px;
-    }
-    
-    #note-content h1 {
-      font-size: 1.8em;
-      border-bottom: 2px solid #eee;
-      padding-bottom: 8px;
-    }
-    
-    #note-content h2 {
-      font-size: 1.5em;
-    }
-    
-    #note-content h3 {
-      font-size: 1.3em;
-    }
-    
-    /* Citas y código */
-    #note-content blockquote {
-      border-left: 4px solid #ddd;
-      margin: 16px 0;
-      padding: 8px 16px;
-      background-color: #f9f9f9;
-      color: #666;
-    }
-    
-    #note-content code {
-      background-color: #f5f5f5;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: 'Courier New', monospace;
-      font-size: 0.9em;
-    }
-    
-    #note-content pre {
-      background-color: #f5f5f5;
-      padding: 16px;
-      border-radius: 6px;
-      overflow-x: auto;
-      margin: 16px 0;
-    }
-    
-    #note-content pre code {
-      background-color: transparent;
-      padding: 0;
-    }
-    
-    /* Estados de los botones */
-    #btn-back:disabled,
-    #btn-forward:disabled {
-      background: #bdc3c7 !important;
-      cursor: not-allowed !important;
-    }
-    
-    #btn-back:not(:disabled):hover,
-    #btn-forward:not(:disabled):hover {
-      background: #2980b9 !important;
-      transform: translateY(-1px);
-      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-    }
-    
-    #btn-back:not(:disabled):active,
-    #btn-forward:not(:disabled):active {
-      transform: translateY(0);
-    }
-    
-    /* Indicador de historial */
-    .history-indicator {
-      font-size: 12px;
-      color: #7f8c8d;
-      margin-top: 4px;
-      text-align: center;
-    }
-  `;
-  document.head.appendChild(style);
+function displayNoteInOverlay(note) {
+    overlayTitle.textContent = note.title;
+    overlayContent.innerHTML = note.content.html || '<p>No hay contenido</p>';
+    noteDisplayOverlay.style.display = 'block';
+    // Add animation for appearance - will be handled by CSS
+}
+
+function hideNoteOverlay() {
+    noteDisplayOverlay.style.display = 'none';
 }
 
 // ===========================================
-// Inicialización
+// Initialization
 // ===========================================
 
 async function init() {
-  try {
-    // Añadir estilos dinámicos
-    addDynamicStyles();
-    
-    // Crear controles de navegación
-    createNavigationControls();
-    
-    // Cargar estructura del árbol
-    const tree = await fetchTree();
-    const rootUl = document.getElementById('tree-root');
-    rootUl.innerHTML = '';
-    rootUl.appendChild(createTreeNode(tree));
-    
-    // Cargar primera nota automáticamente
-    if (tree.id) {
-      await loadAndDisplayNote(tree.id);
-      addToHistory(tree.id);
+    loadingScreen.style.display = 'block'; // Show loading screen
+
+    initThreeScene();
+    animate(); // Start animation loop
+
+    try {
+        const tree = await fetchTree();
+        createNoteObjects(tree);
+        console.log('Aplicación inicializada correctamente');
+    } catch (err) {
+        console.error('Error inicializando:', err);
+        overlayTitle.textContent = 'Error';
+        overlayContent.innerHTML = '<p>No se pudo cargar la estructura de notas. Verifica la conexión al servidor.</p>';
+        noteDisplayOverlay.style.display = 'block';
+    } finally {
+        loadingScreen.style.display = 'none'; // Hide loading screen
     }
-    
-    console.log('Aplicación inicializada correctamente');
-    
-  } catch (err) {
-    console.error('Error inicializando:', err);
-    document.getElementById('tree-root').innerHTML = 
-      '<li style="color: #e74c3c; padding: 16px;">Error al cargar las notas.</li>';
-    document.getElementById('note-title').textContent = 'Error';
-    document.getElementById('note-content').innerHTML = 
-      '<p>No se pudo cargar la estructura de notas. Verifica la conexión al servidor.</p>';
-  }
 }
 
-// Iniciar cuando el DOM esté listo
+// Add TWEEN.js for animations
+// This requires a separate script tag in index.html or bundling.
+// For now, let's assume it's loaded globally or add a CDN import.
+// I will add it to index.html in the next step.
+// For now, I'll mock TWEEN if it's not present to prevent errors during this step.
+if (typeof TWEEN === 'undefined') {
+    window.TWEEN = {
+        Tween: function(object) {
+            this._object = object;
+            this._valuesStart = {};
+            this._valuesEnd = {};
+            this._duration = 1000;
+            this._easingFunction = function(k) { return k; };
+            this.to = function(properties, duration) {
+                for (var prop in properties) {
+                    this._valuesEnd[prop] = properties[prop];
+                    this._valuesStart[prop] = this._object[prop];
+                }
+                this._duration = duration || this._duration;
+                return this;
+            };
+            this.easing = function(easing) {
+                this._easingFunction = easing;
+                return this;
+            };
+            this.start = function() {
+                var self = this;
+                var startTime = performance.now();
+                function update(currentTime) {
+                    var elapsed = currentTime - startTime;
+                    var progress = Math.min(1, elapsed / self._duration);
+                    var easedProgress = self._easingFunction(progress);
+                    for (var prop in self._valuesEnd) {
+                        self._object[prop] = self._valuesStart[prop] + (self._valuesEnd[prop] - self._valuesStart[prop]) * easedProgress;
+                    }
+                    if (progress < 1) {
+                        requestAnimationFrame(update);
+                    }
+                }
+                requestAnimationFrame(update);
+                return this;
+            };
+            this.update = function() {}; // Dummy update
+        },
+        Easing: {
+            Quadratic: {
+                Out: function(k) { return k * (2 - k); }
+            }
+        }
+    };
+}
+
+
+// Start when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init);
 } else {
-  init();
+    init();
 }
-
-// Para depuración (opcional)
-window.App = {
-  state: AppState,
-  goBack,
-  goForward,
-  getHistory: () => AppState.noteHistory,
-  getCurrentIndex: () => AppState.historyIndex
-};

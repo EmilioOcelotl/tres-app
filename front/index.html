@@ -1,20 +1,30 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Visualizador de Notas</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorador de Notas 3D</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
-  <div id="tree-container">
-    <h1>Notas</h1>
-    <ul id="tree-root"></ul>
-  </div>
-  <div id="note-container">
-    <h2 id="note-title">Selecciona una nota</h2>
-    <p id="note-content"></p>
-  </div>
+    <div id="scene-container"></div>
+    <div id="note-display-overlay">
+        <h2 id="overlay-title">Selecciona una nota</h2>
+        <div id="overlay-content"></div>
+        <button id="close-overlay">X</button>
+    </div>
+    <div id="loading-screen">Cargando escena...</div>
 
-  <script type="module" src="main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.umd.min.js"></script>
+    <script type="module" src="main.js"></script>
 </body>
 </html>
