@@ -14,7 +14,7 @@ import { LuminosityHighPassShader } from 'three/examples/jsm/shaders/LuminosityH
 const CONFIG = {
     apiBase: '/api/3d',
     colors: {
-        background: 0x050510,
+        background: 0x000000,
         mainChapter: 0x4e00ff, // Púrpura
         subChapter: 0x00c8ff,  // Cian
         note: 0x33ff00,        // Verde
@@ -328,7 +328,7 @@ function createBuilding(nodeData, position, color, type) {
         new THREE.LineBasicMaterial({
             color: 0xffffff,
             transparent: true,
-            opacity: 0.4
+            opacity: 0.1
         })
     );
     building.add(wireframe);

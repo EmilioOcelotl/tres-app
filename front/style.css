@@ -37,7 +37,7 @@ canvas {
 #note-display-overlay {
     position: absolute;
     top: 50%;
-    left: 50%;
+    left: 30%;
     transform: translate(-50%, -50%); /* Center horizontally and vertically */
     width: 80%;
     max-width: 700px;
