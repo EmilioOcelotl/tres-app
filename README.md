@@ -50,6 +50,48 @@ Para copiar la base de datos:
 
 ```docker cp identificador:/home/node/trilium-data/document.db /home/usuaio/trilium-backup.db```
 
+## Sincronización 
+
+Para copiar la base de datos con un script y se ejecuta con cron cada cierto tiempo.
+
+```
+#!/bin/bash
+
+# ==============================
+# Configuración
+# ==============================
+
+SOURCE_DB="/ruta/a/base_origen/document.db"
+DESTINATION_DB="/ruta/a/base_destino/document.db"
+TEMP_DB="/tmp/document_backup.db"
+
+# ==============================
+# Backup seguro usando sqlite
+# ==============================
+
+sqlite3 "$SOURCE_DB" ".backup '$TEMP_DB'"
+
+# ==============================
+# Reemplazar base destino
+# ==============================
+
+mv "$TEMP_DB" "$DESTINATION_DB"
+
+echo "Sincronización completada: $(date)"
+```
+
+Dar permisos de ejecución: 
+
+```chmod +x /ruta/del/script/sync_sqlite_db.sh```
+
+Programar ejecución: 
+
+```crontab -e```
+
+Agregar la tarea: 
+
+```0 2 * * * /ruta/del/script/sync_sqlite_db.sh```
+
 ## Endpoints
 
 - GET / - Documentación de la API y endpoints disponibles
