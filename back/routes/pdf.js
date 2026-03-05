@@ -15,7 +15,7 @@ const fontsPath = path.join(__dirname, '..', '..', 'assets', 'fonts');
 
 // Función para generar índice solo con primer nivel (capítulos principales)
 function insertarIndice(doc, capitulos, fontPath) {
-  doc.addPage(); // Página en blanco después de portada
+  doc.addPage();
 
   doc.font(fontPath)
     .fontSize(16)
@@ -25,19 +25,46 @@ function insertarIndice(doc, capitulos, fontPath) {
     })
     .moveDown(1.5);
 
-  // Solo mostrar los títulos de primer nivel (capítulos principales)
   for (const capitulo of capitulos) {
-    doc.font(fontPath)
-      .fontSize(12)
-      .text(capitulo.title, {
-        indent: 0,
-        continued: false
-      });
-
-    doc.moveDown(0.5);
+    insertarNodoIndice(doc, capitulo, fontPath, 0);
   }
 
   doc.moveDown(2);
+}
+
+function insertarNodoIndice(doc, nodo, fontPath, nivel) {
+  const indent = nivel * 20;
+
+  let fontSize;
+
+  switch (nivel) {
+    case 0:
+      fontSize = 12;
+      break;
+    case 1:
+      fontSize = 11;
+      break;
+    default:
+      fontSize = 10;
+  }
+
+  doc.font(fontPath)
+    .fontSize(fontSize)
+    .text(nodo.title, {
+      indent: indent
+    });
+
+  doc.moveDown(0.3);
+
+  if (nodo.title && nodo.title.toLowerCase() === 'referencias') {
+    return;
+  }
+
+  if (nodo.children && nodo.children.length > 0) {
+    for (const hijo of nodo.children) {
+      insertarNodoIndice(doc, hijo, fontPath, nivel + 1);
+    }
+  }
 }
 
 // Función para procesar contenido jerárquico completo
@@ -292,11 +319,14 @@ router.get('/', async (req, res) => {
       capitulosParaIndice.push(referencesNode);
     }
 
+    const capitulosFiltrados = capitulosParaIndice.filter(
+  c => !c.title?.toLowerCase().includes('tres estudios')
+);
+
     console.log(`Capítulos para índice: ${capitulosParaIndice.length}`);
     console.log('Capítulos en índice:', capitulosParaIndice.map(c => c.title));
     
-    insertarIndice(doc, capitulosParaIndice, fontPath);
-
+insertarIndice(doc, capitulosFiltrados, fontPath);
     // PROCESAR CONTENIDO JERÁRQUICO COMPLETO (usando el root filtrado)
     
     // Procesar aclaraciones primero si existe
