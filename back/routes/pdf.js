@@ -93,7 +93,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
       
     case 1: // Subcapítulo - SIN SALTO DE PÁGINA
       fontSize = 14;
-      indent = 20;
+      //indent = 20;
       isTitle = true;
       
       // Verificar si hay espacio suficiente en la página actual
@@ -105,7 +105,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
       doc.font(fontPath)
         .fontSize(fontSize)
         .text(nodo.title, {
-          indent: indent,
+          indent: 20,
           paragraphGap: 10
         })
         .moveDown(0.5);
@@ -113,7 +113,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
       
     case 2: // Tercer nivel - SIN SALTO DE PÁGINA
       fontSize = 12;
-      indent = 40;
+      //indent = 40;
       isTitle = true;
       
       // Verificar si hay espacio suficiente en la página actual
@@ -125,7 +125,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
       doc.font(fontPath)
         .fontSize(fontSize)
         .text(nodo.title, {
-          indent: indent,
+          indent: 20,
           paragraphGap: 5
         })
         .moveDown(0.3);
@@ -133,7 +133,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
       
     default: // Contenido normal - SIN SALTO DE PÁGINA
       fontSize = 11;
-      indent = nivel * 20;
+      //indent = nivel * 20;
       isTitle = false;
   }
 
@@ -154,7 +154,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
       doc.font(fontPath)
         .fontSize(fontSize)
         .text(markdown, {
-          indent: indent,
+          indent: 20,
           paragraphGap: 5,
           lineGap: 3
         })
@@ -165,7 +165,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
         doc.font(fontPath)
           .fontSize(11)
           .text(markdown, {
-            indent: indent + 10,
+            indent: 20 + 10,
             paragraphGap: 5,
             lineGap: 3
           })
