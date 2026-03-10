@@ -13,7 +13,6 @@ const router = express.Router();
 const noteService = new NoteService();
 const fontsPath = path.join(__dirname, '..', '..', 'assets', 'fonts');
 
-// Función para generar índice solo con primer nivel (capítulos principales)
 function insertarIndice(doc, capitulos, fontPath) {
   doc.addPage();
 
@@ -73,14 +72,14 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
 
   // Configurar estilos según el nivel
   let fontSize, indent, isTitle;
-  
+
   switch (nivel) {
     case 0: // Capítulo principal - NUEVA PÁGINA
       doc.addPage(); // SOLO los capítulos principales tienen nueva página
       fontSize = 18;
       indent = 0;
       isTitle = true;
-      
+
       // Título del capítulo en mayúsculas y centrado
       doc.font(fontPath)
         .fontSize(fontSize)
@@ -90,18 +89,18 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
         })
         .moveDown(1);
       break;
-      
+
     case 1: // Subcapítulo - SIN SALTO DE PÁGINA
       fontSize = 14;
       //indent = 20;
       isTitle = true;
-      
+
       // Verificar si hay espacio suficiente en la página actual
       const alturaNecesaria = fontSize * 3; // Espacio aproximado para el título
       if (doc.y + alturaNecesaria > doc.page.height - 72) { // 72 = margen inferior
         doc.addPage();
       }
-      
+
       doc.font(fontPath)
         .fontSize(fontSize)
         .text(nodo.title, {
@@ -110,18 +109,18 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
         })
         .moveDown(0.5);
       break;
-      
+
     case 2: // Tercer nivel - SIN SALTO DE PÁGINA
       fontSize = 12;
       //indent = 40;
       isTitle = true;
-      
+
       // Verificar si hay espacio suficiente en la página actual
       const alturaNecesaria2 = fontSize * 3;
       if (doc.y + alturaNecesaria2 > doc.page.height - 72) {
         doc.addPage();
       }
-      
+
       doc.font(fontPath)
         .fontSize(fontSize)
         .text(nodo.title, {
@@ -130,9 +129,44 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
         })
         .moveDown(0.3);
       break;
-      
-    default: // Contenido normal - SIN SALTO DE PÁGINA
+    case 3: // Cuarto nivel
       fontSize = 11;
+      isTitle = true;
+
+      const alturaNecesaria3 = fontSize * 3;
+      if (doc.y + alturaNecesaria3 > doc.page.height - 72) {
+        doc.addPage();
+      }
+
+      doc.font(fontPath)
+        .fontSize(fontSize)
+        .text(nodo.title, {
+          indent: 20,
+          paragraphGap: 5
+        })
+        .moveDown(0.3);
+      break;
+
+    case 4: // Quinto nivel
+  fontSize = 11;
+  isTitle = true;
+
+  const alturaNecesaria4 = fontSize * 3;
+  if (doc.y + alturaNecesaria4 > doc.page.height - 72) {
+    doc.addPage();
+  }
+
+  doc.font(fontPath)
+    .fontSize(fontSize)
+    .text(nodo.title, {
+      indent: 20,
+      paragraphGap: 5
+    })
+    .moveDown(0.2);
+  break;
+
+    default: // Contenido normal - SIN SALTO DE PÁGINA
+      fontSize = 10;
       //indent = nivel * 20;
       isTitle = false;
   }
@@ -172,7 +206,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
           .moveDown(0.3);
       }
     }
-    
+
     contadorPaginas++;
   }
 
@@ -180,10 +214,10 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
   if (nodo.children && nodo.children.length > 0) {
     for (const hijo of nodo.children) {
       contadorPaginas = procesarContenidoJerarquico(
-        doc, 
-        hijo, 
-        turndownService, 
-        nivel + 1, 
+        doc,
+        hijo,
+        turndownService,
+        nivel + 1,
         contadorPaginas,
         fontPath
       );
@@ -320,15 +354,15 @@ router.get('/', async (req, res) => {
     }
 
     const capitulosFiltrados = capitulosParaIndice.filter(
-  c => !c.title?.toLowerCase().includes('tres estudios')
-);
+      c => !c.title?.toLowerCase().includes('tres estudios')
+    );
 
     console.log(`Capítulos para índice: ${capitulosParaIndice.length}`);
     console.log('Capítulos en índice:', capitulosParaIndice.map(c => c.title));
-    
-insertarIndice(doc, capitulosFiltrados, fontPath);
+
+    insertarIndice(doc, capitulosFiltrados, fontPath);
     // PROCESAR CONTENIDO JERÁRQUICO COMPLETO (usando el root filtrado)
-    
+
     // Procesar aclaraciones primero si existe
     if (aclaracionesChapter) {
       console.log(`Procesando aclaraciones: ${aclaracionesChapter.title}`);
