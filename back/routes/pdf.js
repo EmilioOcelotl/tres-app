@@ -82,6 +82,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
 
       // Título del capítulo en mayúsculas y centrado
       doc.font(fontPath)
+
         .fontSize(fontSize)
         .text(nodo.title.toUpperCase(), {
           align: 'center',
@@ -166,7 +167,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
   break;
 
     default: // Contenido normal - SIN SALTO DE PÁGINA
-      fontSize = 10;
+      fontSize = 8;
       //indent = nivel * 20;
       isTitle = false;
   }
@@ -197,7 +198,7 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
       // Para títulos, el contenido va después con indentación adicional
       if (markdown.trim() !== '') {
         doc.font(fontPath)
-          .fontSize(11)
+          .fontSize(10) // Para cambiar el tamaño de una fuente 
           .text(markdown, {
             indent: 20 + 10,
             paragraphGap: 5,

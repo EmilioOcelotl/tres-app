@@ -26,6 +26,8 @@ const CONFIG = {
         mainRadius: 25,
         secondaryRadius: 10,
         noteRadius: 4,
+        subNoteRadius: 2,
+        subSubNoteRadius: 1,
         fogDensity: 0.015
     }
 };
@@ -209,16 +211,49 @@ function animate() {
 // 3D Note Visualization
 // ===========================================
 
+const LEVEL_RADII = [
+    CONFIG.scene.mainRadius,
+    CONFIG.scene.secondaryRadius,
+    CONFIG.scene.noteRadius,
+    CONFIG.scene.subNoteRadius,
+    CONFIG.scene.subSubNoteRadius
+];
+
+const LEVEL_TYPES = ['main', 'secondary', 'note', 'subnote', 'subsubnote'];
+
+function placeChildren(parentNode, parentPos, parentColor, level) {
+    if (!parentNode.children || parentNode.children.length === 0) return;
+
+    const radius = LEVEL_RADII[level] ?? 0.5;
+    const type = LEVEL_TYPES[level] ?? 'subsubnote';
+    const group = level === 1 ? secondaryBuildings : noteBuildings;
+    const hslOffset = 0.08;
+
+    parentNode.children.forEach((child, j) => {
+        const angle = (j / parentNode.children.length) * Math.PI * 2;
+        const x = parentPos.x + Math.cos(angle) * radius;
+        const z = parentPos.z + Math.sin(angle) * radius;
+        const pos = new THREE.Vector3(x, 0, z);
+
+        const color = parentColor.clone().offsetHSL(0, 0, hslOffset);
+        const building = createBuilding(child, pos, color, type);
+        group.add(building);
+        AppState.allNoteObjects.push(building);
+
+        placeChildren(child, pos, color, level + 1);
+    });
+}
+
 function createNoteObjects(tree) {
-    // Clear existing objects
     mainBuildings.children = [];
     secondaryBuildings.children = [];
     noteBuildings.children = [];
     AppState.allNoteObjects = [];
 
-    // This will be a recursive function to build the 3D city
-    // For now, let's create a placeholder structure similar to viz.html
-    // but using the actual tree data.
+    if (!tree || !tree.children) {
+        console.warn("No tree data or children found to visualize.");
+        return;
+    }
 
     const chapterColors = [
         new THREE.Color(0x4e00ff), // Púrpura
@@ -229,53 +264,19 @@ function createNoteObjects(tree) {
         new THREE.Color(0xaa00ff)  // Violeta
     ];
 
-    // Assuming 'tree' is the root note/chapter
-    // We'll treat its children as main chapters, their children as subchapters, and so on.
-    // This is a simplified approach and might need refinement based on actual data structure.
-
-    if (!tree || !tree.children) {
-        console.warn("No tree data or children found to visualize.");
-        return;
-    }
-
     tree.children.forEach((mainChapterNode, i) => {
         const angle = (i / tree.children.length) * Math.PI * 2;
         const x = Math.cos(angle) * CONFIG.scene.mainRadius;
         const z = Math.sin(angle) * CONFIG.scene.mainRadius;
+        const pos = new THREE.Vector3(x, 0, z);
 
         const mainColor = chapterColors[i % chapterColors.length];
-        const mainBuilding = createBuilding(mainChapterNode, new THREE.Vector3(x, 0, z), mainColor, "main");
+        const mainBuilding = createBuilding(mainChapterNode, pos, mainColor, 'main');
         mainBuildings.add(mainBuilding);
         AppState.allNoteObjects.push(mainBuilding);
 
-        if (mainChapterNode.children) {
-            mainChapterNode.children.forEach((subChapterNode, j) => {
-                const secondaryAngle = (j / mainChapterNode.children.length) * Math.PI * 2;
-                const sX = x + Math.cos(secondaryAngle) * CONFIG.scene.secondaryRadius;
-                const sZ = z + Math.sin(secondaryAngle) * CONFIG.scene.secondaryRadius;
-
-                const subColor = mainColor.clone().offsetHSL(0, 0, 0.1); // Slightly lighter
-                const subBuilding = createBuilding(subChapterNode, new THREE.Vector3(sX, 0, sZ), subColor, "secondary");
-                secondaryBuildings.add(subBuilding);
-                AppState.allNoteObjects.push(subBuilding);
-
-                if (subChapterNode.children) {
-                    subChapterNode.children.forEach((noteNode, k) => {
-                        const noteAngle = (k / subChapterNode.children.length) * Math.PI * 2;
-                        const nX = sX + Math.cos(noteAngle) * CONFIG.scene.noteRadius;
-                        const nZ = sZ + Math.sin(noteAngle) * CONFIG.scene.noteRadius;
-
-                        const noteColor = subColor.clone().offsetHSL(0, 0, 0.2); // Even lighter
-                        const noteBuilding = createBuilding(noteNode, new THREE.Vector3(nX, 0, nZ), noteColor, "note");
-                        noteBuildings.add(noteBuilding);
-                        AppState.allNoteObjects.push(noteBuilding);
-                    });
-                }
-            });
-        }
+        placeChildren(mainChapterNode, pos, mainColor, 1);
     });
-
-    // TODO: Implement connections if the note data provides relational information
 }
 
 function createBuilding(nodeData, position, color, type) {
@@ -304,10 +305,24 @@ function createBuilding(nodeData, position, color, type) {
             emissiveIntensity = 0.3;
             shininess = 20;
             break;
-        default:
-            height = 1; width = 1; depth = 1;
+        case "subnote":
+            height = 0.5 + Math.random() * 0.5; // 0.5-1
+            width = 0.4 + Math.random() * 0.2;  // 0.4-0.6
+            depth = 0.4 + Math.random() * 0.2;
+            emissiveIntensity = 0.25;
+            shininess = 15;
+            break;
+        case "subsubnote":
+            height = 0.3 + Math.random() * 0.3; // 0.3-0.6
+            width = 0.25 + Math.random() * 0.15;
+            depth = 0.25 + Math.random() * 0.15;
             emissiveIntensity = 0.2;
             shininess = 10;
+            break;
+        default:
+            height = 0.3; width = 0.2; depth = 0.2;
+            emissiveIntensity = 0.15;
+            shininess = 8;
     }
 
     const geometry = new THREE.BoxGeometry(width, height, depth);

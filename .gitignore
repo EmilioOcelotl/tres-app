@@ -25,3 +25,8 @@ document.db
 *.db-wal
 
 sketches
+
+# Claude
+
+CLAUDE.md
+CONTEXTO_SESION.md
