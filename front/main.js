@@ -14,13 +14,13 @@ import { LuminosityHighPassShader } from 'three/examples/jsm/shaders/LuminosityH
 const CONFIG = {
     apiBase: '/api/3d',
     colors: {
-        background: 0x000000,
-        mainChapter: 0x4e00ff, // Púrpura
-        subChapter: 0x00c8ff,  // Cian
-        note: 0x33ff00,        // Verde
-        highlight: 0xffffff,
-        connection: 0x00ffff,
-        arrow: 0xff00ff
+        background: 0x060608,
+        mainChapter: 0x007777,
+        subChapter: 0x009999,
+        note: 0x006688,
+        highlight: 0xd0d8e0,
+        connection: 0x004444,
+        arrow: 0x006666
     },
     scene: {
         mainRadius: 25,
@@ -29,6 +29,12 @@ const CONFIG = {
         subNoteRadius: 2,
         subSubNoteRadius: 1,
         fogDensity: 0.015
+    },
+    references: {
+        orbitRadius: 40,
+        orbitHeight: 22,
+        orbitSpeed: 0.0003,
+        color: 0x00b4b4
     }
 };
 
@@ -47,8 +53,8 @@ const originalMaterials = new WeakMap();
 const highlightMaterial = new THREE.MeshPhongMaterial({
     color: CONFIG.colors.highlight,
     emissive: CONFIG.colors.highlight,
-    emissiveIntensity: 1.0,
-    shininess: 100
+    emissiveIntensity: 0.5,
+    shininess: 60
 });
 
 // Layers for bloom effect
@@ -62,6 +68,8 @@ const secondaryBuildings = new THREE.Group();
 const noteBuildings = new THREE.Group();
 const connections = new THREE.Group();
 const connectionArrows = new THREE.Group();
+const referencesGroup = new THREE.Group();
+let referencesVisible = true;
 
 // UI Elements
 const loadingScreen = document.getElementById('loading-screen');
@@ -143,10 +151,10 @@ function initThreeScene() {
     controls.maxPolarAngle = Math.PI * 0.9;
 
     // Lights
-    const ambientLight = new THREE.AmbientLight(0x222244);
+    const ambientLight = new THREE.AmbientLight(0x0a1a1a);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0x55aaff, 0.8);
+    const directionalLight = new THREE.DirectionalLight(0x6699aa, 0.5);
     directionalLight.position.set(1, 1, 1);
     scene.add(directionalLight);
 
@@ -154,8 +162,8 @@ function initThreeScene() {
     const renderScene = new RenderPass(scene, camera);
     bloomPass = new UnrealBloomPass(
         new THREE.Vector2(window.innerWidth, window.innerHeight),
-        1.5, // strength
-        0.5, // radius
+        0.5, // strength
+        0.4, // radius
         0    // threshold
     );
     composer = new EffectComposer(renderer);
@@ -168,11 +176,12 @@ function initThreeScene() {
     scene.add(noteBuildings);
     scene.add(connections);
     scene.add(connectionArrows);
+    scene.add(referencesGroup);
 
     // Grid Helper
     const gridSize = 70;
     const gridDivisions = 35;
-    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x00ffff, 0x444477);
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x002a2a, 0x001818);
     gridHelper.position.y = 0.01;
     scene.add(gridHelper);
 
@@ -182,6 +191,9 @@ function initThreeScene() {
 
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('click', onClick, false);
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'r' || e.key === 'R') toggleReferences();
+    });
     closeOverlayButton.addEventListener('click', hideNoteOverlay);
 }
 
@@ -202,6 +214,9 @@ function animate() {
             arrow.userData.update();
         }
     });
+
+    // Orbit references satellites
+    referencesGroup.rotation.y += CONFIG.references.orbitSpeed;
 
     TWEEN.update(); // Update TWEEN animations
     composer.render();
@@ -229,8 +244,11 @@ function placeChildren(parentNode, parentPos, parentColor, level) {
     const group = level === 1 ? secondaryBuildings : noteBuildings;
     const hslOffset = 0.08;
 
-    parentNode.children.forEach((child, j) => {
-        const angle = (j / parentNode.children.length) * Math.PI * 2;
+    const nonRefChildren = parentNode.children.filter(n => n.title !== 'Referencias');
+    const refChild = parentNode.children.find(n => n.title === 'Referencias');
+
+    nonRefChildren.forEach((child, j) => {
+        const angle = (j / nonRefChildren.length) * Math.PI * 2;
         const x = parentPos.x + Math.cos(angle) * radius;
         const z = parentPos.z + Math.sin(angle) * radius;
         const pos = new THREE.Vector3(x, 0, z);
@@ -242,6 +260,10 @@ function placeChildren(parentNode, parentPos, parentColor, level) {
 
         placeChildren(child, pos, color, level + 1);
     });
+
+    if (refChild) {
+        placeReferenceSatellites(refChild);
+    }
 }
 
 function createNoteObjects(tree) {
@@ -256,16 +278,19 @@ function createNoteObjects(tree) {
     }
 
     const chapterColors = [
-        new THREE.Color(0x4e00ff), // Púrpura
-        new THREE.Color(0x00c8ff), // Cian
-        new THREE.Color(0xff0077), // Rosa
-        new THREE.Color(0x33ff00), // Verde
-        new THREE.Color(0xffaa00), // Naranja
-        new THREE.Color(0xaa00ff)  // Violeta
+        new THREE.Color(0x007777),
+        new THREE.Color(0x009999),
+        new THREE.Color(0x00aaaa),
+        new THREE.Color(0x006688),
+        new THREE.Color(0x337788),
+        new THREE.Color(0x005577)
     ];
 
-    tree.children.forEach((mainChapterNode, i) => {
-        const angle = (i / tree.children.length) * Math.PI * 2;
+    const nonRefChildren = tree.children.filter(n => n.title !== 'Referencias');
+    const refChild = tree.children.find(n => n.title === 'Referencias');
+
+    nonRefChildren.forEach((mainChapterNode, i) => {
+        const angle = (i / nonRefChildren.length) * Math.PI * 2;
         const x = Math.cos(angle) * CONFIG.scene.mainRadius;
         const z = Math.sin(angle) * CONFIG.scene.mainRadius;
         const pos = new THREE.Vector3(x, 0, z);
@@ -277,6 +302,10 @@ function createNoteObjects(tree) {
 
         placeChildren(mainChapterNode, pos, mainColor, 1);
     });
+
+    if (refChild) {
+        placeReferenceSatellites(refChild);
+    }
 }
 
 function createBuilding(nodeData, position, color, type) {
@@ -364,6 +393,89 @@ function createBuilding(nodeData, position, color, type) {
     return building;
 }
 
+function createReferenceObject(nodeData, position, color) {
+    const geometry = new THREE.SphereGeometry(0.35, 10, 8);
+    const material = new THREE.MeshPhongMaterial({
+        color: color,
+        emissive: color.clone().multiplyScalar(0.4),
+        emissiveIntensity: 0.5,
+        shininess: 60
+    });
+    const sphere = new THREE.Mesh(geometry, material);
+    sphere.position.copy(position);
+    originalMaterials.set(sphere, material);
+    sphere.userData = {
+        type: 'reference',
+        id: nodeData.id,
+        title: nodeData.title,
+        color: color.getHex(),
+        originalPosition: position.clone(),
+        originalScale: sphere.scale.clone()
+    };
+    return sphere;
+}
+
+function placeReferenceSatellites(referencesNode) {
+    const refColor = new THREE.Color(CONFIG.references.color);
+    const { orbitRadius, orbitHeight } = CONFIG.references;
+
+    // Anillo orbital decorativo (toro tenue)
+    const torusGeo = new THREE.TorusGeometry(orbitRadius, 0.12, 8, 96);
+    const torusMat = new THREE.MeshPhongMaterial({
+        color: refColor,
+        emissive: refColor.clone().multiplyScalar(0.3),
+        transparent: true,
+        opacity: 0.35
+    });
+    const orbitRing = new THREE.Mesh(torusGeo, torusMat);
+    orbitRing.rotation.x = Math.PI / 2;
+    orbitRing.position.y = orbitHeight;
+    referencesGroup.add(orbitRing);
+
+    // Nodo padre "Referencias" como octaedro en el centro del plano orbital
+    const markerGeo = new THREE.OctahedronGeometry(1.4);
+    const markerMat = new THREE.MeshPhongMaterial({
+        color: refColor,
+        emissive: refColor.clone().multiplyScalar(0.5),
+        emissiveIntensity: 0.8,
+        shininess: 80
+    });
+    const marker = new THREE.Mesh(markerGeo, markerMat);
+    marker.position.set(0, orbitHeight, 0);
+    originalMaterials.set(marker, markerMat);
+    marker.userData = {
+        type: 'reference',
+        id: referencesNode.id,
+        title: referencesNode.title,
+        color: refColor.getHex(),
+        originalPosition: new THREE.Vector3(0, orbitHeight, 0),
+        originalScale: marker.scale.clone()
+    };
+    referencesGroup.add(marker);
+    AppState.allNoteObjects.push(marker);
+
+    // Satélites — hijos de Referencias distribuidos en el anillo
+    if (referencesNode.children && referencesNode.children.length > 0) {
+        referencesNode.children.forEach((child, i) => {
+            const angle = (i / referencesNode.children.length) * Math.PI * 2;
+            const x = Math.cos(angle) * orbitRadius;
+            const z = Math.sin(angle) * orbitRadius;
+            const pos = new THREE.Vector3(x, orbitHeight, z);
+            const childColor = refColor.clone().offsetHSL(0, 0, (i % 5) * 0.04 - 0.08);
+            const sat = createReferenceObject(child, pos, childColor);
+            referencesGroup.add(sat);
+            AppState.allNoteObjects.push(sat);
+        });
+    }
+}
+
+function toggleReferences() {
+    referencesVisible = !referencesVisible;
+    referencesGroup.visible = referencesVisible;
+    const btn = document.getElementById('toggle-references');
+    if (btn) btn.textContent = referencesVisible ? 'REFS: ON' : 'REFS: OFF';
+}
+
 // ===========================================
 // Interaction and Selection
 // ===========================================
@@ -409,16 +521,18 @@ async function selectNoteObject(object) {
     const targetPosition = new THREE.Vector3().copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-10)); // 10 units in front of camera
     targetPosition.y = object.userData.originalPosition.y; // Keep original height
     
-    // Scale up slightly
-    new TWEEN.Tween(object.scale)
-        .to({ x: object.userData.originalScale.x * 1.2, y: object.userData.originalScale.y * 1.2, z: object.userData.originalScale.z * 1.2 }, 500)
-        .easing(TWEEN.Easing.Quadratic.Out)
-        .start();
+    // Scale up and move — skip for reference satellites (orbiting in group space)
+    if (object.userData.type !== 'reference') {
+        new TWEEN.Tween(object.scale)
+            .to({ x: object.userData.originalScale.x * 1.2, y: object.userData.originalScale.y * 1.2, z: object.userData.originalScale.z * 1.2 }, 500)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
 
-    new TWEEN.Tween(object.position)
-        .to(targetPosition, 500)
-        .easing(TWEEN.Easing.Quadratic.Out)
-        .start();
+        new TWEEN.Tween(object.position)
+            .to(targetPosition, 500)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+    }
 
     // Apply highlight material
     const originalMaterial = originalMaterials.get(selectedObject);
@@ -442,15 +556,17 @@ function deselectNoteObject() {
             selectedObject.layers.disable(BLOOM_LAYER);
         }
         
-        new TWEEN.Tween(selectedObject.scale)
-            .to(selectedObject.userData.originalScale, 500)
-            .easing(TWEEN.Easing.Quadratic.Out)
-            .start();
+        if (selectedObject.userData.type !== 'reference') {
+            new TWEEN.Tween(selectedObject.scale)
+                .to(selectedObject.userData.originalScale, 500)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
 
-        new TWEEN.Tween(selectedObject.position)
-            .to(selectedObject.userData.originalPosition, 500)
-            .easing(TWEEN.Easing.Quadratic.Out)
-            .start();
+            new TWEEN.Tween(selectedObject.position)
+                .to(selectedObject.userData.originalPosition, 500)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+        }
 
         selectedObject = null;
         hideNoteOverlay();
@@ -478,6 +594,8 @@ function hideNoteOverlay() {
 
 async function init() {
     loadingScreen.style.display = 'block'; // Show loading screen
+
+    document.getElementById('toggle-references').addEventListener('click', toggleReferences);
 
     initThreeScene();
     animate(); // Start animation loop

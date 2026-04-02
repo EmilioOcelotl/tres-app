@@ -1,9 +1,20 @@
+:root {
+    --bg: #060608;
+    --surface: rgba(5, 7, 11, 0.97);
+    --accent: #00b4b4;
+    --accent-dim: rgba(0, 180, 180, 0.18);
+    --accent-mid: rgba(0, 180, 180, 0.35);
+    --text: #d0d8e0;
+    --text-dim: rgba(208, 216, 224, 0.5);
+    --border: rgba(0, 180, 180, 0.2);
+}
+
 body {
     margin: 0;
     overflow: hidden;
-    font-family: 'Space Mono', monospace; /* Futuristic font */
-    color: #00ffff; /* Cyan for cyberpunk */
-    background-color: #0a0a1a;
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+    background-color: var(--bg);
 }
 
 #scene-container {
@@ -25,12 +36,13 @@ canvas {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.95);
+    background-color: var(--bg);
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #00ffff;
-    font-size: 2em;
+    color: var(--text-dim);
+    font-size: 0.85em;
+    letter-spacing: 0.25em;
     z-index: 1000;
 }
 
@@ -38,161 +50,156 @@ canvas {
     position: absolute;
     top: 50%;
     left: 30%;
-    transform: translate(-50%, -50%); /* Center horizontally and vertically */
+    transform: translate(-50%, -50%);
     width: 80%;
     max-width: 700px;
-    height: 80%; /* Takes up most of the height */
-    background-color: rgba(10, 10, 26, 0.95); /* Darker, slightly transparent */
-    border: 2px solid #00ffff; /* Cyan border */
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); /* Cyan glow */
-    border-radius: 10px;
-    padding: 20px;
-    display: none; /* Hidden by default */
+    height: 80%;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.9);
+    border-radius: 2px;
+    padding: 32px;
+    display: none;
     flex-direction: column;
     z-index: 999;
-    color: #00ffaa; /* Greenish-cyan text */
-    font-family: 'Share Tech Mono', monospace; /* Another techy font */
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
     overflow-y: auto;
 }
 
 #overlay-title {
-    color: #ff00ff; /* Magenta for titles */
-    font-size: 1.8em;
-    margin-bottom: 15px;
-    text-align: center;
-    text-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
-    border-bottom: 1px dashed rgba(0, 255, 255, 0.5);
-    padding-bottom: 10px;
+    color: var(--accent);
+    font-size: 0.9em;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
 }
 
 #overlay-content {
-    font-size: 1em;
-    line-height: 1.5;
-    color: #00ffaa;
+    font-size: 0.82em;
+    line-height: 1.9;
+    color: var(--text);
 }
 
 #overlay-content p {
-    margin-bottom: 0.8em;
+    margin-bottom: 1em;
 }
 
-#overlay-content h1, #overlay-content h2, #overlay-content h3 {
-    color: #00ffff;
-    margin-top: 1.2em;
-    margin-bottom: 0.6em;
-    font-size: 1.3em;
-    text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
+#overlay-content h1,
+#overlay-content h2,
+#overlay-content h3 {
+    color: var(--accent);
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-size: 0.9em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
 }
 
 #overlay-content a {
-    color: #ff00ff;
+    color: rgba(0, 180, 180, 0.75);
     text-decoration: none;
-    border-bottom: 1px dotted #ff00ff;
+    border-bottom: 1px solid rgba(0, 180, 180, 0.25);
+    transition: color 0.2s, border-color 0.2s;
 }
 
 #overlay-content a:hover {
-    color: #ffffff;
-    border-bottom-color: #ffffff;
+    color: var(--text);
+    border-bottom-color: rgba(208, 216, 224, 0.3);
 }
 
 #close-overlay {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 16px;
+    right: 16px;
     background: none;
-    border: 2px solid #ff00ff;
-    color: #ff00ff;
-    font-size: 1.2em;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.7em;
+    width: 28px;
+    height: 28px;
+    border-radius: 2px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    font-family: 'Space Mono', monospace;
+    transition: color 0.2s, border-color 0.2s;
 }
 
 #close-overlay:hover {
-    background-color: #ff00ff;
-    color: #0a0a1a;
-    box-shadow: 0 0 15px #ff00ff;
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
-/* New styles for 2D pattern canvas */
+#control-panel {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+}
+
+.panel-title {
+    color: var(--text-dim);
+    font-size: 0.65em;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin: 0 0 4px 0;
+}
+
+#control-panel button {
+    background: transparent;
+    color: rgba(0, 180, 180, 0.7);
+    border: 1px solid var(--accent-dim);
+    padding: 6px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72em;
+    letter-spacing: 0.1em;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+#control-panel button:hover {
+    color: var(--accent);
+    border-color: var(--accent-mid);
+}
+
+.param-display,
+.stats-display {
+    background: transparent;
+    border: 1px solid rgba(0, 180, 180, 0.1);
+    padding: 6px 8px;
+    border-radius: 2px;
+    font-size: 0.72em;
+    color: var(--text-dim);
+}
+
+.param-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.param-value {
+    color: var(--accent);
+}
+
 #pattern-2d-canvas {
     position: absolute;
     top: 20px;
     left: 20px;
     width: 150px;
     height: 150px;
-    border: 1px solid #00ffff;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-    background-color: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--border);
+    background-color: var(--surface);
     z-index: 100;
-    display: none; /* Hidden until a note is selected */
-}
-
-/* Styles for control panel */
-#control-panel {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background-color: rgba(10, 10, 26, 0.95);
-    border: 1px solid #00ffff;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-    border-radius: 8px;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    z-index: 100;
-}
-
-.panel-title {
-    color: #ff00ff;
-    font-size: 1.2em;
-    margin-top: 0;
-    margin-bottom: 10px;
-    text-align: center;
-    text-shadow: 0 0 5px rgba(255, 0, 255, 0.6);
-}
-
-#control-panel button {
-    background-color: #4e00ff; /* Purple */
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.9em;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-#control-panel button:hover {
-    background-color: #00c8ff; /* Cyan on hover */
-    box-shadow: 0 0 8px rgba(0, 200, 255, 0.8);
-}
-
-#control-panel button:active {
-    background-color: #33ff00; /* Green on active */
-}
-
-.param-display,
-.stats-display {
-    background-color: rgba(0, 0, 0, 0.6);
-    border: 1px dashed #00ffff;
-    padding: 8px;
-    border-radius: 5px;
-    font-size: 0.85em;
-    color: #00ffaa;
-    margin-top: 5px;
-}
-
-.param-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 3px;
-}
-
-.param-value {
-    color: #ff00ff;
-    font-weight: bold;
+    display: none;
 }
