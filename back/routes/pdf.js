@@ -13,16 +13,99 @@ const router = express.Router();
 const noteService = new NoteService();
 const fontsPath = path.join(__dirname, '..', '..', 'assets', 'fonts');
 
+// Paleta
+const COLOR_ACCENT = '#00b4b4';
+const COLOR_TEXT   = '#111111';
+const COLOR_DIM    = '#888888';
+
+// Geometría de página
+const PAGE_W  = 595;
+const PAGE_H  = 595;
+const MARGIN  = 54;
+
+// Regla horizontal fina
+function reglaTenue(doc, y, color = '#dddddd', grosor = 0.4) {
+  doc.save()
+     .moveTo(MARGIN, y)
+     .lineTo(PAGE_W - MARGIN, y)
+     .strokeColor(color)
+     .lineWidth(grosor)
+     .stroke()
+     .restore();
+}
+
+// Footers con número de página — se llama antes de doc.end()
+function insertarFooters(doc, fontPath, primeraPaginaContenido) {
+  const range = doc.bufferedPageRange();
+  for (let i = 0; i < range.count; i++) {
+    if (i < primeraPaginaContenido) continue;
+    doc.switchToPage(range.start + i);
+
+    // Suspender el margen inferior para poder dibujar en esa zona
+    // Sin esto, doc.text() detecta y > maxY y abre una página nueva en blanco
+    const savedBottom = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    const pageNum = i - primeraPaginaContenido + 1;
+    const ruleY   = PAGE_H - savedBottom + 8;
+    const numY    = ruleY + 6;
+
+    reglaTenue(doc, ruleY, '#e0e0e0', 0.3);
+    doc.fillColor(COLOR_DIM)
+       .font(fontPath)
+       .fontSize(7.5)
+       .text(String(pageNum), MARGIN, numY, {
+         width: PAGE_W - MARGIN * 2,
+         align: 'center',
+         lineBreak: false
+       });
+
+    doc.page.margins.bottom = savedBottom;
+  }
+}
+
+// Insertar imagen con caption — lista para capturas de pantalla
+function insertarImagen(doc, rutaImagen, caption, fontPath, figNum) {
+  const maxWidth = PAGE_W - MARGIN * 2;
+  const espacioMin = 180;
+
+  if (doc.y + espacioMin > PAGE_H - MARGIN) {
+    doc.addPage();
+  }
+
+  doc.moveDown(0.8);
+
+  try {
+    doc.image(rutaImagen, MARGIN, doc.y, { fit: [maxWidth, 260], align: 'center' });
+  } catch (e) {
+    doc.fillColor(COLOR_DIM)
+       .font(fontPath)
+       .fontSize(8)
+       .text(`[imagen: ${rutaImagen}]`);
+  }
+
+  doc.moveDown(0.5);
+
+  if (caption) {
+    const label = figNum ? `Fig. ${figNum}  ` : '—  ';
+    doc.fillColor(COLOR_ACCENT).font(fontPath).fontSize(8).text(label, { continued: true });
+    doc.fillColor(COLOR_DIM).fontSize(8).text(caption, { lineGap: 2 });
+  }
+
+  doc.moveDown(1.2);
+}
+
 function insertarIndice(doc, capitulos, fontPath) {
   doc.addPage();
 
-  doc.font(fontPath)
-    .fontSize(16)
-    .text('ÍNDICE', {
-      align: 'center',
-      underline: true
-    })
-    .moveDown(1.5);
+  doc.fillColor(COLOR_ACCENT)
+     .font(fontPath)
+     .fontSize(10)
+     .text('ÍNDICE', { align: 'left', characterSpacing: 3 })
+     .moveDown(0.5);
+
+  reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
+  doc.moveDown(1);
 
   for (const capitulo of capitulos) {
     insertarNodoIndice(doc, capitulo, fontPath, 0);
@@ -32,32 +115,23 @@ function insertarIndice(doc, capitulos, fontPath) {
 }
 
 function insertarNodoIndice(doc, nodo, fontPath, nivel) {
-  const indent = nivel * 20;
+  const indent = nivel * 16;
 
   let fontSize;
-
   switch (nivel) {
-    case 0:
-      fontSize = 12;
-      break;
-    case 1:
-      fontSize = 11;
-      break;
-    default:
-      fontSize = 10;
+    case 0:  fontSize = 10; break;
+    case 1:  fontSize = 9.5; break;
+    default: fontSize = 9;
   }
 
-  doc.font(fontPath)
-    .fontSize(fontSize)
-    .text(nodo.title, {
-      indent: indent
-    });
+  doc.fillColor(nivel === 0 ? COLOR_ACCENT : COLOR_TEXT)
+     .font(fontPath)
+     .fontSize(fontSize)
+     .text(nodo.title, { indent });
 
-  doc.moveDown(0.3);
+  doc.moveDown(nivel === 0 ? 0.4 : 0.2);
 
-  if (nodo.title && nodo.title.toLowerCase() === 'referencias') {
-    return;
-  }
+  if (nodo.title && nodo.title.toLowerCase() === 'referencias') return;
 
   if (nodo.children && nodo.children.length > 0) {
     for (const hijo of nodo.children) {
@@ -66,117 +140,83 @@ function insertarNodoIndice(doc, nodo, fontPath, nivel) {
   }
 }
 
-// Función para procesar contenido jerárquico completo
 function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath) {
   if (!nodo) return contadorPaginas;
 
-  // Configurar estilos según el nivel
-  let fontSize, indent, isTitle;
+  let fontSize, isTitle;
 
   switch (nivel) {
-    case 0: // Capítulo principal - NUEVA PÁGINA
-      doc.addPage(); // SOLO los capítulos principales tienen nueva página
-      fontSize = 18;
-      indent = 0;
-      isTitle = true;
+    case 0:
+      doc.addPage();
+      fontSize = 15;
+      isTitle  = true;
 
-      // Título del capítulo en mayúsculas y centrado
-      doc.font(fontPath)
+      doc.fillColor(COLOR_ACCENT)
+         .font(fontPath)
+         .fontSize(fontSize)
+         .text(nodo.title.toUpperCase(), { align: 'left', paragraphGap: 6, characterSpacing: 1 })
+         .moveDown(0.4);
 
-        .fontSize(fontSize)
-        .text(nodo.title.toUpperCase(), {
-          align: 'center',
-          paragraphGap: 20
-        })
-        .moveDown(1);
+      reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
+      doc.moveDown(1);
       break;
 
-    case 1: // Subcapítulo - SIN SALTO DE PÁGINA
-      fontSize = 14;
-      //indent = 20;
-      isTitle = true;
-
-      // Verificar si hay espacio suficiente en la página actual
-      const alturaNecesaria = fontSize * 3; // Espacio aproximado para el título
-      if (doc.y + alturaNecesaria > doc.page.height - 72) { // 72 = margen inferior
-        doc.addPage();
-      }
-
-      doc.font(fontPath)
-        .fontSize(fontSize)
-        .text(nodo.title, {
-          indent: 20,
-          paragraphGap: 10
-        })
-        .moveDown(0.5);
-      break;
-
-    case 2: // Tercer nivel - SIN SALTO DE PÁGINA
+    case 1:
       fontSize = 12;
-      //indent = 40;
-      isTitle = true;
+      isTitle  = true;
+      if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
 
-      // Verificar si hay espacio suficiente en la página actual
-      const alturaNecesaria2 = fontSize * 3;
-      if (doc.y + alturaNecesaria2 > doc.page.height - 72) {
-        doc.addPage();
-      }
-
-      doc.font(fontPath)
-        .fontSize(fontSize)
-        .text(nodo.title, {
-          indent: 20,
-          paragraphGap: 5
-        })
-        .moveDown(0.3);
-      break;
-    case 3: // Cuarto nivel
-      fontSize = 11;
-      isTitle = true;
-
-      const alturaNecesaria3 = fontSize * 3;
-      if (doc.y + alturaNecesaria3 > doc.page.height - 72) {
-        doc.addPage();
-      }
-
-      doc.font(fontPath)
-        .fontSize(fontSize)
-        .text(nodo.title, {
-          indent: 20,
-          paragraphGap: 5
-        })
-        .moveDown(0.3);
+      doc.fillColor(COLOR_TEXT)
+         .font(fontPath)
+         .fontSize(fontSize)
+         .text(nodo.title, { paragraphGap: 5 })
+         .moveDown(0.4);
       break;
 
-    case 4: // Quinto nivel
-  fontSize = 11;
-  isTitle = true;
+    case 2:
+      fontSize = 10.5;
+      isTitle  = true;
+      if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
 
-  const alturaNecesaria4 = fontSize * 3;
-  if (doc.y + alturaNecesaria4 > doc.page.height - 72) {
-    doc.addPage();
+      doc.fillColor(COLOR_TEXT)
+         .font(fontPath)
+         .fontSize(fontSize)
+         .text(nodo.title, { paragraphGap: 4 })
+         .moveDown(0.3);
+      break;
+
+    case 3:
+      fontSize = 10;
+      isTitle  = true;
+      if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+
+      doc.fillColor(COLOR_TEXT)
+         .font(fontPath)
+         .fontSize(fontSize)
+         .text(nodo.title, { paragraphGap: 4 })
+         .moveDown(0.25);
+      break;
+
+    case 4:
+      fontSize = 10;
+      isTitle  = true;
+      if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+
+      doc.fillColor(COLOR_TEXT)
+         .font(fontPath)
+         .fontSize(fontSize)
+         .text(nodo.title, { paragraphGap: 4 })
+         .moveDown(0.2);
+      break;
+
+    default:
+      fontSize = 9;
+      isTitle  = false;
   }
 
-  doc.font(fontPath)
-    .fontSize(fontSize)
-    .text(nodo.title, {
-      indent: 20,
-      paragraphGap: 5
-    })
-    .moveDown(0.2);
-  break;
-
-    default: // Contenido normal - SIN SALTO DE PÁGINA
-      fontSize = 8;
-      //indent = nivel * 20;
-      isTitle = false;
-  }
-
-  // Procesar contenido si existe
   if (nodo.content && nodo.content.trim() !== '') {
     let markdown;
     try {
-      // Convertir el contenido a string si es un Buffer
       const content = Buffer.isBuffer(nodo.content) ? nodo.content.toString('utf8') : nodo.content;
       markdown = turndownService.turndown(content);
     } catch (error) {
@@ -184,43 +224,24 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
       markdown = '(error al procesar contenido)';
     }
 
-    // Para contenido que no es título, aplicar el formato normal
-    if (!isTitle) {
-      doc.font(fontPath)
-        .fontSize(fontSize)
-        .text(markdown, {
-          indent: 20,
-          paragraphGap: 5,
-          lineGap: 3
-        })
-        .moveDown(0.3);
-    } else {
-      // Para títulos, el contenido va después con indentación adicional
-      if (markdown.trim() !== '') {
-        doc.font(fontPath)
-          .fontSize(10) // Para cambiar el tamaño de una fuente 
-          .text(markdown, {
-            indent: 20 + 10,
-            paragraphGap: 5,
-            lineGap: 3
-          })
-          .moveDown(0.3);
-      }
+    if (markdown.trim() !== '') {
+      doc.fillColor(COLOR_TEXT)
+         .font(fontPath)
+         .fontSize(9.5)
+         .text(markdown, {
+           paragraphGap: 4,
+           lineGap: 3
+         })
+         .moveDown(0.4);
     }
 
     contadorPaginas++;
   }
 
-  // Procesar hijos recursivamente (ya filtrados)
   if (nodo.children && nodo.children.length > 0) {
     for (const hijo of nodo.children) {
       contadorPaginas = procesarContenidoJerarquico(
-        doc,
-        hijo,
-        turndownService,
-        nivel + 1,
-        contadorPaginas,
-        fontPath
+        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath
       );
     }
   }
@@ -230,28 +251,19 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
 
 router.get('/', async (req, res) => {
   try {
-    // Ruta de la fuente
     const fontPath = path.join(fontsPath, 'SpaceGrotesk.ttf');
     console.log('Usando fuente en:', fontPath);
 
-    // Verificar que existe la fuente
     const fs = await import('fs');
     if (!fs.existsSync(fontPath)) {
       throw new Error(`No se encuentra la fuente: ${fontPath}`);
     }
 
-    // Obtener el árbol completo usando el servicio
     const rootFiltrado = await noteService.getCompleteTree();
 
-    // Configuración del PDF
     const doc = new PDFDocument({
-      size: [595, 595],
-      margins: {
-        top: 54,
-        bottom: 54,
-        left: 54,
-        right: 54,
-      },
+      size: [PAGE_W, PAGE_H],
+      margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
       bufferPages: true
     });
 
@@ -261,7 +273,6 @@ router.get('/', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="TEA.pdf"');
     doc.pipe(res);
 
-    // Configurar Turndown
     const turndownService = turndown({
       headingStyle: 'atx',
       bulletListMarker: '-',
@@ -273,135 +284,122 @@ router.get('/', async (req, res) => {
       replacement: () => ' '
     });
 
-    // PORTADA COMPLETA
-    doc.moveDown(3);
+    // ── PORTADA ──────────────────────────────────────────────────────────────
+    doc.moveDown(2.5);
 
-    doc.font(fontPath)
-      .fontSize(18)
-      .text('UNIVERSIDAD NACIONAL AUTÓNOMA DE MÉXICO', {
-        align: 'right',
-        paragraphGap: 10
-      })
-      .moveDown(1);
+    doc.fillColor(COLOR_DIM)
+       .font(fontPath)
+       .fontSize(8.5)
+       .text('UNIVERSIDAD NACIONAL AUTÓNOMA DE MÉXICO', { align: 'right' })
+       .moveDown(0.5);
 
-    doc.font(fontPath)
-      .fontSize(11)
-      .text('Programa de Maestría y Doctorado en Música', { align: 'right' })
-      .text('Facultad de Música', { align: 'right' })
-      .text('Instituto de Ciencias Aplicadas y Tecnología', { align: 'right' })
-      .text('Instituto de Investigaciones Antropológicas', { align: 'right' })
-      .moveDown(1);
+    doc.fillColor(COLOR_DIM)
+       .font(fontPath)
+       .fontSize(8.5)
+       .text('Programa de Maestría y Doctorado en Música', { align: 'right' })
+       .text('Facultad de Música', { align: 'right' })
+       .text('Instituto de Ciencias Aplicadas y Tecnología', { align: 'right' })
+       .text('Instituto de Investigaciones Antropológicas', { align: 'right' })
+       .moveDown(2);
 
-    doc.font(fontPath)
-      .fontSize(18)
-      .text('TRES ESTUDIOS ABIERTOS', { align: 'right' })
-      .moveDown(0.5);
+    reglaTenue(doc, doc.y, '#cccccc', 0.4);
+    doc.moveDown(2);
 
-    doc.font(fontPath)
-      .fontSize(11)
-      .text('Escritura de código en Javascript para el performance audiovisual y la investigación artística', {
-        align: 'right',
-        lineGap: 5
-      })
-      .moveDown(1);
+    doc.fillColor(COLOR_ACCENT)
+       .font(fontPath)
+       .fontSize(18)
+       .text('TRES ESTUDIOS ABIERTOS', { align: 'right', characterSpacing: 1 })
+       .moveDown(0.5);
 
-    doc.font(fontPath)
-      .fontSize(11)
-      .text('Que para optar por el grado de', { align: 'right' })
-      .moveDown(1);
+    doc.fillColor(COLOR_DIM)
+       .font(fontPath)
+       .fontSize(8.5)
+       .text(
+         'Escritura de código en Javascript para el performance audiovisual y la investigación artística',
+         { align: 'right', lineGap: 4 }
+       )
+       .moveDown(1.5);
 
-    doc.font(fontPath)
-      .fontSize(11)
-      .text('Doctor en Música', { align: 'right' })
-      .font(fontPath)
-      .fontSize(11)
-      .text('(Tecnología Musical)', { align: 'right' })
-      .moveDown(1);
+    doc.fillColor(COLOR_DIM)
+       .font(fontPath)
+       .fontSize(8.5)
+       .text('Que para optar por el grado de', { align: 'right' })
+       .moveDown(0.6);
 
-    doc.font(fontPath)
-      .fontSize(11)
-      .text('Presenta', { align: 'right' })
-      .moveDown(1);
+    doc.fillColor(COLOR_TEXT)
+       .font(fontPath)
+       .fontSize(10)
+       .text('Doctor en Música', { align: 'right' })
+       .text('Tecnología Musical', { align: 'right' })
+       .moveDown(0.6);
 
-    doc.font(fontPath)
-      .fontSize(14)
-      .text('Emilio Ocelotl Reyes', { align: 'right' })
-      .moveDown(1);
+    doc.fillColor(COLOR_DIM)
+       .font(fontPath)
+       .fontSize(8.5)
+       .text('Presenta', { align: 'right' })
+       .moveDown(0.5);
 
-    doc.font(fontPath)
-      .fontSize(12)
-      .text('Tutor Principal: Hugo Solís', { align: 'right' })
-      .text('Comité tutor: Iracema de Andrade y Fernando Monreal', { align: 'right' });
+    doc.fillColor(COLOR_TEXT)
+       .font(fontPath)
+       .fontSize(12)
+       .text('Emilio Ocelotl Reyes', { align: 'right' })
+       .moveDown(0.6);
 
-    // Añadir página nueva para el contenido
+    doc.fillColor(COLOR_DIM)
+       .font(fontPath)
+       .fontSize(8.5)
+       .text('Tutor Principal: Hugo Solís', { align: 'right' })
+       .text('Comité tutor: Iracema de Andrade y Fernando Monreal', { align: 'right' });
+
+    // Página en blanco antes del índice
     doc.addPage();
 
-    // Separar capítulos (usando el root filtrado)
+    // ── CAPÍTULOS ─────────────────────────────────────────────────────────────
     const aclaracionesChapter = rootFiltrado.children?.find(ch =>
       ch.title && ch.title.trim().toLowerCase().includes('aclaraciones')
     );
-    let remainingChapters = rootFiltrado.children?.filter(ch => ch !== aclaracionesChapter && ch.title && ch.title.toLowerCase() !== 'referencias') || [];
-    let referencesNode = rootFiltrado.children?.find(ch => ch.title && ch.title.toLowerCase() === 'referencias');
+    let remainingChapters = rootFiltrado.children?.filter(
+      ch => ch !== aclaracionesChapter && ch.title && ch.title.toLowerCase() !== 'referencias'
+    ) || [];
+    let referencesNode = rootFiltrado.children?.find(
+      ch => ch.title && ch.title.toLowerCase() === 'referencias'
+    );
 
-    // ÍNDICE - Solo con capítulos principales
     const capitulosParaIndice = [];
-
-    if (aclaracionesChapter) {
-      capitulosParaIndice.push(aclaracionesChapter);
-    }
+    if (aclaracionesChapter) capitulosParaIndice.push(aclaracionesChapter);
     capitulosParaIndice.push(...remainingChapters);
-    if (referencesNode) {
-      capitulosParaIndice.push(referencesNode);
-    }
+    if (referencesNode) capitulosParaIndice.push(referencesNode);
 
     const capitulosFiltrados = capitulosParaIndice.filter(
       c => !c.title?.toLowerCase().includes('tres estudios')
     );
 
-    console.log(`Capítulos para índice: ${capitulosParaIndice.length}`);
-    console.log('Capítulos en índice:', capitulosParaIndice.map(c => c.title));
+    console.log('Capítulos en índice:', capitulosFiltrados.map(c => c.title));
 
+    // Página 0: portada / Página 1: en blanco / Página 2: índice → no numeradas
     insertarIndice(doc, capitulosFiltrados, fontPath);
-    // PROCESAR CONTENIDO JERÁRQUICO COMPLETO (usando el root filtrado)
+    const PAGINAS_NO_NUMERADAS = 3;
 
-    // Procesar aclaraciones primero si existe
     if (aclaracionesChapter) {
-      console.log(`Procesando aclaraciones: ${aclaracionesChapter.title}`);
       contadorPaginas = procesarContenidoJerarquico(
-        doc,
-        aclaracionesChapter,
-        turndownService,
-        0, // nivel 0 (capítulo)
-        contadorPaginas,
-        fontPath
+        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath
       );
     }
 
-    // Procesar los demás capítulos
     for (const capitulo of remainingChapters) {
-      console.log(`Procesando capítulo: ${capitulo.title}`);
       contadorPaginas = procesarContenidoJerarquico(
-        doc,
-        capitulo,
-        turndownService,
-        0, // nivel 0 (capítulo)
-        contadorPaginas,
-        fontPath
+        doc, capitulo, turndownService, 0, contadorPaginas, fontPath
       );
     }
 
-    // REFERENCIAS al final
     if (referencesNode) {
-      console.log(`Procesando referencias: ${referencesNode.title}`);
       contadorPaginas = procesarContenidoJerarquico(
-        doc,
-        referencesNode,
-        turndownService,
-        0, // nivel 0 (capítulo)
-        contadorPaginas,
-        fontPath
+        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath
       );
     }
+
+    // ── FOOTERS ───────────────────────────────────────────────────────────────
+    insertarFooters(doc, fontPath, PAGINAS_NO_NUMERADAS);
 
     doc.end();
     console.log('PDF generado exitosamente');
