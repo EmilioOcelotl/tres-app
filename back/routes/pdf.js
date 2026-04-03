@@ -140,78 +140,80 @@ function insertarNodoIndice(doc, nodo, fontPath, nivel) {
   }
 }
 
-function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath) {
+function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false) {
   if (!nodo) return contadorPaginas;
 
   let fontSize, isTitle;
 
-  switch (nivel) {
-    case 0:
-      doc.addPage();
-      fontSize = 15;
-      isTitle  = true;
+  if (!omitirTitulo) {
+    switch (nivel) {
+      case 0:
+        doc.addPage();
+        fontSize = 15;
+        isTitle  = true;
 
-      doc.fillColor(COLOR_ACCENT)
-         .font(fontPath)
-         .fontSize(fontSize)
-         .text(nodo.title.toUpperCase(), { align: 'left', paragraphGap: 6, characterSpacing: 1 })
-         .moveDown(0.4);
+        doc.fillColor(COLOR_ACCENT)
+           .font(fontPath)
+           .fontSize(fontSize)
+           .text(nodo.title.toUpperCase(), { align: 'left', paragraphGap: 6, characterSpacing: 1 })
+           .moveDown(0.4);
 
-      reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
-      doc.moveDown(1);
-      break;
+        reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
+        doc.moveDown(1);
+        break;
 
-    case 1:
-      fontSize = 12;
-      isTitle  = true;
-      if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+      case 1:
+        fontSize = 12;
+        isTitle  = true;
+        if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
 
-      doc.fillColor(COLOR_TEXT)
-         .font(fontPath)
-         .fontSize(fontSize)
-         .text(nodo.title, { paragraphGap: 5 })
-         .moveDown(0.4);
-      break;
+        doc.fillColor(COLOR_TEXT)
+           .font(fontPath)
+           .fontSize(fontSize)
+           .text(nodo.title, { paragraphGap: 5 })
+           .moveDown(0.4);
+        break;
 
-    case 2:
-      fontSize = 10.5;
-      isTitle  = true;
-      if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+      case 2:
+        fontSize = 10.5;
+        isTitle  = true;
+        if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
 
-      doc.fillColor(COLOR_TEXT)
-         .font(fontPath)
-         .fontSize(fontSize)
-         .text(nodo.title, { paragraphGap: 4 })
-         .moveDown(0.3);
-      break;
+        doc.fillColor(COLOR_TEXT)
+           .font(fontPath)
+           .fontSize(fontSize)
+           .text(nodo.title, { paragraphGap: 4 })
+           .moveDown(0.3);
+        break;
 
-    case 3:
-      fontSize = 10;
-      isTitle  = true;
-      if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+      case 3:
+        fontSize = 10;
+        isTitle  = true;
+        if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
 
-      doc.fillColor(COLOR_TEXT)
-         .font(fontPath)
-         .fontSize(fontSize)
-         .text(nodo.title, { paragraphGap: 4 })
-         .moveDown(0.25);
-      break;
+        doc.fillColor(COLOR_TEXT)
+           .font(fontPath)
+           .fontSize(fontSize)
+           .text(nodo.title, { paragraphGap: 4 })
+           .moveDown(0.25);
+        break;
 
-    case 4:
-      fontSize = 10;
-      isTitle  = true;
-      if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+      case 4:
+        fontSize = 10;
+        isTitle  = true;
+        if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
 
-      doc.fillColor(COLOR_TEXT)
-         .font(fontPath)
-         .fontSize(fontSize)
-         .text(nodo.title, { paragraphGap: 4 })
-         .moveDown(0.2);
-      break;
+        doc.fillColor(COLOR_TEXT)
+           .font(fontPath)
+           .fontSize(fontSize)
+           .text(nodo.title, { paragraphGap: 4 })
+           .moveDown(0.2);
+        break;
 
-    default:
-      fontSize = 9;
-      isTitle  = false;
+      default:
+        fontSize = 9;
+        isTitle  = false;
+    }
   }
 
   if (nodo.content && nodo.content.trim() !== '') {
@@ -239,9 +241,11 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
   }
 
   if (nodo.children && nodo.children.length > 0) {
+    const esReferencias = nodo.title && nodo.title.trim().toLowerCase() === 'referencias';
+    const omitirTituloHijos = omitirTitulo || esReferencias;
     for (const hijo of nodo.children) {
       contadorPaginas = procesarContenidoJerarquico(
-        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath
+        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos
       );
     }
   }

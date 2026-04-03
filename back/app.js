@@ -20,49 +20,84 @@ app.use(express.static(path.resolve(__dirname, '../front')));
 app.get('/pdf', (req, res) => {
   res.send(`
     <!DOCTYPE html>
-    <html>
+    <html lang="es">
     <head>
-        <title>Preparando documento - Tres Estudios Abiertos</title>
-        <style>
-          html, body { height: 100%; margin:0; padding:0; font-family: Arial, sans-serif; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #141517 0%, #707070 100%); color:#333; }
-          .container { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding:40px; border-radius:15px; border:1px solid rgba(0,0,0,0.1); max-width:500px; box-shadow:0 8px 32px rgba(0,0,0,0.1); text-align:center; }
-          .spinner { border:4px solid rgba(0,0,0,0.1); border-top:4px solid #555; border-radius:50%; width:50px; height:50px; animation:spin 1s linear infinite; margin:20px auto; }
-          @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
-          .checkmark { font-size:48px; margin:20px 0; display:none; }
-          .progress { margin:20px 0; font-size:14px; color:#777; font-weight:500; }
-          .success { color:#2e7d32; font-weight:bold; }
-        </style>
+      <meta charset="UTF-8">
+      <title>Tres Estudios Abiertos — PDF</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
+      <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+          height: 100%;
+          background: #060608;
+          color: #d0d8e0;
+          font-family: 'Space Mono', monospace;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .container {
+          width: 320px;
+          border: 1px solid rgba(0, 180, 180, 0.2);
+          padding: 36px 32px;
+        }
+
+        .title {
+          color: #00b4b4;
+          font-size: 0.72em;
+          letter-spacing: 0.25em;
+          text-transform: uppercase;
+          margin-bottom: 24px;
+        }
+
+        .rule {
+          height: 1px;
+          background: rgba(0, 180, 180, 0.2);
+          margin-bottom: 24px;
+        }
+
+        .label {
+          font-size: 0.68em;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: rgba(208, 216, 224, 0.45);
+          margin-bottom: 10px;
+        }
+
+        .status {
+          font-size: 0.75em;
+          color: rgba(208, 216, 224, 0.7);
+          min-height: 1.4em;
+        }
+
+        .status.done {
+          color: #00b4b4;
+        }
+      </style>
     </head>
     <body>
       <div class="container">
-        <h1>🖨️ Generando Documento</h1>
-        <div class="spinner" id="spinner"></div>
-        <div class="checkmark" id="checkmark">✅</div>
-        <p><strong>Tres Estudios Abiertos</strong></p>
-        <p>Estamos preparando tu PDF con todo el contenido...</p>
-        <div class="progress" id="progress">⏳ Preparando documento...</div>
-        <p id="status-message">La descarga comenzará automáticamente.</p>
+        <div class="title">Tres Estudios Abiertos</div>
+        <div class="rule"></div>
+        <div class="label">documento</div>
+        <div class="status" id="status">generando</div>
       </div>
       <script>
+        const status = document.getElementById('status');
         let dots = 0;
-        const progress = document.querySelector('#progress');
-        const spinner = document.querySelector('#spinner');
-        const checkmark = document.querySelector('#checkmark');
-        const statusMessage = document.querySelector('#status-message');
-
         const interval = setInterval(() => {
-          dots = (dots+1)%4;
-          progress.textContent = '⏳ Preparando documento'+'.'.repeat(dots);
+          dots = (dots + 1) % 4;
+          status.textContent = 'generando' + '.'.repeat(dots);
         }, 500);
 
         setTimeout(() => {
           clearInterval(interval);
-          spinner.style.display = 'none';
-          checkmark.style.display = 'block';
-          progress.textContent = '✅ Descarga realizada';
-          progress.className = 'progress success';
-          statusMessage.textContent = 'El PDF se ha descargado correctamente.';
-          document.querySelector('h1').textContent = '✅ Documento Listo';
+          status.textContent = 'descarga iniciada';
+          status.className = 'status done';
         }, 1500);
 
         setTimeout(() => {
