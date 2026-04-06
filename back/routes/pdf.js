@@ -371,51 +371,54 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         break;
 
       case 2:
-        fontSize = 10.5;
+        fontSize = 9.5;
         isTitle  = true;
-        if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+        if (doc.y + fontSize * 5 > PAGE_H - MARGIN) doc.addPage();
 
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
           tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
         }
 
+        doc.moveDown(1);
         doc.fillColor(COLOR_TEXT)
            .font(fontPath)
            .fontSize(fontSize)
-           .text(nodo.title, { paragraphGap: 4 })
+           .text(nodo.title.toUpperCase(), { characterSpacing: 2.5, paragraphGap: 4 })
            .moveDown(0.3);
         break;
 
       case 3:
-        fontSize = 10;
+        fontSize = 9.5;
         isTitle  = true;
-        if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+        if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
 
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
           tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
         }
 
-        doc.fillColor(COLOR_TEXT)
-           .font(fontPath)
-           .fontSize(fontSize)
-           .text(nodo.title, { paragraphGap: 4 })
-           .moveDown(0.25);
-        break;
-
-      case 4:
-        fontSize = 10;
-        isTitle  = true;
-        if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
-
-        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
-        }
-
+        doc.moveDown(0.8);
         doc.fillColor(COLOR_TEXT)
            .font(fontPath)
            .fontSize(fontSize)
            .text(nodo.title, { paragraphGap: 4 })
            .moveDown(0.2);
+        break;
+
+      case 4:
+        fontSize = 9;
+        isTitle  = true;
+        if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
+
+        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+        }
+
+        doc.moveDown(0.4);
+        doc.fillColor(COLOR_DIM)
+           .font(fontPath)
+           .fontSize(fontSize)
+           .text(nodo.title, { paragraphGap: 4 })
+           .moveDown(0.15);
         break;
 
       default:
