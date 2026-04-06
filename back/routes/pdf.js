@@ -95,8 +95,72 @@ function insertarImagen(doc, rutaImagen, caption, fontPath, figNum) {
   doc.moveDown(1.2);
 }
 
-function insertarIndice(doc, capitulos, fontPath) {
-  doc.addPage();
+// Recolectar entradas del índice desde el árbol (sin página, solo estructura)
+function recolectarEntradasToc(nodo, nivel, omitirTitulo, resultado) {
+  if (!nodo) return;
+  if (!omitirTitulo && !nodo.title?.toLowerCase().includes('tres estudios')) {
+    resultado.push({ title: nodo.title, nivel, pageIndex: 0 });
+  }
+  if (nodo.children) {
+    const esReferencias = nodo.title?.trim().toLowerCase() === 'referencias';
+    const omitirHijos = omitirTitulo || esReferencias;
+    for (const hijo of nodo.children) {
+      recolectarEntradasToc(hijo, nivel + 1, omitirHijos, resultado);
+    }
+  }
+}
+
+// Pre-renderizar el índice a stream nulo para contar cuántas páginas necesita
+async function contarPaginasIndice(entradas, fontPath) {
+  const { Writable } = await import('stream');
+  const nullStream = new Writable({ write(chunk, enc, cb) { cb(); } });
+  const tempDoc = new PDFDocument({
+    size: [PAGE_W, PAGE_H],
+    margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
+    bufferPages: true
+  });
+  tempDoc.pipe(nullStream);
+
+  tempDoc.fillColor(COLOR_ACCENT)
+         .font(fontPath).fontSize(10)
+         .text('ÍNDICE', { align: 'left', characterSpacing: 3 })
+         .moveDown(0.5);
+  tempDoc.moveDown(1);
+
+  const colWidth = PAGE_W - MARGIN * 2;
+  const pageCol  = 28;
+
+  for (const entry of entradas) {
+    const indent    = entry.nivel * 16;
+    const textWidth = colWidth - indent - pageCol;
+    const fontSize  = entry.nivel === 0 ? 10 : entry.nivel === 1 ? 9.5 : 9;
+    const y = tempDoc.y;
+    tempDoc.font(fontPath).fontSize(fontSize)
+           .text(entry.title, MARGIN + indent, y, { width: textWidth, lineBreak: false });
+    tempDoc.fillColor(COLOR_DIM)
+           .text('–', MARGIN + indent + textWidth, y, { width: pageCol, align: 'right', lineBreak: false });
+    tempDoc.fillColor(COLOR_TEXT).moveDown(entry.nivel === 0 ? 0.4 : 0.2);
+  }
+
+  const count = tempDoc.bufferedPageRange().count;
+  tempDoc.end();
+  return count;
+}
+
+function insertarIndiceConPaginas(doc, tocCtx, fontPath, paginasNoNumeradas, indicePageStart, indicePagesCount) {
+  const colWidth    = PAGE_W - MARGIN * 2;
+  const pageCol     = 28;
+  const bottomLimit = PAGE_H - MARGIN - 18; // 18pt reservados para footer
+
+  let paginaActual = 0;
+
+  const irAPagina = (offset) => {
+    paginaActual = offset;
+    doc.switchToPage(indicePageStart + offset);
+    doc.y = MARGIN;
+  };
+
+  irAPagina(0);
 
   doc.fillColor(COLOR_ACCENT)
      .font(fontPath)
@@ -107,36 +171,34 @@ function insertarIndice(doc, capitulos, fontPath) {
   reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
   doc.moveDown(1);
 
-  for (const capitulo of capitulos) {
-    insertarNodoIndice(doc, capitulo, fontPath, 0);
-  }
+  for (const entry of tocCtx) {
+    const fontSize  = entry.nivel === 0 ? 10 : entry.nivel === 1 ? 9.5 : 9;
+    const alturaEst = fontSize * 2; // estimación conservadora por entrada
 
-  doc.moveDown(2);
-}
-
-function insertarNodoIndice(doc, nodo, fontPath, nivel) {
-  const indent = nivel * 16;
-
-  let fontSize;
-  switch (nivel) {
-    case 0:  fontSize = 10; break;
-    case 1:  fontSize = 9.5; break;
-    default: fontSize = 9;
-  }
-
-  doc.fillColor(nivel === 0 ? COLOR_ACCENT : COLOR_TEXT)
-     .font(fontPath)
-     .fontSize(fontSize)
-     .text(nodo.title, { indent });
-
-  doc.moveDown(nivel === 0 ? 0.4 : 0.2);
-
-  if (nodo.title && nodo.title.toLowerCase() === 'referencias') return;
-
-  if (nodo.children && nodo.children.length > 0) {
-    for (const hijo of nodo.children) {
-      insertarNodoIndice(doc, hijo, fontPath, nivel + 1);
+    // Salto manual de página si no cabe la entrada
+    if (doc.y + alturaEst > bottomLimit && paginaActual < indicePagesCount - 1) {
+      irAPagina(paginaActual + 1);
     }
+
+    const indent    = entry.nivel * 16;
+    const textWidth = colWidth - indent - pageCol;
+    const pageNum   = entry.pageIndex - paginasNoNumeradas + 1;
+    const y         = doc.y;
+
+    doc.fillColor(entry.nivel === 0 ? COLOR_ACCENT : COLOR_TEXT)
+       .font(fontPath)
+       .fontSize(fontSize)
+       .text(entry.title, MARGIN + indent, y, { width: textWidth, lineBreak: false });
+
+    doc.fillColor(COLOR_DIM)
+       .fontSize(fontSize)
+       .text(String(pageNum), MARGIN + indent + textWidth, y, {
+         width: pageCol,
+         align: 'right',
+         lineBreak: false
+       });
+
+    doc.moveDown(entry.nivel === 0 ? 0.4 : 0.2);
   }
 }
 
@@ -257,7 +319,7 @@ function insertarIndiceFiguras(doc, figCtx, fontPath, paginasNoNumeradas) {
   }
 }
 
-async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null, figCtx = null) {
+async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null, figCtx = null, tocCtx = null) {
   if (!nodo) return contadorPaginas;
 
   let fontSize, isTitle;
@@ -268,6 +330,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         doc.addPage();
         fontSize = 15;
         isTitle  = true;
+
+        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+        }
 
         doc.fillColor(COLOR_ACCENT)
            .font(fontPath)
@@ -284,6 +350,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         isTitle  = true;
         if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
 
+        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+        }
+
         doc.fillColor(COLOR_TEXT)
            .font(fontPath)
            .fontSize(fontSize)
@@ -295,6 +365,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         fontSize = 10.5;
         isTitle  = true;
         if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+
+        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+        }
 
         doc.fillColor(COLOR_TEXT)
            .font(fontPath)
@@ -308,6 +382,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         isTitle  = true;
         if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
 
+        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+        }
+
         doc.fillColor(COLOR_TEXT)
            .font(fontPath)
            .fontSize(fontSize)
@@ -319,6 +397,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         fontSize = 10;
         isTitle  = true;
         if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
+
+        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+        }
 
         doc.fillColor(COLOR_TEXT)
            .font(fontPath)
@@ -356,7 +438,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
     const omitirTituloHijos = omitirTitulo || esReferencias;
     for (const hijo of nodo.children) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc, figCtx
+        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc, figCtx, tocCtx
       );
     }
   }
@@ -484,52 +566,62 @@ router.get('/', async (req, res) => {
        .text('Tutor Principal: Hugo Solís', { align: 'right' })
        .text('Comité tutor: Iracema de Andrade y Fernando Monreal', { align: 'right' });
 
-    // Página en blanco antes del índice
+    // Página en blanco (página 1)
     doc.addPage();
 
     // ── CAPÍTULOS ─────────────────────────────────────────────────────────────
     const aclaracionesChapter = rootFiltrado.children?.find(ch =>
       ch.title && ch.title.trim().toLowerCase().includes('aclaraciones')
     );
-    let remainingChapters = rootFiltrado.children?.filter(
+    const remainingChapters = rootFiltrado.children?.filter(
       ch => ch !== aclaracionesChapter && ch.title && ch.title.toLowerCase() !== 'referencias'
     ) || [];
-    let referencesNode = rootFiltrado.children?.find(
+    const referencesNode = rootFiltrado.children?.find(
       ch => ch.title && ch.title.toLowerCase() === 'referencias'
     );
 
-    const capitulosParaIndice = [];
-    if (aclaracionesChapter) capitulosParaIndice.push(aclaracionesChapter);
-    capitulosParaIndice.push(...remainingChapters);
-    if (referencesNode) capitulosParaIndice.push(referencesNode);
+    // Pre-calcular páginas que necesita el índice
+    const entradasTocVacio = [];
+    if (aclaracionesChapter) recolectarEntradasToc(aclaracionesChapter, 0, false, entradasTocVacio);
+    for (const cap of remainingChapters) recolectarEntradasToc(cap, 0, false, entradasTocVacio);
+    if (referencesNode) recolectarEntradasToc(referencesNode, 0, false, entradasTocVacio);
 
-    const capitulosFiltrados = capitulosParaIndice.filter(
-      c => !c.title?.toLowerCase().includes('tres estudios')
-    );
+    const indicePagesCount = await contarPaginasIndice(entradasTocVacio, fontPath);
+    console.log(`Índice necesita ${indicePagesCount} páginas`);
 
-    console.log('Capítulos en índice:', capitulosFiltrados.map(c => c.title));
+    // Reservar exactamente esas páginas como placeholder
+    const indicePageIndex = 2;
+    for (let i = 0; i < indicePagesCount; i++) doc.addPage();
 
-    // Página 0: portada / Página 1: en blanco / Página 2: índice → no numeradas
-    insertarIndice(doc, capitulosFiltrados, fontPath);
-    const PAGINAS_NO_NUMERADAS = 3;
+    // Página 0: portada / Página 1: en blanco / Páginas 2..(2+N-1): índice
+    const PAGINAS_NO_NUMERADAS = 2 + indicePagesCount;
+
+    const tocCtx = [];
 
     if (aclaracionesChapter) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx
+        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx
       );
     }
 
     for (const capitulo of remainingChapters) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx
+        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx
       );
     }
 
     if (referencesNode) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx
+        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx
       );
     }
+
+    // ── ÍNDICE (volver a las páginas placeholder y rellenar) ──────────────────
+    insertarIndiceConPaginas(doc, tocCtx, fontPath, PAGINAS_NO_NUMERADAS, indicePageIndex, indicePagesCount);
+
+    // Volver a la última página para continuar
+    const lastPage = doc.bufferedPageRange().start + doc.bufferedPageRange().count - 1;
+    doc.switchToPage(lastPage);
 
     // ── ÍNDICE DE FIGURAS ─────────────────────────────────────────────────────
     insertarIndiceFiguras(doc, figCtx, fontPath, PAGINAS_NO_NUMERADAS);
