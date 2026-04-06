@@ -141,7 +141,7 @@ function insertarNodoIndice(doc, nodo, fontPath, nivel) {
 }
 
 // Renderizar segmentos de texto e imagen en el doc
-async function renderizarConImagenes(doc, markdown, fontPath, noteService) {
+async function renderizarConImagenes(doc, markdown, fontPath, noteService, figCtx) {
   const partes = markdown.split(/(\[\[IMAGEN:[^\]]+\]\])/g);
 
   for (const parte of partes) {
@@ -150,6 +150,12 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService) {
     if (mImagen) {
       const attachmentId = mImagen[1];
       const caption      = mImagen[2] ? mImagen[2].trim() : '';
+
+      figCtx.count++;
+      const numFig    = figCtx.count;
+      const pageIndex = doc.bufferedPageRange().count - 1;
+      figCtx.figuras.push({ num: numFig, caption, pageIndex });
+
       try {
         const adjunto = await noteService.getAttachmentBlob(attachmentId);
         if (adjunto && adjunto.content) {
@@ -161,7 +167,7 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService) {
           const maxHeight   = 240;
           const minUtil     = 120;
           const footerBuf   = 18;
-          const captionH    = caption ? 20 : 0;
+          const captionH    = 20;
 
           const disponible = PAGE_H - MARGIN - footerBuf - doc.y - 8 - captionH;
           const fitHeight  = disponible >= minUtil
@@ -174,15 +180,17 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService) {
           doc.image(imgBuffer, MARGIN, doc.y, { fit: [maxWidth, fitHeight], align: 'center' });
           doc.moveDown(0.6);
 
+          // Etiqueta de figura + caption
+          const label = `Fig. ${numFig}`;
+          doc.fillColor(COLOR_ACCENT)
+             .font(fontPath)
+             .fontSize(7.5)
+             .text(label, MARGIN, doc.y, { continued: !!caption, lineGap: 2 });
+
           if (caption) {
             doc.fillColor(COLOR_DIM)
-               .font(fontPath)
                .fontSize(7.5)
-               .text(caption, MARGIN, doc.y, {
-                 width: maxWidth,
-                 align: 'left',
-                 lineGap: 2
-               });
+               .text(`  ${caption}`, { lineGap: 2 });
           }
 
           doc.moveDown(1);
@@ -202,7 +210,54 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService) {
   }
 }
 
-async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null) {
+function insertarIndiceFiguras(doc, figCtx, fontPath, paginasNoNumeradas) {
+  if (figCtx.figuras.length === 0) return;
+
+  doc.addPage();
+
+  doc.fillColor(COLOR_ACCENT)
+     .font(fontPath)
+     .fontSize(10)
+     .text('ÍNDICE DE FIGURAS', { align: 'left', characterSpacing: 3 })
+     .moveDown(0.5);
+
+  reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
+  doc.moveDown(1);
+
+  const colWidth = PAGE_W - MARGIN * 2;
+  const numCol   = 36; // ancho reservado para "Fig. N"
+  const pageCol  = 28; // ancho reservado para el número de página
+  const capWidth = colWidth - numCol - pageCol;
+
+  for (const fig of figCtx.figuras) {
+    const pageNum = fig.pageIndex - paginasNoNumeradas + 1;
+    const y = doc.y;
+
+    // Número de figura
+    doc.fillColor(COLOR_ACCENT)
+       .font(fontPath)
+       .fontSize(8.5)
+       .text(`Fig. ${fig.num}`, MARGIN, y, { width: numCol, lineBreak: false });
+
+    // Caption
+    doc.fillColor(COLOR_TEXT)
+       .fontSize(8.5)
+       .text(fig.caption || '—', MARGIN + numCol, y, { width: capWidth, lineGap: 2 });
+
+    // Número de página (alineado a la derecha)
+    doc.fillColor(COLOR_DIM)
+       .fontSize(8.5)
+       .text(String(pageNum), MARGIN + numCol + capWidth, y, {
+         width: pageCol,
+         align: 'right',
+         lineBreak: false
+       });
+
+    doc.moveDown(0.5);
+  }
+}
+
+async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null, figCtx = null) {
   if (!nodo) return contadorPaginas;
 
   let fontSize, isTitle;
@@ -289,7 +344,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
     }
 
     if (markdown.trim() !== '') {
-      await renderizarConImagenes(doc, markdown, fontPath, noteSvc);
+      await renderizarConImagenes(doc, markdown, fontPath, noteSvc, figCtx);
       doc.moveDown(0.4);
     }
 
@@ -301,7 +356,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
     const omitirTituloHijos = omitirTitulo || esReferencias;
     for (const hijo of nodo.children) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc
+        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc, figCtx
       );
     }
   }
@@ -328,6 +383,7 @@ router.get('/', async (req, res) => {
     });
 
     let contadorPaginas = 0;
+    const figCtx = { count: 0, figuras: [] };
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="TEA.pdf"');
@@ -459,21 +515,24 @@ router.get('/', async (req, res) => {
 
     if (aclaracionesChapter) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService
+        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx
       );
     }
 
     for (const capitulo of remainingChapters) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService
+        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx
       );
     }
 
     if (referencesNode) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService
+        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx
       );
     }
+
+    // ── ÍNDICE DE FIGURAS ─────────────────────────────────────────────────────
+    insertarIndiceFiguras(doc, figCtx, fontPath, PAGINAS_NO_NUMERADAS);
 
     // ── FOOTERS ───────────────────────────────────────────────────────────────
     insertarFooters(doc, fontPath, PAGINAS_NO_NUMERADAS);
