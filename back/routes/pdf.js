@@ -328,6 +328,31 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
     switch (nivel) {
       case 0:
         doc.addPage();
+        fontSize = 18;
+        isTitle  = true;
+
+        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+        }
+
+        {
+          const titleY = (PAGE_H - fontSize) / 2;
+          reglaTenue(doc, titleY - 24, COLOR_ACCENT, 0.5);
+          doc.fillColor(COLOR_ACCENT)
+             .font(fontPath)
+             .fontSize(fontSize)
+             .text(nodo.title.toUpperCase(), MARGIN, titleY, {
+               width: PAGE_W - MARGIN * 2,
+               align: 'center',
+               characterSpacing: 1
+             });
+          reglaTenue(doc, titleY + fontSize * 1.6, COLOR_ACCENT, 0.5);
+        }
+        doc.addPage();
+        break;
+
+      case 1:
+        doc.addPage();
         fontSize = 15;
         isTitle  = true;
 
@@ -343,22 +368,6 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
 
         reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
         doc.moveDown(1);
-        break;
-
-      case 1:
-        fontSize = 12;
-        isTitle  = true;
-        if (doc.y + fontSize * 3 > PAGE_H - MARGIN) doc.addPage();
-
-        if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
-        }
-
-        doc.fillColor(COLOR_TEXT)
-           .font(fontPath)
-           .fontSize(fontSize)
-           .text(nodo.title, { paragraphGap: 5 })
-           .moveDown(0.4);
         break;
 
       case 2:
