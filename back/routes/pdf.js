@@ -140,7 +140,69 @@ function insertarNodoIndice(doc, nodo, fontPath, nivel) {
   }
 }
 
-function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false) {
+// Renderizar segmentos de texto e imagen en el doc
+async function renderizarConImagenes(doc, markdown, fontPath, noteService) {
+  const partes = markdown.split(/(\[\[IMAGEN:[^\]]+\]\])/g);
+
+  for (const parte of partes) {
+    const mImagen = parte.match(/^\[\[IMAGEN:([^|\]]+)(?:\|([^\]]*))?\]\]$/);
+
+    if (mImagen) {
+      const attachmentId = mImagen[1];
+      const caption      = mImagen[2] ? mImagen[2].trim() : '';
+      try {
+        const adjunto = await noteService.getAttachmentBlob(attachmentId);
+        if (adjunto && adjunto.content) {
+          const imgBuffer = Buffer.isBuffer(adjunto.content)
+            ? adjunto.content
+            : Buffer.from(adjunto.content);
+
+          const maxWidth    = PAGE_W - MARGIN * 2;
+          const maxHeight   = 240;
+          const minUtil     = 120;
+          const footerBuf   = 18;
+          const captionH    = caption ? 20 : 0;
+
+          const disponible = PAGE_H - MARGIN - footerBuf - doc.y - 8 - captionH;
+          const fitHeight  = disponible >= minUtil
+            ? Math.min(disponible, maxHeight)
+            : maxHeight;
+
+          if (disponible < minUtil) doc.addPage();
+
+          doc.moveDown(0.5);
+          doc.image(imgBuffer, MARGIN, doc.y, { fit: [maxWidth, fitHeight], align: 'center' });
+          doc.moveDown(0.6);
+
+          if (caption) {
+            doc.fillColor(COLOR_DIM)
+               .font(fontPath)
+               .fontSize(7.5)
+               .text(caption, MARGIN, doc.y, {
+                 width: maxWidth,
+                 align: 'left',
+                 lineGap: 2
+               });
+          }
+
+          doc.moveDown(1);
+        }
+      } catch (e) {
+        console.error('Error insertando imagen adjunta:', e.message);
+      }
+    } else {
+      const texto = parte.trim();
+      if (texto) {
+        doc.fillColor(COLOR_TEXT)
+           .font(fontPath)
+           .fontSize(9.5)
+           .text(texto, { paragraphGap: 4, lineGap: 3 });
+      }
+    }
+  }
+}
+
+async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null) {
   if (!nodo) return contadorPaginas;
 
   let fontSize, isTitle;
@@ -227,14 +289,8 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
     }
 
     if (markdown.trim() !== '') {
-      doc.fillColor(COLOR_TEXT)
-         .font(fontPath)
-         .fontSize(9.5)
-         .text(markdown, {
-           paragraphGap: 4,
-           lineGap: 3
-         })
-         .moveDown(0.4);
+      await renderizarConImagenes(doc, markdown, fontPath, noteSvc);
+      doc.moveDown(0.4);
     }
 
     contadorPaginas++;
@@ -244,8 +300,8 @@ function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, cont
     const esReferencias = nodo.title && nodo.title.trim().toLowerCase() === 'referencias';
     const omitirTituloHijos = omitirTitulo || esReferencias;
     for (const hijo of nodo.children) {
-      contadorPaginas = procesarContenidoJerarquico(
-        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos
+      contadorPaginas = await procesarContenidoJerarquico(
+        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc
       );
     }
   }
@@ -286,6 +342,23 @@ router.get('/', async (req, res) => {
     turndownService.addRule('nbsp', {
       filter: ['nbsp'],
       replacement: () => ' '
+    });
+
+    turndownService.addRule('triliumFigure', {
+      filter: (node) => {
+        return node.nodeName === 'FIGURE' &&
+               node.className && node.className.includes('image');
+      },
+      replacement: (content, node) => {
+        const img = node.querySelector('img');
+        if (!img) return '';
+        const src = img.getAttribute('src') || '';
+        const match = src.match(/api\/attachments\/([^/]+)\//);
+        if (!match) return '';
+        const figcaption = node.querySelector('figcaption');
+        const caption = figcaption ? figcaption.textContent.trim() : '';
+        return `\n\n[[IMAGEN:${match[1]}|${caption}]]\n\n`;
+      }
     });
 
     // ── PORTADA ──────────────────────────────────────────────────────────────
@@ -385,20 +458,20 @@ router.get('/', async (req, res) => {
     const PAGINAS_NO_NUMERADAS = 3;
 
     if (aclaracionesChapter) {
-      contadorPaginas = procesarContenidoJerarquico(
-        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath
+      contadorPaginas = await procesarContenidoJerarquico(
+        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService
       );
     }
 
     for (const capitulo of remainingChapters) {
-      contadorPaginas = procesarContenidoJerarquico(
-        doc, capitulo, turndownService, 0, contadorPaginas, fontPath
+      contadorPaginas = await procesarContenidoJerarquico(
+        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService
       );
     }
 
     if (referencesNode) {
-      contadorPaginas = procesarContenidoJerarquico(
-        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath
+      contadorPaginas = await procesarContenidoJerarquico(
+        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService
       );
     }
 

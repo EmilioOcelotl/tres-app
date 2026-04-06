@@ -118,6 +118,25 @@ export class NoteService {
     }
   }
 
+  // Obtener datos binarios de un adjunto por attachmentId
+  async getAttachmentBlob(attachmentId) {
+    const db = getDatabase();
+    return new Promise((resolve, reject) => {
+      db.get(
+        `SELECT a.mime, a.title, b.content
+         FROM attachments a
+         JOIN blobs b ON a.blobId = b.blobId
+         WHERE a.attachmentId = ? AND a.isDeleted = 0`,
+        [attachmentId],
+        (err, row) => {
+          db.close();
+          if (err) return reject(err);
+          resolve(row || null);
+        }
+      );
+    });
+  }
+
   // Método para obtener múltiples notas por IDs (útil para referencias)
   async getNotesByIds(noteIds) {
     try {
