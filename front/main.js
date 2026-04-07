@@ -589,6 +589,67 @@ function hideNoteOverlay() {
 }
 
 // ===========================================
+// Welcome Modal
+// ===========================================
+
+async function searchNote(query) {
+    const res = await fetch(`${CONFIG.apiBase}/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json.success ? json.data.results : [];
+}
+
+async function showWelcomeModal(tree) {
+    const modal = document.getElementById('welcome-modal');
+    const contentEl = document.getElementById('welcome-content');
+    const enterBtn = document.getElementById('welcome-enter');
+
+    // Buscar la nota "Léeme" vía search endpoint (independiente de la ruta exacta)
+    const results = await searchNote('léeme');
+    // Puede haber más de una — tomar la que tenga "introducci" en el path
+    // Para distinguirla, buscar en el árbol por id y verificar ancestros
+    function findAncestors(node, targetId, path = []) {
+        if (node.id === targetId) return path;
+        for (const child of (node.children || [])) {
+            const found = findAncestors(child, targetId, [...path, node.title]);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    let leemeId = null;
+    for (const r of results) {
+        const ancestors = findAncestors(tree, r.id);
+        if (ancestors && ancestors.some(a => a.toLowerCase().includes('introducci'))) {
+            leemeId = r.id;
+            break;
+        }
+    }
+    // Fallback: primera coincidencia si solo hay una
+    if (!leemeId && results.length === 1) leemeId = results[0].id;
+
+    if (leemeId) {
+        try {
+            const noteData = await fetchNoteContent(leemeId, false);
+            contentEl.innerHTML = noteData.content.html || '<p>Sin contenido</p>';
+        } catch (err) {
+            console.error('Error cargando nota Léeme:', err);
+            contentEl.innerHTML = '<p>No se pudo cargar el contenido.</p>';
+        }
+    } else {
+        contentEl.innerHTML = '<p>Nota de bienvenida no encontrada.</p>';
+        console.warn('Resultados de búsqueda "leeme":', results);
+    }
+
+    return new Promise(resolve => {
+        enterBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+            resolve();
+        }, { once: true });
+    });
+}
+
+// ===========================================
 // Initialization
 // ===========================================
 
@@ -602,6 +663,8 @@ async function init() {
 
     try {
         const tree = await fetchTree();
+        loadingScreen.style.display = 'none';
+        await showWelcomeModal(tree);
         createNoteObjects(tree);
         console.log('Aplicación inicializada correctamente');
     } catch (err) {
@@ -609,8 +672,9 @@ async function init() {
         overlayTitle.textContent = 'Error';
         overlayContent.innerHTML = '<p>No se pudo cargar la estructura de notas. Verifica la conexión al servidor.</p>';
         noteDisplayOverlay.style.display = 'block';
+        document.getElementById('welcome-modal').style.display = 'none';
     } finally {
-        loadingScreen.style.display = 'none'; // Hide loading screen
+        loadingScreen.style.display = 'none';
     }
 }
 
