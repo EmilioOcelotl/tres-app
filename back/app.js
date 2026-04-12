@@ -4,6 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { pdfRoutes, threejsRoutes } from './routes/index.js';
+import { generarSnapshot } from './utils/mdSnapshot.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -148,6 +149,7 @@ app.use((err, req,res,next) => {
 });
 
 app.listen(port, () => {
+  generarSnapshot();
   console.log(`=`.repeat(60));
   console.log(`🚀 Servidor corriendo!`);
   console.log(`📍 http://localhost:${port}`);
