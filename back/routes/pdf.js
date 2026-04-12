@@ -517,16 +517,16 @@ router.get('/', async (req, res) => {
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
        .fontSize(8.5)
-       .text('UNIVERSIDAD NACIONAL AUTÓNOMA DE MÉXICO', { align: 'right' })
+       .text('UNIVERSIDAD NACIONAL AUTÓNOMA DE MÉXICO', { align: 'left' })
        .moveDown(0.5);
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
        .fontSize(8.5)
-       .text('Programa de Maestría y Doctorado en Música', { align: 'right' })
-       .text('Facultad de Música', { align: 'right' })
-       .text('Instituto de Ciencias Aplicadas y Tecnología', { align: 'right' })
-       .text('Instituto de Investigaciones Antropológicas', { align: 'right' })
+       .text('Programa de Maestría y Doctorado en Música', { align: 'left' })
+       .text('Facultad de Música', { align: 'left' })
+       .text('Instituto de Ciencias Aplicadas y Tecnología', { align: 'left' })
+       .text('Instituto de Investigaciones Antropológicas', { align: 'left' })
        .moveDown(2);
 
     reglaTenue(doc, doc.y, '#cccccc', 0.4);
@@ -535,7 +535,7 @@ router.get('/', async (req, res) => {
     doc.fillColor(COLOR_ACCENT)
        .font(fontPath)
        .fontSize(18)
-       .text('TRES ESTUDIOS ABIERTOS', { align: 'right', characterSpacing: 1 })
+       .text('TRES ESTUDIOS ABIERTOS', { align: 'left', characterSpacing: 1 })
        .moveDown(0.5);
 
     doc.fillColor(COLOR_DIM)
@@ -543,40 +543,40 @@ router.get('/', async (req, res) => {
        .fontSize(8.5)
        .text(
          'Escritura de código en Javascript para el performance audiovisual y la investigación artística',
-         { align: 'right', lineGap: 4 }
+         { align: 'left', lineGap: 4 }
        )
        .moveDown(1.5);
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
        .fontSize(8.5)
-       .text('Que para optar por el grado de', { align: 'right' })
+       .text('Que para optar por el grado de', { align: 'left' })
        .moveDown(0.6);
 
     doc.fillColor(COLOR_TEXT)
        .font(fontPath)
        .fontSize(10)
-       .text('Doctor en Música', { align: 'right' })
-       .text('Tecnología Musical', { align: 'right' })
+       .text('Doctor en Música', { align: 'left' })
+       .text('Tecnología Musical', { align: 'left' })
        .moveDown(0.6);
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
        .fontSize(8.5)
-       .text('Presenta', { align: 'right' })
+       .text('Presenta', { align: 'left' })
        .moveDown(0.5);
 
     doc.fillColor(COLOR_TEXT)
        .font(fontPath)
        .fontSize(12)
-       .text('Emilio Ocelotl Reyes', { align: 'right' })
+       .text('Emilio Ocelotl Reyes', { align: 'left' })
        .moveDown(0.6);
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
        .fontSize(8.5)
-       .text('Tutor Principal: Hugo Solís', { align: 'right' })
-       .text('Comité tutor: Iracema de Andrade y Fernando Monreal', { align: 'right' });
+       .text('Tutor Principal: Hugo Solís', { align: 'left' })
+       .text('Comité tutor: Iracema de Andrade y Fernando Monreal', { align: 'left' });
 
     // Página en blanco (página 1)
     doc.addPage();
