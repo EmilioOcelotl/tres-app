@@ -278,3 +278,67 @@ canvas {
     z-index: 100;
     display: none;
 }
+
+.node-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: rgba(208, 216, 224, 0.88);
+    letter-spacing: 0.08em;
+    text-shadow:
+        0 0 6px rgba(0, 0, 0, 0.95),
+        0 0 16px rgba(0, 0, 0, 0.7);
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity 0.25s ease-out, color 0.2s, text-shadow 0.2s;
+    padding: 2px 6px;
+    user-select: none;
+    will-change: opacity;
+}
+
+.node-label--l0 {
+    font-size: 13px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+.node-label--l1 {
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+.node-label--l2 {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+}
+
+.node-label--part1 {
+    color: #9be7f0;
+}
+
+.node-label--part2 {
+    color: #ffb0d0;
+}
+
+.node-label--part3 {
+    color: #d6b8ff;
+}
+
+.node-label--refs {
+    color: #e8f0ff;
+    font-style: italic;
+}
+
+.node-label--root {
+    color: #ffffff;
+}
+
+.node-label--selected {
+    color: #ffffff !important;
+    text-shadow:
+        0 0 8px rgba(255, 255, 255, 0.8),
+        0 0 20px rgba(255, 255, 255, 0.4),
+        0 0 6px rgba(0, 0, 0, 0.95);
+    opacity: 1 !important;
+}
