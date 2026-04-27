@@ -23,7 +23,7 @@ const SIDEBAR_W = 300;
 const CONFIG = {
     apiBase: '/api/3d',
     colors: {
-        background: 0x020308,
+        background: 0x060606,
         root: 0xffffff,
         part1: 0x00ddff,
         part2: 0xff3388,
@@ -69,7 +69,7 @@ const AudioSystem = {
     grainEngine: null,
     snapToGrains: null,
     initialized: false,
-    grainEnabled: true
+    grainEnabled: false
 };
 
 let scene, camera, renderer, labelRenderer, controls, composer, bloomPass;
@@ -233,10 +233,13 @@ function initScene() {
     });
     closeOverlayButton.addEventListener('click', deselectNode);
 
-    const btnGrain = document.getElementById('toggle-grain');
+    const btnGrain  = document.getElementById('toggle-grain');
+    const audioHint = document.getElementById('audio-hint');
+    btnGrain.textContent = 'GRAIN: OFF';
     btnGrain.addEventListener('click', () => {
         AudioSystem.grainEnabled = !AudioSystem.grainEnabled;
         btnGrain.textContent = `GRAIN: ${AudioSystem.grainEnabled ? 'ON' : 'OFF'}`;
+        if (audioHint) audioHint.style.display = 'none';
         if (AudioSystem.grainEnabled && AppState.selectedNode) {
             activateGrains(AppState.selectedNode);
         } else {
