@@ -31,7 +31,7 @@ const CONFIG = {
         refs: 0xddeeff
     },
     levelRadii: [2.6, 1.9, 1.25, 0.85, 0.55, 0.4, 0.3],
-    linkDistances: [26, 20, 14, 9, 6, 5, 4],
+    linkDistances: [18, 14, 10, 7, 5, 4, 3],
     charge: -160,
     hemisphereOffset: 45,
     hemisphereStrength: 0.2,
@@ -43,8 +43,8 @@ const CONFIG = {
         threshold: 0
     },
     labels: {
-        near: 25,
-        far: 130
+        near: 12,
+        far: 260
     },
     cameraStart: new THREE.Vector3(0, 35, 145)
 };
@@ -64,12 +64,15 @@ const AppState = {
 };
 
 const AudioSystem = {
-    ctx:         null,
-    buffer:      null,
-    grainEngine: null,
-    snapToGrains: null,
-    initialized: false,
-    grainEnabled: false
+    ctx:            null,
+    buffer:         null,
+    grainEngine:    null,
+    snapToGrains:   null,
+    masterGain:     null,
+    initialized:    false,
+    grainEnabled:   false,
+    grainActive:    false,
+    crossfadeTimer: null
 };
 
 let scene, camera, renderer, labelRenderer, controls, composer, bloomPass;
@@ -144,6 +147,7 @@ function flattenTree(root) {
             parentId,
             part,
             childCount: (n.children || []).length,
+            wordCount: n.wordCount || 0,
             x: (Math.random() - 0.5) * 60,
             y: (Math.random() - 0.5) * 30,
             z: (Math.random() - 0.5) * 60
@@ -165,6 +169,12 @@ function getRadius(level) {
     return a[Math.min(level, a.length - 1)];
 }
 
+function getRadiusForNode(node) {
+    const base = getRadius(node.level);
+    const t = Math.min(1, (node.wordCount || 0) / 300);
+    return Math.max(0.25, base * (1 + t * 0.8));
+}
+
 function getColor(part) {
     return CONFIG.colors[part] ?? CONFIG.colors.root;
 }
@@ -181,7 +191,7 @@ function getLinkDistance(level) {
 function initScene() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(CONFIG.colors.background);
-    scene.fog = new THREE.FogExp2(CONFIG.colors.background, 0.0065);
+    scene.fog = new THREE.FogExp2(CONFIG.colors.background, 0.004);
 
     const viewW = window.innerWidth - SIDEBAR_W;
     const viewH = window.innerHeight;
@@ -207,6 +217,18 @@ function initScene() {
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
+    controls.autoRotate      = true;
+    controls.autoRotateSpeed = 0.05;
+
+    let autoRotateTimer = null;
+    renderer.domElement.addEventListener('pointerdown', () => {
+        controls.autoRotate = false;
+        clearTimeout(autoRotateTimer);
+    });
+    renderer.domElement.addEventListener('pointerup', () => {
+        clearTimeout(autoRotateTimer);
+        autoRotateTimer = setTimeout(() => { controls.autoRotate = true; }, 4000);
+    });
 
     const renderPass = new RenderPass(scene, camera);
     bloomPass = new UnrealBloomPass(
@@ -274,7 +296,7 @@ function buildGraph(tree) {
 }
 
 function buildNodeMeshes(node) {
-    const radius = getRadius(node.level);
+    const radius = getRadiusForNode(node);
     const color = getColor(node.part);
 
     const coreGeo = new THREE.SphereGeometry(radius, 20, 16);
@@ -402,11 +424,11 @@ function updateLabelOpacity() {
         if (n.level <= 1) {
             opacity = Math.max(0.45, Math.min(1, (CONFIG.labels.far + 60 - dist) / 140));
         } else if (n.level === 2) {
-            opacity = Math.max(0, Math.min(1, (CONFIG.labels.far - dist) / (CONFIG.labels.far - CONFIG.labels.near)));
+            opacity = Math.max(0.25, Math.min(1, (CONFIG.labels.far - dist) / (CONFIG.labels.far - CONFIG.labels.near)));
         } else {
             const near = CONFIG.labels.near * 0.5;
-            const far = CONFIG.labels.far * 0.55;
-            opacity = Math.max(0, Math.min(1, (far - dist) / (far - near)));
+            const far = CONFIG.labels.far * 0.85;
+            opacity = Math.max(0.1, Math.min(1, (far - dist) / (far - near)));
         }
         n.labelDiv.style.opacity = opacity.toFixed(2);
     }
@@ -627,7 +649,10 @@ async function initAudio() {
             overlaps:   6,
             windowSize: 0.12
         });
-        AudioSystem.grainEngine.connect(AudioSystem.ctx.destination);
+        AudioSystem.masterGain = AudioSystem.ctx.createGain();
+        AudioSystem.masterGain.gain.setValueAtTime(0, AudioSystem.ctx.currentTime);
+        AudioSystem.grainEngine.connect(AudioSystem.masterGain);
+        AudioSystem.masterGain.connect(AudioSystem.ctx.destination);
 
         AudioSystem.snapToGrains = new SnapToGrains(AudioSystem.ctx, AudioSystem.grainEngine, {
             smoothingTime:        1.5,
@@ -644,25 +669,69 @@ async function initAudio() {
     }
 }
 
+function applyGrainParams(stg, analysis) {
+    stg.currentSnapshot = analysis;
+    const params = stg.mapSnapshotToAudioParams(analysis);
+    stg.generatePointerSequence(analysis);
+    stg.applyToGrainEngine(params);
+}
+
 function activateGrains(node) {
     if (!AudioSystem.initialized || !AudioSystem.grainEnabled) return;
-    const stg = AudioSystem.snapToGrains;
 
-    stg.stop();
+    const stg  = AudioSystem.snapToGrains;
+    const gain = AudioSystem.masterGain.gain;
+    const ctx  = AudioSystem.ctx;
 
     const pixels   = generateSyntheticPixels(node);
     const analysis = stg.analyzePixelData(pixels);
     if (!analysis) return;
 
-    stg.currentSnapshot = analysis;
-    const params = stg.mapSnapshotToAudioParams(analysis);
-    stg.generatePointerSequence(analysis);
-    stg.applyToGrainEngine(params);
-    stg.start();
+    clearTimeout(AudioSystem.crossfadeTimer);
+
+    if (AudioSystem.grainActive) {
+        // Crossfade: dip → swap → rise
+        const now = ctx.currentTime;
+        gain.cancelScheduledValues(now);
+        gain.setValueAtTime(gain.value, now);
+        gain.linearRampToValueAtTime(0, now + 0.4);
+
+        AudioSystem.crossfadeTimer = setTimeout(() => {
+            stg.stop();
+            applyGrainParams(stg, analysis);
+            stg.start();
+            const t = ctx.currentTime;
+            gain.cancelScheduledValues(t);
+            gain.setValueAtTime(0, t);
+            gain.linearRampToValueAtTime(1, t + 1.2);
+        }, 420);
+    } else {
+        // Fade-in desde silencio
+        stg.stop();
+        applyGrainParams(stg, analysis);
+        stg.start();
+        AudioSystem.grainActive = true;
+        const now = ctx.currentTime;
+        gain.cancelScheduledValues(now);
+        gain.setValueAtTime(0, now);
+        gain.linearRampToValueAtTime(1, now + 1.5);
+    }
 }
 
 function deactivateGrains() {
-    AudioSystem.snapToGrains?.stop();
+    if (!AudioSystem.initialized || !AudioSystem.masterGain) return;
+    clearTimeout(AudioSystem.crossfadeTimer);
+
+    const gain = AudioSystem.masterGain.gain;
+    const now  = AudioSystem.ctx.currentTime;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(0, now + 1.0);
+
+    AudioSystem.crossfadeTimer = setTimeout(() => {
+        AudioSystem.snapToGrains?.stop();
+        AudioSystem.grainActive = false;
+    }, 1100);
 }
 
 // ========================================

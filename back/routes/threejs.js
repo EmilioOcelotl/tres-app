@@ -33,6 +33,7 @@ router.get('/structure', async (req, res) => {
       return {
         id: node.id || node.noteId,
         title: node.title || 'Sin título',
+        wordCount: node.wordCount || 0,
         children: node.children ? node.children.map(cleanStructure) : []
       };
     };

@@ -189,14 +189,22 @@ export class NoteService {
   
   transformToThreeJSStructure(node, level = 0) {
     const nodeType = this.determineNodeType(level);
-    
+    const contentStr = node.content
+      ? (Buffer.isBuffer(node.content) ? node.content.toString('utf8') : node.content)
+      : '';
+    const wordCount = contentStr
+      .replace(/<[^>]*>/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 0).length;
+
     return {
       id: node.noteId,
-      noteId: node.noteId, // Mantener compatibilidad
+      noteId: node.noteId,
       title: node.title,
       type: nodeType,
+      wordCount,
       content: node.content ? this.extractContentPreview(node.content) : '',
-      children: node.children?.map(child => 
+      children: node.children?.map(child =>
         this.transformToThreeJSStructure(child, level + 1)
       ) || []
     };
