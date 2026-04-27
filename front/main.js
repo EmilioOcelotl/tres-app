@@ -130,6 +130,7 @@ function flattenTree(root) {
             level,
             parentId,
             part,
+            childCount: (n.children || []).length,
             x: (Math.random() - 0.5) * 60,
             y: (Math.random() - 0.5) * 30,
             z: (Math.random() - 0.5) * 60
@@ -408,6 +409,7 @@ async function selectNode(id) {
     node.halo.scale.setScalar(1.5);
     node.halo.material.opacity = 0.32;
     if (node.labelDiv) node.labelDiv.classList.add('node-label--selected');
+    displaySnapshot(node);
     try {
         const data = await fetchNoteContent(id);
         displayNoteInOverlay(data);
@@ -450,6 +452,126 @@ function displayNoteInOverlay(note) {
 
 function hideNoteOverlay() {
     noteDisplayOverlay.style.display = 'none';
+    clearSnapshot();
+}
+
+// ========================================
+// Snapshot sintético
+// ========================================
+
+const SNAP_W = 80, SNAP_H = 80;
+
+const SNAPSHOT_PALETTES = {
+    part1: [[4,5,8],[0,55,75],[0,110,150],[0,221,255]],
+    part2: [[4,5,8],[75,0,28],[150,0,60],[255,51,136]],
+    part3: [[4,5,8],[30,0,70],[80,0,155],[170,85,255]],
+    refs:  [[4,5,8],[35,45,65],[95,120,160],[221,238,255]],
+    root:  [[4,5,8],[65,68,75],[148,152,162],[255,255,255]]
+};
+
+function hashString(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h;
+}
+
+function seededRandom(seed) {
+    let s = seed >>> 0;
+    return () => {
+        s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+        return s / 4294967296;
+    };
+}
+
+function generateSyntheticPixels(node) {
+    const seed       = hashString(node.id);
+    const rng        = seededRandom(seed);
+    const level      = node.level || 0;
+    const childCount = node.childCount || 0;
+
+    const brightness  = Math.max(0.05, 0.88 - level * 0.1);
+    const contrastAmt = Math.min(0.75, 0.08 + childCount * 0.06);
+    const complexity  = Math.min(0.7,  level * 0.08 + childCount * 0.03);
+
+    const phaseX = ((seed & 0x3FF) / 0x3FF) * Math.PI * 2;
+    const phaseY = (((seed >>> 10) & 0x3FF) / 0x3FF) * Math.PI * 2;
+
+    const M = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+    const pixels = new Uint8Array(SNAP_W * SNAP_H);
+
+    for (let y = 0; y < SNAP_H; y++) {
+        for (let x = 0; x < SNAP_W; x++) {
+            let v = brightness;
+            v += (rng() - 0.5) * contrastAmt;
+            v += Math.sin(x * complexity * 0.4 + phaseX) * complexity * 0.22;
+            v += Math.cos(y * complexity * 0.3 + phaseY) * complexity * 0.18;
+            const t = M[y % 4][x % 4] / 15;
+            v += (t - 0.5) * 0.3;
+            pixels[y * SNAP_W + x] = Math.max(0, Math.min(3, Math.round(v * 3)));
+        }
+    }
+    return pixels;
+}
+
+function renderSnapshotToCanvas(pixels, canvas, part) {
+    const palette = SNAPSHOT_PALETTES[part] || SNAPSHOT_PALETTES.root;
+    canvas.width  = SNAP_W;
+    canvas.height = SNAP_H;
+    const img  = new ImageData(SNAP_W, SNAP_H);
+    const data = img.data;
+    for (let i = 0; i < pixels.length; i++) {
+        const c = palette[pixels[i]];
+        data[i * 4]     = c[0];
+        data[i * 4 + 1] = c[1];
+        data[i * 4 + 2] = c[2];
+        data[i * 4 + 3] = 255;
+    }
+    canvas.getContext('2d').putImageData(img, 0, 0);
+}
+
+function analyzePixels(pixels) {
+    const n = pixels.length;
+    let sum = 0;
+    for (let i = 0; i < n; i++) sum += pixels[i];
+    const mean       = sum / n;
+    const brightness = mean / 3;
+
+    let variance = 0;
+    for (let i = 0; i < n; i++) variance += (pixels[i] - mean) ** 2;
+    const contrast = Math.min(Math.sqrt(variance / n) / 1.5, 1);
+
+    const hist = [0, 0, 0, 0];
+    for (let i = 0; i < n; i++) hist[pixels[i]]++;
+    let entropy = 0;
+    for (let k = 0; k < 4; k++) {
+        if (hist[k] > 0) { const p = hist[k] / n; entropy -= p * Math.log2(p); }
+    }
+    const complexity = entropy / 2;
+    return { brightness, contrast, complexity };
+}
+
+function displaySnapshot(node) {
+    const canvas = document.getElementById('snapshot-canvas');
+    if (!canvas) return;
+    const pixels   = generateSyntheticPixels(node);
+    renderSnapshotToCanvas(pixels, canvas, node.part);
+    const analysis = analyzePixels(pixels);
+    const fmt = v => v.toFixed(3);
+    document.getElementById('val-brightness').textContent = fmt(analysis.brightness);
+    document.getElementById('val-contrast').textContent   = fmt(analysis.contrast);
+    document.getElementById('val-complexity').textContent = fmt(analysis.complexity);
+}
+
+function clearSnapshot() {
+    const canvas = document.getElementById('snapshot-canvas');
+    if (canvas) canvas.getContext('2d').clearRect(0, 0, SNAP_W, SNAP_H);
+    ['val-brightness', 'val-contrast', 'val-complexity'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '—';
+    });
 }
 
 // ========================================
@@ -492,30 +614,29 @@ async function showWelcomeModal(tree) {
     const contentEl = document.getElementById('welcome-content');
     const enterBtn = document.getElementById('welcome-enter');
 
-    try {
-        const byPath =
-            findNoteByPath(tree, ['parte i', 'introducci', 'léeme']) ||
-            findNoteByPath(tree, ['parte i', 'introducci', 'leeme']) ||
-            findNoteByPath(tree, ['parte i', 'léeme']);
-
-        let leemeId = byPath?.id || null;
-
-        if (!leemeId) {
-            const results = await searchNote('léeme');
-            console.log('Búsqueda "léeme":', results);
-            for (const r of results) {
-                const ancestors = findAncestors(tree, r.id);
-                if (ancestors && ancestors.some(a => a.toLowerCase().includes('introducci'))) {
-                    leemeId = r.id;
-                    break;
-                }
-            }
-            if (!leemeId && results.length === 1) leemeId = results[0].id;
+    const results = await searchNote('léeme');
+    function findAncestorsLocal(node, targetId, path = []) {
+        if (node.id === targetId) return path;
+        for (const child of (node.children || [])) {
+            const found = findAncestorsLocal(child, targetId, [...path, node.title]);
+            if (found) return found;
         }
+        return null;
+    }
 
-        if (leemeId) {
+    let leemeId = null;
+    for (const r of results) {
+        const ancestors = findAncestorsLocal(tree, r.id);
+        if (ancestors && ancestors.some(a => a.toLowerCase().includes('introducci'))) {
+            leemeId = r.id;
+            break;
+        }
+    }
+    if (!leemeId && results.length === 1) leemeId = results[0].id;
+
+    if (leemeId) {
+        try {
             const noteData = await fetchNoteContent(leemeId, false);
-            console.log('Léeme noteData:', noteData);
             const html = noteData.content?.html?.trim();
             const raw = noteData.content?.raw?.trim();
             const plain = noteData.content?.plain?.trim();
@@ -523,12 +644,13 @@ async function showWelcomeModal(tree) {
             else if (raw) contentEl.innerHTML = raw;
             else if (plain) contentEl.textContent = plain;
             else contentEl.innerHTML = '<p>Sin contenido</p>';
-        } else {
-            contentEl.innerHTML = '<p>Nota de bienvenida no encontrada.</p>';
+        } catch (err) {
+            console.error('Error cargando nota Léeme:', err);
+            contentEl.innerHTML = '<p>No se pudo cargar el contenido.</p>';
         }
-    } catch (err) {
-        console.error('Error en modal de bienvenida:', err);
-        contentEl.innerHTML = '<p>No se pudo cargar el contenido.</p>';
+    } else {
+        contentEl.innerHTML = '<p>Nota de bienvenida no encontrada.</p>';
+        console.warn('Resultados de búsqueda "leeme":', results);
     }
 
     return new Promise(resolve => {

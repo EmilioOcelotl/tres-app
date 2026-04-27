@@ -139,7 +139,52 @@ canvas {
     z-index: 999;
     color: var(--text);
     font-family: 'Space Mono', monospace;
-    overflow-y: auto;
+    overflow: hidden;
+}
+
+#audio-panel {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+#snapshot-canvas {
+    width: 120px;
+    height: 120px;
+    image-rendering: pixelated;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    background: #000;
+}
+
+#snapshot-data {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.72em;
+    padding-top: 4px;
+}
+
+.snap-row {
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+}
+
+.snap-key {
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.snap-val {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
 }
 
 #overlay-title {
@@ -157,6 +202,28 @@ canvas {
     font-size: 0.82em;
     line-height: 1.9;
     color: var(--text);
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+#overlay-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+#overlay-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#overlay-content::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 2px;
+}
+
+#overlay-content::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-mid);
 }
 
 #overlay-content p {

@@ -26,6 +26,14 @@
     <div id="scene-container"></div>
     <div id="note-display-overlay">
         <h2 id="overlay-title">Selecciona una nota</h2>
+        <div id="audio-panel">
+            <canvas id="snapshot-canvas"></canvas>
+            <div id="snapshot-data">
+                <div class="snap-row"><span class="snap-key">bright</span><span class="snap-val" id="val-brightness">—</span></div>
+                <div class="snap-row"><span class="snap-key">contrast</span><span class="snap-val" id="val-contrast">—</span></div>
+                <div class="snap-row"><span class="snap-key">complex</span><span class="snap-val" id="val-complexity">—</span></div>
+            </div>
+        </div>
         <div id="overlay-content"></div>
         <button id="close-overlay">X</button>
     </div>
