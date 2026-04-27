@@ -18,6 +18,8 @@ import {
     forceY
 } from 'd3-force-3d';
 
+const SIDEBAR_W = 300;
+
 const CONFIG = {
     apiBase: '/api/3d',
     colors: {
@@ -181,17 +183,20 @@ function initScene() {
     scene.background = new THREE.Color(CONFIG.colors.background);
     scene.fog = new THREE.FogExp2(CONFIG.colors.background, 0.0065);
 
-    camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 800);
+    const viewW = window.innerWidth - SIDEBAR_W;
+    const viewH = window.innerHeight;
+
+    camera = new THREE.PerspectiveCamera(62, viewW / viewH, 0.1, 800);
     camera.position.copy(CONFIG.cameraStart);
     camera.lookAt(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(viewW, viewH);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.getElementById('scene-container').appendChild(renderer.domElement);
 
     labelRenderer = new CSS2DRenderer();
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.setSize(viewW, viewH);
     labelRenderer.domElement.style.position = 'absolute';
     labelRenderer.domElement.style.top = '0';
     labelRenderer.domElement.style.left = '0';
@@ -205,7 +210,7 @@ function initScene() {
 
     const renderPass = new RenderPass(scene, camera);
     bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        new THREE.Vector2(viewW, viewH),
         CONFIG.bloom.strength,
         CONFIG.bloom.radius,
         CONFIG.bloom.threshold
@@ -241,11 +246,13 @@ function initScene() {
 }
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const viewW = window.innerWidth - SIDEBAR_W;
+    const viewH = window.innerHeight;
+    camera.aspect = viewW / viewH;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(viewW, viewH);
+    labelRenderer.setSize(viewW, viewH);
+    composer.setSize(viewW, viewH);
 }
 
 // ========================================
@@ -407,7 +414,8 @@ function updateLabelOpacity() {
 // ========================================
 
 function onClick(e) {
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    const viewW = window.innerWidth - SIDEBAR_W;
+    mouse.x = (e.clientX / viewW) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const hits = raycaster.intersectObjects(groups.cores.children, false);

@@ -28,7 +28,33 @@
     <div id="scene-container"></div>
     <div id="note-display-overlay">
         <h2 id="overlay-title">Selecciona una nota</h2>
-        <div id="audio-panel">
+        <div id="overlay-content"></div>
+        <button id="close-overlay">X</button>
+    </div>
+    <div id="loading-screen">Cargando escena...</div>
+
+    <nav id="sidebar">
+        <div id="sidebar-header">
+            <span id="sidebar-title">TRES ESTUDIOS</span>
+            <span id="sidebar-subtitle">SISTEMA DE EXPLORACIÓN</span>
+        </div>
+
+        <div class="sb-section">
+            <div class="sb-label">[ VIS ]</div>
+            <div class="sb-controls">
+                <button id="toggle-references">REFS: ON</button>
+            </div>
+        </div>
+
+        <div class="sb-section">
+            <div class="sb-label">[ AUD ]</div>
+            <div class="sb-controls">
+                <button id="toggle-grain">GRAIN: ON</button>
+            </div>
+        </div>
+
+        <div class="sb-section sb-section--dat">
+            <div class="sb-label">[ DAT ]</div>
             <canvas id="snapshot-canvas"></canvas>
             <div id="snapshot-data">
                 <div class="snap-row"><span class="snap-key">bright</span><span class="snap-val" id="val-brightness">—</span></div>
@@ -36,15 +62,7 @@
                 <div class="snap-row"><span class="snap-key">complex</span><span class="snap-val" id="val-complexity">—</span></div>
             </div>
         </div>
-        <div id="overlay-content"></div>
-        <button id="close-overlay">X</button>
-    </div>
-    <div id="loading-screen">Cargando escena...</div>
-    <div id="control-panel">
-        <p class="panel-title">CONTROLES</p>
-        <button id="toggle-references">REFS: ON</button>
-        <button id="toggle-grain">GRAIN: ON</button>
-    </div>
+    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.umd.min.js"></script>
     <script type="module" src="main.js"></script>
