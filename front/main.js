@@ -2,6 +2,8 @@
 // ==============================================================
 
 import * as THREE from 'three';
+import { GrainEngine }  from 'treslib/GrainEngine';
+import { SnapToGrains } from 'treslib/SnapToGrains';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -57,6 +59,15 @@ const AppState = {
     simulation: null,
     referencesVisible: true,
     selectedNode: null
+};
+
+const AudioSystem = {
+    ctx:         null,
+    buffer:      null,
+    grainEngine: null,
+    snapToGrains: null,
+    initialized: false,
+    grainEnabled: true
 };
 
 let scene, camera, renderer, labelRenderer, controls, composer, bloomPass;
@@ -216,6 +227,17 @@ function initScene() {
         if (e.key === 'r' || e.key === 'R') toggleReferences();
     });
     closeOverlayButton.addEventListener('click', deselectNode);
+
+    const btnGrain = document.getElementById('toggle-grain');
+    btnGrain.addEventListener('click', () => {
+        AudioSystem.grainEnabled = !AudioSystem.grainEnabled;
+        btnGrain.textContent = `GRAIN: ${AudioSystem.grainEnabled ? 'ON' : 'OFF'}`;
+        if (AudioSystem.grainEnabled && AppState.selectedNode) {
+            activateGrains(AppState.selectedNode);
+        } else {
+            deactivateGrains();
+        }
+    });
 }
 
 function onWindowResize() {
@@ -410,6 +432,7 @@ async function selectNode(id) {
     node.halo.material.opacity = 0.32;
     if (node.labelDiv) node.labelDiv.classList.add('node-label--selected');
     displaySnapshot(node);
+    activateGrains(node);
     try {
         const data = await fetchNoteContent(id);
         displayNoteInOverlay(data);
@@ -453,6 +476,7 @@ function displayNoteInOverlay(note) {
 function hideNoteOverlay() {
     noteDisplayOverlay.style.display = 'none';
     clearSnapshot();
+    deactivateGrains();
 }
 
 // ========================================
@@ -575,6 +599,62 @@ function clearSnapshot() {
 }
 
 // ========================================
+// Granulación
+// ========================================
+
+async function initAudio() {
+    if (AudioSystem.initialized) return;
+    try {
+        AudioSystem.ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        const res = await fetch('/assets/snd/oci3.mp3');
+        const raw = await res.arrayBuffer();
+        AudioSystem.buffer = await AudioSystem.ctx.decodeAudioData(raw);
+
+        AudioSystem.grainEngine = new GrainEngine(AudioSystem.ctx, AudioSystem.buffer, {
+            masterAmp:  0.7,
+            overlaps:   6,
+            windowSize: 0.12
+        });
+        AudioSystem.grainEngine.connect(AudioSystem.ctx.destination);
+
+        AudioSystem.snapToGrains = new SnapToGrains(AudioSystem.ctx, AudioSystem.grainEngine, {
+            smoothingTime:        1.5,
+            maxRandomPitch:       0.25,
+            pointerTransitionTime: 4.0,
+            transitionCurve:      'easeInOut',
+            jitter:               0.04
+        });
+
+        AudioSystem.initialized = true;
+        console.log('Audio listo —', AudioSystem.buffer.duration.toFixed(1), 's');
+    } catch (err) {
+        console.error('Error iniciando audio:', err);
+    }
+}
+
+function activateGrains(node) {
+    if (!AudioSystem.initialized || !AudioSystem.grainEnabled) return;
+    const stg = AudioSystem.snapToGrains;
+
+    stg.stop();
+
+    const pixels   = generateSyntheticPixels(node);
+    const analysis = stg.analyzePixelData(pixels);
+    if (!analysis) return;
+
+    stg.currentSnapshot = analysis;
+    const params = stg.mapSnapshotToAudioParams(analysis);
+    stg.generatePointerSequence(analysis);
+    stg.applyToGrainEngine(params);
+    stg.start();
+}
+
+function deactivateGrains() {
+    AudioSystem.snapToGrains?.stop();
+}
+
+// ========================================
 // Welcome modal
 // ========================================
 
@@ -656,6 +736,7 @@ async function showWelcomeModal(tree) {
     return new Promise(resolve => {
         enterBtn.addEventListener('click', () => {
             modal.style.display = 'none';
+            initAudio();
             resolve();
         }, { once: true });
     });

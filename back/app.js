@@ -17,6 +17,9 @@ app.use(cors());
 // Servir archivos estáticos del front (index.html, main.js, style.css)
 app.use(express.static(path.resolve(__dirname, '../front')));
 
+// Servir assets generales (fonts, img, snd, data)
+app.use('/assets', express.static(path.resolve(__dirname, '../assets')));
+
 // Ruta de presentación para PDF
 app.get('/pdf', (req, res) => {
   res.send(`
