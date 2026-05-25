@@ -21,7 +21,7 @@ const COLOR_DIM    = '#888888';
 // Geometría de página
 const PAGE_W  = 595;
 const PAGE_H  = 595;
-const MARGIN  = 54;
+const MARGIN  = 72;
 
 // Regla horizontal fina
 function reglaTenue(doc, y, color = '#dddddd', grosor = 0.4) {
@@ -53,7 +53,7 @@ function insertarFooters(doc, fontPath, primeraPaginaContenido) {
     reglaTenue(doc, ruleY, '#e0e0e0', 0.3);
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
-       .fontSize(7.5)
+       .fontSize(8)
        .text(String(pageNum), MARGIN, numY, {
          width: PAGE_W - MARGIN * 2,
          align: 'center',
@@ -88,8 +88,8 @@ function insertarImagen(doc, rutaImagen, caption, fontPath, figNum) {
 
   if (caption) {
     const label = figNum ? `Fig. ${figNum}  ` : '—  ';
-    doc.fillColor(COLOR_ACCENT).font(fontPath).fontSize(8).text(label, { continued: true });
-    doc.fillColor(COLOR_DIM).fontSize(8).text(caption, { lineGap: 2 });
+    doc.fillColor(COLOR_ACCENT).font(fontPath).fontSize(8.5).text(label, { continued: true });
+    doc.fillColor(COLOR_DIM).fontSize(8.5).text(caption, { lineGap: 2 });
   }
 
   doc.moveDown(1.2);
@@ -122,7 +122,7 @@ async function contarPaginasIndice(entradas, fontPath) {
   tempDoc.pipe(nullStream);
 
   tempDoc.fillColor(COLOR_ACCENT)
-         .font(fontPath).fontSize(10)
+         .font(fontPath).fontSize(11)
          .text('ÍNDICE', { align: 'left', characterSpacing: 3 })
          .moveDown(0.5);
   tempDoc.moveDown(1);
@@ -133,7 +133,7 @@ async function contarPaginasIndice(entradas, fontPath) {
   for (const entry of entradas) {
     const indent    = entry.nivel * 16;
     const textWidth = colWidth - indent - pageCol;
-    const fontSize  = entry.nivel === 0 ? 10 : entry.nivel === 1 ? 9.5 : 9;
+    const fontSize  = entry.nivel === 0 ? 11 : entry.nivel === 1 ? 10 : 9;
     const y = tempDoc.y;
     tempDoc.font(fontPath).fontSize(fontSize)
            .text(entry.title, MARGIN + indent, y, { width: textWidth, lineBreak: false });
@@ -164,7 +164,7 @@ function insertarIndiceConPaginas(doc, tocCtx, fontPath, paginasNoNumeradas, ind
 
   doc.fillColor(COLOR_ACCENT)
      .font(fontPath)
-     .fontSize(10)
+     .fontSize(11)
      .text('ÍNDICE', { align: 'left', characterSpacing: 3 })
      .moveDown(0.5);
 
@@ -172,7 +172,7 @@ function insertarIndiceConPaginas(doc, tocCtx, fontPath, paginasNoNumeradas, ind
   doc.moveDown(1);
 
   for (const entry of tocCtx) {
-    const fontSize  = entry.nivel === 0 ? 10 : entry.nivel === 1 ? 9.5 : 9;
+    const fontSize  = entry.nivel === 0 ? 11 : entry.nivel === 1 ? 10 : 9;
     const alturaEst = fontSize * 2; // estimación conservadora por entrada
 
     // Salto manual de página si no cabe la entrada
@@ -246,12 +246,12 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService, figCt
           const label = `Fig. ${numFig}`;
           doc.fillColor(COLOR_ACCENT)
              .font(fontPath)
-             .fontSize(7.5)
+             .fontSize(8)
              .text(label, MARGIN, doc.y, { continued: !!caption, lineGap: 2 });
 
           if (caption) {
             doc.fillColor(COLOR_DIM)
-               .fontSize(7.5)
+               .fontSize(8)
                .text(`  ${caption}`, { lineGap: 2 });
           }
 
@@ -265,8 +265,8 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService, figCt
       if (texto) {
         doc.fillColor(COLOR_TEXT)
            .font(fontPath)
-           .fontSize(9.5)
-           .text(texto, { paragraphGap: 4, lineGap: 3 });
+           .fontSize(10.5)
+           .text(texto, { paragraphGap: 6, lineGap: 4 });
       }
     }
   }
@@ -279,7 +279,7 @@ function insertarIndiceFiguras(doc, figCtx, fontPath, paginasNoNumeradas) {
 
   doc.fillColor(COLOR_ACCENT)
      .font(fontPath)
-     .fontSize(10)
+     .fontSize(11)
      .text('ÍNDICE DE FIGURAS', { align: 'left', characterSpacing: 3 })
      .moveDown(0.5);
 
@@ -353,7 +353,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
 
       case 1:
         doc.addPage();
-        fontSize = 15;
+        fontSize = 14;
         isTitle  = true;
 
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
@@ -371,7 +371,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         break;
 
       case 2:
-        fontSize = 9.5;
+        fontSize = 12;
         isTitle  = true;
         if (doc.y + fontSize * 5 > PAGE_H - MARGIN) doc.addPage();
 
@@ -388,7 +388,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         break;
 
       case 3:
-        fontSize = 9.5;
+        fontSize = 11;
         isTitle  = true;
         if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
 
@@ -405,7 +405,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         break;
 
       case 4:
-        fontSize = 9;
+        fontSize = 10;
         isTitle  = true;
         if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
 
@@ -516,13 +516,13 @@ router.get('/', async (req, res) => {
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
-       .fontSize(8.5)
+       .fontSize(9)
        .text('UNIVERSIDAD NACIONAL AUTÓNOMA DE MÉXICO', { align: 'left' })
        .moveDown(0.5);
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
-       .fontSize(8.5)
+       .fontSize(9)
        .text('Programa de Maestría y Doctorado en Música', { align: 'left' })
        .text('Facultad de Música', { align: 'left' })
        .text('Instituto de Ciencias Aplicadas y Tecnología', { align: 'left' })
@@ -540,7 +540,7 @@ router.get('/', async (req, res) => {
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
-       .fontSize(8.5)
+       .fontSize(9)
        .text(
          'Escritura de código en Javascript para el performance audiovisual y la investigación artística',
          { align: 'left', lineGap: 4 }
@@ -549,20 +549,20 @@ router.get('/', async (req, res) => {
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
-       .fontSize(8.5)
+       .fontSize(9)
        .text('Que para optar por el grado de', { align: 'left' })
        .moveDown(0.6);
 
     doc.fillColor(COLOR_TEXT)
        .font(fontPath)
-       .fontSize(10)
+       .fontSize(10.5)
        .text('Doctor en Música', { align: 'left' })
        .text('Tecnología Musical', { align: 'left' })
        .moveDown(0.6);
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
-       .fontSize(8.5)
+       .fontSize(9)
        .text('Presenta', { align: 'left' })
        .moveDown(0.5);
 
@@ -574,7 +574,7 @@ router.get('/', async (req, res) => {
 
     doc.fillColor(COLOR_DIM)
        .font(fontPath)
-       .fontSize(8.5)
+       .fontSize(9)
        .text('Tutor Principal: Hugo Solís', { align: 'left' })
        .text('Comité tutor: Iracema de Andrade y Fernando Monreal', { align: 'left' });
 
