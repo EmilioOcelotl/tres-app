@@ -61,10 +61,13 @@ body {
     color: var(--accent);
     margin-top: 1.5em;
     margin-bottom: 0.5em;
-    font-size: 0.9em;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
+
+#welcome-content h1 { font-size: 1.1em; }
+#welcome-content h2 { font-size: 1.0em; }
+#welcome-content h3 { font-size: 0.92em; }
 
 #welcome-content a {
     color: rgba(221, 230, 240, 0.65);
@@ -356,10 +359,13 @@ canvas {
     color: var(--accent);
     margin-top: 1.5em;
     margin-bottom: 0.5em;
-    font-size: 0.9em;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
+
+#overlay-content h1 { font-size: 1.1em; }
+#overlay-content h2 { font-size: 1.0em; }
+#overlay-content h3 { font-size: 0.92em; }
 
 #overlay-content a {
     color: rgba(221, 230, 240, 0.65);
