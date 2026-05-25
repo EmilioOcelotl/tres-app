@@ -14,7 +14,7 @@ const noteService = new NoteService();
 const fontsPath = path.join(__dirname, '..', '..', 'assets', 'fonts');
 
 // Paleta
-const COLOR_ACCENT = '#00b4b4';
+const COLOR_ACCENT = '#000000';
 const COLOR_TEXT   = '#111111';
 const COLOR_DIM    = '#888888';
 
