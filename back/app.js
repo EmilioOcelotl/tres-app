@@ -46,12 +46,12 @@ app.get('/pdf', (req, res) => {
 
         .container {
           width: 320px;
-          border: 1px solid rgba(0, 180, 180, 0.2);
+          border: 1px solid rgba(221, 230, 240, 0.1);
           padding: 36px 32px;
         }
 
         .title {
-          color: #00b4b4;
+          color: #dde6f0;
           font-size: 0.72em;
           letter-spacing: 0.25em;
           text-transform: uppercase;
@@ -60,7 +60,7 @@ app.get('/pdf', (req, res) => {
 
         .rule {
           height: 1px;
-          background: rgba(0, 180, 180, 0.2);
+          background: rgba(221, 230, 240, 0.1);
           margin-bottom: 24px;
         }
 
@@ -79,7 +79,7 @@ app.get('/pdf', (req, res) => {
         }
 
         .status.done {
-          color: #00b4b4;
+          color: #dde6f0;
         }
       </style>
     </head>
