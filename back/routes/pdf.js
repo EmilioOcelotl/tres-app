@@ -188,7 +188,11 @@ function insertarIndiceConPaginas(doc, tocCtx, fontPath, paginasNoNumeradas, ind
     doc.fillColor(entry.nivel === 0 ? COLOR_ACCENT : COLOR_TEXT)
        .font(fontPath)
        .fontSize(fontSize)
-       .text(entry.title, MARGIN + indent, y, { width: textWidth, lineBreak: false });
+       .text(entry.title, MARGIN + indent, y, {
+         width: textWidth,
+         lineBreak: false,
+         goTo: entry.noteId || null
+       });
 
     doc.fillColor(COLOR_DIM)
        .fontSize(fontSize)
@@ -203,7 +207,136 @@ function insertarIndiceConPaginas(doc, tocCtx, fontPath, paginasNoNumeradas, ind
 }
 
 // Renderizar segmentos de texto e imagen en el doc
-async function renderizarConImagenes(doc, markdown, fontPath, noteService, figCtx) {
+// ── Render de markdown de contenido ──────────────────────────────────────────
+// El contenido de una nota llega como markdown (vía turndown). Aquí se
+// interpretan encabezados internos y negritas; el resto se imprime como cuerpo.
+// Los enlaces [texto](url) quedan pendientes de tratamiento propio.
+
+// turndown escapa caracteres literales (\* \# \[ ...) para que no se lean como
+// markdown; se limpian al imprimir, después de detectar la estructura.
+function desescaparMarkdown(texto) {
+  return texto.replace(/\\([\\`*_{}[\]()#+\-.!>~=|])/g, '$1');
+}
+
+function renderizarEncabezadoInterno(doc, texto, nivelMd, fontPath) {
+  // Encabezado dentro del contenido de una nota: siempre por debajo del
+  // título del nodo que lo contiene (los títulos estructurales van de 18 a 10pt).
+  const fontSize = nivelMd <= 2 ? 10.5 : 9.5;
+  if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
+
+  // En un encabezado el enlace se reduce a su texto (sin anotación)
+  const textoPlano = desescaparMarkdown(texto.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1'));
+
+  doc.moveDown(0.6);
+  doc.fillColor(COLOR_TEXT)
+     .strokeColor(COLOR_TEXT)
+     .lineWidth(0.3)
+     .font(fontPath)
+     .fontSize(fontSize)
+     .text(textoPlano, {
+       fill: true,
+       stroke: true,
+       characterSpacing: 0.5,
+       paragraphGap: 4
+     });
+  doc.moveDown(0.15);
+}
+
+// Un enlace interno de Trilium tiene la forma #root/<id>/.../<idDestino>;
+// el último segmento es el noteId de la nota referenciada.
+function extraerNoteIdDeEnlace(url) {
+  if (!url.startsWith('#root/')) return null;
+  const segmentos = url.split('/').filter(Boolean);
+  return segmentos[segmentos.length - 1];
+}
+
+function renderizarParrafo(doc, texto, fontPath, linkCtx) {
+  // Cada párrafo (separado por línea en blanco) es una cadena `continued`
+  // independiente: si la cadena cruza el salto de párrafo, pdfkit arrastra
+  // la posición X del último fragmento y desplaza la primera línea siguiente.
+  const parrafos = texto.split(/\n[ \t]*\n+/).map(p => p.trim()).filter(p => p.length > 0);
+
+  parrafos.forEach((parrafo, idx) => {
+    renderizarSegmentosInline(doc, parrafo, fontPath, linkCtx);
+    if (idx < parrafos.length - 1) doc.moveDown(1);
+  });
+}
+
+function renderizarSegmentosInline(doc, texto, fontPath, linkCtx) {
+  const segmentos = texto
+    .split(/(\*\*[\s\S]+?\*\*|\[[^\]]+\]\([^)]+\))/g)
+    .filter(s => s.length > 0);
+  doc.font(fontPath).fontSize(10.5);
+
+  segmentos.forEach((seg, i) => {
+    // En texto `continued`, pdfkit hereda las opciones de la llamada anterior:
+    // stroke/underline/goTo/link se fijan explícitamente en cada segmento.
+    const opciones = {
+      continued: i < segmentos.length - 1,
+      fill: true,
+      stroke: false,
+      underline: false,
+      goTo: null,
+      link: null,
+      paragraphGap: 6,
+      lineGap: 4
+    };
+
+    const mEnlace = seg.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (mEnlace) {
+      const textoEnlace = desescaparMarkdown(mEnlace[1].replace(/\*\*/g, ''));
+      const url         = mEnlace[2];
+      const idDestino   = extraerNoteIdDeEnlace(url);
+
+      if (idDestino && linkCtx && linkCtx.ids.has(idDestino)) {
+        opciones.goTo      = idDestino;
+        opciones.underline = true;
+      } else if (/^https?:/.test(url)) {
+        opciones.link      = url;
+        opciones.underline = true;
+      }
+      // Enlace interno a una nota fuera del árbol renderizado: queda solo el texto.
+
+      doc.fillColor(COLOR_TEXT)
+         .strokeColor(COLOR_TEXT)
+         .lineWidth(0.3)
+         .text(textoEnlace, opciones);
+      return;
+    }
+
+    const negrita = seg.startsWith('**') && seg.endsWith('**') && seg.length > 4;
+    opciones.stroke = negrita;
+
+    doc.fillColor(COLOR_TEXT)
+       .strokeColor(COLOR_TEXT)
+       .lineWidth(0.3)
+       .text(desescaparMarkdown(negrita ? seg.slice(2, -2) : seg), opciones);
+  });
+}
+
+function renderizarBloqueMarkdown(doc, markdown, fontPath, linkCtx) {
+  const lineas = markdown.split('\n');
+  let parrafo = [];
+
+  const vaciarParrafo = () => {
+    const texto = parrafo.join('\n').trim();
+    if (texto) renderizarParrafo(doc, texto, fontPath, linkCtx);
+    parrafo = [];
+  };
+
+  for (const linea of lineas) {
+    const encabezado = linea.match(/^(#{1,6})\s+(.+)$/);
+    if (encabezado) {
+      vaciarParrafo();
+      renderizarEncabezadoInterno(doc, encabezado[2], encabezado[1].length, fontPath);
+    } else {
+      parrafo.push(linea);
+    }
+  }
+  vaciarParrafo();
+}
+
+async function renderizarConImagenes(doc, markdown, fontPath, noteService, figCtx, linkCtx) {
   const partes = markdown.split(/(\[\[IMAGEN:[^\]]+\]\])/g);
 
   for (const parte of partes) {
@@ -262,12 +395,7 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService, figCt
       }
     } else {
       const texto = parte.trim();
-      if (texto) {
-        doc.fillColor(COLOR_TEXT)
-           .font(fontPath)
-           .fontSize(10.5)
-           .text(texto, { paragraphGap: 6, lineGap: 4 });
-      }
+      if (texto) renderizarBloqueMarkdown(doc, texto, fontPath, linkCtx);
     }
   }
 }
@@ -319,10 +447,19 @@ function insertarIndiceFiguras(doc, figCtx, fontPath, paginasNoNumeradas) {
   }
 }
 
-async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null, figCtx = null, tocCtx = null) {
+async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null, figCtx = null, tocCtx = null, linkCtx = null) {
   if (!nodo) return contadorPaginas;
 
   let fontSize, isTitle;
+
+  // Destino nombrado para que los enlaces internos #root/... salten a esta nota.
+  // Se registra una sola vez por noteId (las notas clonadas aparecen más de una vez).
+  const registrarDestino = () => {
+    if (nodo.noteId && linkCtx && !linkCtx.destinos.has(nodo.noteId)) {
+      doc.addNamedDestination(nodo.noteId, 'XYZ', null, doc.y, null);
+      linkCtx.destinos.add(nodo.noteId);
+    }
+  };
 
   if (!omitirTitulo) {
     switch (nivel) {
@@ -331,8 +468,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         fontSize = 18;
         isTitle  = true;
 
+        registrarDestino();
+
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
         }
 
         {
@@ -356,8 +495,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         fontSize = 14;
         isTitle  = true;
 
+        registrarDestino();
+
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
         }
 
         doc.fillColor(COLOR_ACCENT)
@@ -375,8 +516,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         isTitle  = true;
         if (doc.y + fontSize * 5 > PAGE_H - MARGIN) doc.addPage();
 
+        registrarDestino();
+
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
         }
 
         doc.moveDown(1);
@@ -392,8 +535,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         isTitle  = true;
         if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
 
+        registrarDestino();
+
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
         }
 
         doc.moveDown(0.8);
@@ -409,8 +554,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         isTitle  = true;
         if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
 
+        registrarDestino();
+
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1 });
+          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
         }
 
         doc.moveDown(0.4);
@@ -427,6 +574,9 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
     }
   }
 
+  // Notas sin título renderizado (nivel profundo o título omitido, p.ej. Referencias)
+  registrarDestino();
+
   if (nodo.content && nodo.content.trim() !== '') {
     let markdown;
     try {
@@ -438,7 +588,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
     }
 
     if (markdown.trim() !== '') {
-      await renderizarConImagenes(doc, markdown, fontPath, noteSvc, figCtx);
+      await renderizarConImagenes(doc, markdown, fontPath, noteSvc, figCtx, linkCtx);
       doc.moveDown(0.4);
     }
 
@@ -450,7 +600,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
     const omitirTituloHijos = omitirTitulo || esReferencias;
     for (const hijo of nodo.children) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc, figCtx, tocCtx
+        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc, figCtx, tocCtx, linkCtx
       );
     }
   }
@@ -610,21 +760,31 @@ router.get('/', async (req, res) => {
 
     const tocCtx = [];
 
+    // Enlaces internos #root/...: ids de las notas que entran al PDF
+    // (los enlaces a notas fuera del árbol se imprimen como texto plano)
+    const idsNotas = new Set();
+    (function recolectarIds(n) {
+      if (!n) return;
+      if (n.noteId) idsNotas.add(n.noteId);
+      (n.children || []).forEach(recolectarIds);
+    })({ children: rootFiltrado.children });
+    const linkCtx = { ids: idsNotas, destinos: new Set() };
+
     if (aclaracionesChapter) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx
+        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx
       );
     }
 
     for (const capitulo of remainingChapters) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx
+        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx
       );
     }
 
     if (referencesNode) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx
+        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx
       );
     }
 
