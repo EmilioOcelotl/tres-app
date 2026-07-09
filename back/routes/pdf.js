@@ -263,8 +263,10 @@ function renderizarParrafo(doc, texto, fontPath, linkCtx) {
 }
 
 function renderizarSegmentosInline(doc, texto, fontPath, linkCtx) {
+  // Además de negritas y enlaces markdown, las URLs sueltas (Referencias las
+  // traen como texto con href vacío) se anotan como enlace URI.
   const segmentos = texto
-    .split(/(\*\*[\s\S]+?\*\*|\[[^\]]+\]\([^)]+\))/g)
+    .split(/(\*\*[\s\S]+?\*\*|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<>()[\]"]+[^\s<>()[\]".,;:])/g)
     .filter(s => s.length > 0);
   doc.font(fontPath).fontSize(10.5);
 
@@ -301,6 +303,17 @@ function renderizarSegmentosInline(doc, texto, fontPath, linkCtx) {
          .strokeColor(COLOR_TEXT)
          .lineWidth(0.3)
          .text(textoEnlace, opciones);
+      return;
+    }
+
+    if (/^https?:\/\//.test(seg)) {
+      const url = desescaparMarkdown(seg);
+      opciones.link      = url;
+      opciones.underline = true;
+      doc.fillColor(COLOR_TEXT)
+         .strokeColor(COLOR_TEXT)
+         .lineWidth(0.3)
+         .text(url, opciones);
       return;
     }
 
