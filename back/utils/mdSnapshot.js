@@ -33,11 +33,21 @@ function nodoAMarkdown(nodo, nivel) {
   if (nodo.title) partes.push(`${hashes} ${nodo.title}`);
 
   if (nodo.content) {
-    const html = Buffer.isBuffer(nodo.content)
+    const crudo = Buffer.isBuffer(nodo.content)
       ? nodo.content.toString('utf8')
       : nodo.content;
-    const md = td.turndown(html).trim();
-    if (md) partes.push(md);
+
+    if (nodo.type === 'code') {
+      // Nota de código: texto plano — se conserva tal cual en un bloque cercado
+      const cuerpo = crudo.replace(/\s+$/, '');
+      if (cuerpo.trim()) {
+        const lang = (nodo.mime || '').includes('javascript') ? 'js' : '';
+        partes.push('```' + lang + '\n' + cuerpo + '\n```');
+      }
+    } else {
+      const md = td.turndown(crudo).trim();
+      if (md) partes.push(md);
+    }
   }
 
   for (const hijo of nodo.children || []) {

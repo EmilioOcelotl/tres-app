@@ -18,6 +18,18 @@ const COLOR_ACCENT = '#000000';
 const COLOR_TEXT   = '#111111';
 const COLOR_DIM    = '#888888';
 
+// Notas de código (type=code en Trilium): tipografía y paleta de sintaxis
+const FUENTE_MONO      = path.join(fontsPath, 'SpaceMono-Regular.ttf');
+const FUENTE_MONO_BOLD = path.join(fontsPath, 'SpaceMono-Bold.ttf');
+const COLOR_CODE_COMMENT = '#1a7f37'; // lenguaje natural dentro del formal
+const COLOR_CODE_KEYWORD = '#cf222e';
+const COLOR_CODE_NUMBER  = '#0550ae';
+const COLOR_CODE_STRING  = '#0a3069';
+const CODE_BG   = '#f4f4f0';
+const CODE_SIZE = 8;
+const CODE_GAP  = 3.2;  // interlineado adicional
+const CODE_PAD  = 9;    // padding interno del bloque
+
 // Geometría de página
 const PAGE_W  = 595;
 const PAGE_H  = 595;
@@ -327,6 +339,140 @@ function renderizarSegmentosInline(doc, texto, fontPath, linkCtx) {
   });
 }
 
+// ── Render de notas de código ─────────────────────────────────────────────────
+// Las notas type=code de Trilium guardan texto plano (no HTML): pasan directo
+// al PDF sin turndown, en monoespaciada, con la indentación intacta y un
+// resaltado mínimo pensado para el pseudocódigo de la tesis: comentarios //,
+// encabezados de sección en MAYÚSCULAS, palabras clave, números y cadenas.
+
+const REGEX_TOKEN_CODIGO = /("[^"]*"|'[^']*'|“[^”]*”|\b\d+(?:[.,]\d+)?\b|\b(?:await|async|new|nuevo|function|funcion|función|return|const|let|var)\b)/g;
+
+function clasificarTokenCodigo(parte) {
+  if (/^(?:"[^"]*"|'[^']*'|“[^”]*”)$/.test(parte)) return COLOR_CODE_STRING;
+  if (/^\d+(?:[.,]\d+)?$/.test(parte))             return COLOR_CODE_NUMBER;
+  if (/^(?:await|async|new|nuevo|function|funcion|función|return|const|let|var)$/.test(parte)) return COLOR_CODE_KEYWORD;
+  return COLOR_TEXT;
+}
+
+function tokenizarLineaCodigo(linea) {
+  const tokens = [];
+
+  // Comentario: primer "//" que no venga de un protocolo (https://)
+  const iComentario = linea.search(/(?<!:)\/\//);
+  let codigo     = iComentario >= 0 ? linea.slice(0, iComentario) : linea;
+  const comentario = iComentario >= 0 ? linea.slice(iComentario) : '';
+
+  // Encabezado de sección: palabras en MAYÚSCULAS al inicio de línea sin sangría
+  if (/^[A-ZÁÉÍÓÚÑÜ]{2,}/.test(codigo)) {
+    const m = codigo.match(/^(?:[A-ZÁÉÍÓÚÑÜ0-9]+(?:\s+|$))+/);
+    if (m) {
+      tokens.push({ texto: m[0], color: COLOR_TEXT, bold: true });
+      codigo = codigo.slice(m[0].length);
+    }
+  }
+
+  for (const parte of codigo.split(REGEX_TOKEN_CODIGO)) {
+    if (parte) tokens.push({ texto: parte, color: clasificarTokenCodigo(parte), bold: false });
+  }
+
+  if (comentario) tokens.push({ texto: comentario, color: COLOR_CODE_COMMENT, bold: false });
+
+  return tokens;
+}
+
+// Envuelve una línea lógica (ya tokenizada) en líneas visuales de maxChars,
+// cortando de preferencia en espacios y con sangría de continuación.
+function envolverLineaTokens(tokens, maxChars) {
+  const textoCompleto = tokens.map(t => t.texto).join('');
+  const indentCont = Math.min(textoCompleto.match(/^ */)[0].length + 4, Math.floor(maxChars / 2));
+
+  const lineas = [];
+  let actual = [];
+  let usado  = 0;
+
+  const saltar = () => {
+    lineas.push(actual);
+    actual = [{ texto: ' '.repeat(indentCont), color: COLOR_TEXT, bold: false }];
+    usado  = indentCont;
+  };
+
+  for (const token of tokens) {
+    let resto = token.texto;
+    while (usado + resto.length > maxChars) {
+      const presupuesto = maxChars - usado;
+      const trozo   = resto.slice(0, presupuesto);
+      const iCorte  = trozo.lastIndexOf(' ');
+      const corte   = iCorte > 0 ? iCorte + 1 : (presupuesto > 0 ? presupuesto : 1);
+      actual.push({ ...token, texto: resto.slice(0, corte) });
+      resto = resto.slice(corte).replace(/^ +/, '');
+      saltar();
+    }
+    if (resto) {
+      actual.push({ ...token, texto: resto });
+      usado += resto.length;
+    }
+  }
+  lineas.push(actual);
+  return lineas;
+}
+
+function renderizarBloqueCodigo(doc, codigo, fontMono, fontMonoBold) {
+  const lineasLogicas = codigo.replace(/\r\n/g, '\n').replace(/\t/g, '  ').split('\n');
+  while (lineasLogicas.length && !lineasLogicas[0].trim()) lineasLogicas.shift();
+  while (lineasLogicas.length && !lineasLogicas[lineasLogicas.length - 1].trim()) lineasLogicas.pop();
+  if (!lineasLogicas.length) return;
+
+  doc.font(fontMono).fontSize(CODE_SIZE);
+  const charW     = doc.widthOfString('M'); // monoespaciada: todo glifo mide igual
+  const anchoCaja = PAGE_W - MARGIN * 2;
+  const maxChars  = Math.floor((anchoCaja - CODE_PAD * 2) / charW);
+  const lineH     = CODE_SIZE + CODE_GAP;
+  const maxY      = PAGE_H - MARGIN - 18; // 18pt de zona de footer
+
+  const visuales = [];
+  for (const linea of lineasLogicas) {
+    if (!linea.trim()) { visuales.push([]); continue; }
+    for (const v of envolverLineaTokens(tokenizarLineaCodigo(linea), maxChars)) visuales.push(v);
+  }
+
+  // 0.5pt de solape para que las franjas no dejen costuras al rasterizar
+  const fondo = (y, h) => doc.save().rect(MARGIN, y, anchoCaja, h + 0.5).fill(CODE_BG).restore();
+
+  doc.moveDown(0.6);
+  if (doc.y + CODE_PAD + lineH * 2 > maxY) doc.addPage();
+
+  let y = doc.y;
+  fondo(y, CODE_PAD);
+  y += CODE_PAD;
+
+  for (const tokens of visuales) {
+    if (y + lineH + CODE_PAD > maxY) {
+      fondo(y, CODE_PAD); // cierre inferior del bloque en esta página
+      doc.addPage();
+      y = doc.y;
+      fondo(y, CODE_PAD);
+      y += CODE_PAD;
+    }
+    fondo(y, lineH);
+    let x = MARGIN + CODE_PAD;
+    for (const t of tokens) {
+      doc.font(t.bold ? fontMonoBold : fontMono)
+         .fontSize(CODE_SIZE)
+         .fillColor(t.color)
+         .text(t.texto, x, y + CODE_GAP / 2, { lineBreak: false });
+      x += t.texto.length * charW;
+    }
+    y += lineH;
+  }
+
+  fondo(y, CODE_PAD);
+  y += CODE_PAD;
+
+  doc.x = MARGIN;
+  doc.y = y;
+  doc.fillColor(COLOR_TEXT);
+}
+
 function renderizarBloqueMarkdown(doc, markdown, fontPath, linkCtx) {
   const lineas = markdown.split('\n');
   let parrafo = [];
@@ -591,18 +737,25 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
   registrarDestino();
 
   if (nodo.content && nodo.content.trim() !== '') {
-    let markdown;
-    try {
-      const content = Buffer.isBuffer(nodo.content) ? nodo.content.toString('utf8') : nodo.content;
-      markdown = turndownService.turndown(content);
-    } catch (error) {
-      console.error('Error procesando contenido:', error);
-      markdown = '(error al procesar contenido)';
-    }
+    const content = Buffer.isBuffer(nodo.content) ? nodo.content.toString('utf8') : nodo.content;
 
-    if (markdown.trim() !== '') {
-      await renderizarConImagenes(doc, markdown, fontPath, noteSvc, figCtx, linkCtx);
+    if (nodo.type === 'code') {
+      // Nota de código: texto plano, directo al render monoespaciado
+      renderizarBloqueCodigo(doc, content, FUENTE_MONO, FUENTE_MONO_BOLD);
       doc.moveDown(0.4);
+    } else {
+      let markdown;
+      try {
+        markdown = turndownService.turndown(content);
+      } catch (error) {
+        console.error('Error procesando contenido:', error);
+        markdown = '(error al procesar contenido)';
+      }
+
+      if (markdown.trim() !== '') {
+        await renderizarConImagenes(doc, markdown, fontPath, noteSvc, figCtx, linkCtx);
+        doc.moveDown(0.4);
+      }
     }
 
     contadorPaginas++;

@@ -9,7 +9,7 @@ export class NoteService {
     return new Promise((resolve, reject) => {
       db.serialize(() => {
         db.all(`
-          SELECT n.noteId, n.title, b.content
+          SELECT n.noteId, n.title, n.type, n.mime, b.content
           FROM notes n
           LEFT JOIN blobs b ON n.blobId = b.blobId
           WHERE n.isDeleted = 0
