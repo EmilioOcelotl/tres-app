@@ -580,28 +580,38 @@ function insertarIndiceFiguras(doc, figCtx, fontPath, paginasNoNumeradas) {
 
   for (const fig of figCtx.figuras) {
     const pageNum = fig.pageIndex - paginasNoNumeradas + 1;
+
+    // Altura real de la entrada: el caption puede envolver a varias líneas
+    doc.font(fontPath).fontSize(8.5);
+    const alturaCaption = doc.heightOfString(fig.caption || '—', { width: capWidth, lineGap: 2 });
+
+    // Salto de página si la entrada completa no cabe (evita que pdfkit
+    // parta el caption solo, dejando Fig./página huérfanos arriba)
+    if (doc.y + alturaCaption > PAGE_H - MARGIN - 18) {
+      doc.addPage();
+    }
+
     const y = doc.y;
 
     // Número de figura
     doc.fillColor(COLOR_ACCENT)
-       .font(fontPath)
-       .fontSize(8.5)
        .text(`Fig. ${fig.num}`, MARGIN, y, { width: numCol, lineBreak: false });
 
-    // Caption
+    // Caption (define la altura de la entrada)
     doc.fillColor(COLOR_TEXT)
-       .fontSize(8.5)
        .text(fig.caption || '—', MARGIN + numCol, y, { width: capWidth, lineGap: 2 });
+    const yFinCaption = doc.y;
 
     // Número de página (alineado a la derecha)
     doc.fillColor(COLOR_DIM)
-       .fontSize(8.5)
        .text(String(pageNum), MARGIN + numCol + capWidth, y, {
          width: pageCol,
          align: 'right',
          lineBreak: false
        });
 
+    // La siguiente entrada arranca debajo de la línea más baja de esta
+    doc.y = Math.max(doc.y, yFinCaption);
     doc.moveDown(0.5);
   }
 }
