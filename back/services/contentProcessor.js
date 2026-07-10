@@ -1,6 +1,19 @@
 // services/contentProcessor.js
 import turndown from 'turndown';
 
+// Sintaxis del pseudocódigo — espejo de tokenizarLineaCodigo en routes/pdf.js:
+// comentarios //, encabezados de sección en MAYÚSCULAS sin sangría, palabras
+// clave, números y cadenas. Los colores los pone front/style.css (paleta del
+// PDF adaptada a fondo oscuro).
+const REGEX_TOKEN_CODIGO = /("[^"]*"|'[^']*'|“[^”]*”|\b\d+(?:[.,]\d+)?\b|\b(?:await|async|new|nuevo|function|funcion|función|return|const|let|var)\b)/g;
+
+function claseTokenCodigo(parte) {
+  if (/^(?:"[^"]*"|'[^']*'|“[^”]*”)$/.test(parte)) return 'tok-str';
+  if (/^\d+(?:[.,]\d+)?$/.test(parte))             return 'tok-num';
+  if (/^(?:await|async|new|nuevo|function|funcion|función|return|const|let|var)$/.test(parte)) return 'tok-kw';
+  return '';
+}
+
 export class ContentProcessor {
   
   // Procesa HTML de Trilium para frontend (HTML seguro)
@@ -45,6 +58,63 @@ export class ContentProcessor {
     return processed.trim();
   }
   
+  // Procesa notas type=code de Trilium para frontend. Guardan texto plano
+  // (no HTML): se escapa y se envuelve en <pre> para conservar indentación
+  // y saltos de línea, sin pasar por processForFrontend (que los colapsa).
+  // Cada línea lógica sale como bloque con sangría francesa: si el overlay
+  // la envuelve, la continuación cae a indentación+4 — espejo de
+  // envolverLineaTokens en routes/pdf.js.
+  static processCodeForFrontend(content) {
+    const crudo = (Buffer.isBuffer(content) ? content.toString('utf8') : (content || ''))
+      .replace(/\r\n/g, '\n')
+      .replace(/\t/g, '  ')
+      .replace(/^(?:[ ]*\n)+/, '')
+      .replace(/\s+$/, '');
+
+    const escapar = (s) => s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    const lineas = crudo.split('\n').map(linea => {
+      const texto = linea.replace(/\s+$/, '');
+      if (!texto) return '<span class="code-line">&nbsp;</span>';
+      const sangria = Math.min(texto.match(/^ */)[0].length + 4, 40);
+      return `<span class="code-line" style="--h:${sangria}ch">${ContentProcessor.colorearLineaCodigo(texto, escapar)}</span>`;
+    });
+
+    return `<pre class="code-note">${lineas.join('')}</pre>`;
+  }
+
+  // Colorea una línea de pseudocódigo con las mismas reglas que el PDF
+  static colorearLineaCodigo(linea, escapar) {
+    const partes = [];
+
+    // Comentario: primer "//" que no venga de un protocolo (https://)
+    const iComentario = linea.search(/(?<!:)\/\//);
+    let codigo       = iComentario >= 0 ? linea.slice(0, iComentario) : linea;
+    const comentario = iComentario >= 0 ? linea.slice(iComentario) : '';
+
+    // Encabezado de sección: palabras en MAYÚSCULAS al inicio de línea (se admite sangría)
+    if (/^ *[A-ZÁÉÍÓÚÑÜ]{2,}/.test(codigo)) {
+      const m = codigo.match(/^ *(?:[A-ZÁÉÍÓÚÑÜ0-9]+(?:\s+|$))+/);
+      if (m) {
+        partes.push(`<strong class="tok-header">${escapar(m[0])}</strong>`);
+        codigo = codigo.slice(m[0].length);
+      }
+    }
+
+    for (const parte of codigo.split(REGEX_TOKEN_CODIGO)) {
+      if (!parte) continue;
+      const clase = claseTokenCodigo(parte);
+      partes.push(clase ? `<span class="${clase}">${escapar(parte)}</span>` : escapar(parte));
+    }
+
+    if (comentario) partes.push(`<span class="tok-comment">${escapar(comentario)}</span>`);
+
+    return partes.join('');
+  }
+
   // Procesa HTML de Trilium para PDF (Markdown mejorado)
   static processForPDF(htmlContent) {
     if (!htmlContent) return '';

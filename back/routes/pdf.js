@@ -362,9 +362,9 @@ function tokenizarLineaCodigo(linea) {
   let codigo     = iComentario >= 0 ? linea.slice(0, iComentario) : linea;
   const comentario = iComentario >= 0 ? linea.slice(iComentario) : '';
 
-  // Encabezado de sección: palabras en MAYÚSCULAS al inicio de línea sin sangría
-  if (/^[A-ZÁÉÍÓÚÑÜ]{2,}/.test(codigo)) {
-    const m = codigo.match(/^(?:[A-ZÁÉÍÓÚÑÜ0-9]+(?:\s+|$))+/);
+  // Encabezado de sección: palabras en MAYÚSCULAS al inicio de línea (se admite sangría)
+  if (/^ *[A-ZÁÉÍÓÚÑÜ]{2,}/.test(codigo)) {
+    const m = codigo.match(/^ *(?:[A-ZÁÉÍÓÚÑÜ0-9]+(?:\s+|$))+/);
     if (m) {
       tokens.push({ texto: m[0], color: COLOR_TEXT, bold: true });
       codigo = codigo.slice(m[0].length);

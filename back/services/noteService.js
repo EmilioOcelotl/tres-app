@@ -103,12 +103,14 @@ export class NoteService {
       }
 
       console.log(`Nota encontrada: "${note.title}" (ID: ${noteId})`);
-      
+
       // Devolver el contenido completo de la nota
       return {
         id: note.noteId,
         noteId: note.noteId, // Mantener compatibilidad
         title: note.title,
+        type: note.type,
+        mime: note.mime,
         content: note.content || ''
       };
       
@@ -148,6 +150,8 @@ export class NoteService {
           id: note.noteId,
           noteId: note.noteId,
           title: note.title,
+          type: note.type,
+          mime: note.mime,
           content: note.content || ''
         } : null;
       }).filter(note => note !== null);

@@ -379,6 +379,45 @@ canvas {
     border-bottom-color: rgba(208, 216, 224, 0.3);
 }
 
+/* Notas type=code (pseudocódigo): el back las entrega en <pre class="code-note">
+   con una .code-line por línea lógica */
+#overlay-content pre,
+#welcome-content pre {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85em;
+    line-height: 1.6;
+    color: var(--text);
+    background: rgba(221, 230, 240, 0.04);
+    border: 1px solid rgba(221, 230, 240, 0.08);
+    border-radius: 2px;
+    padding: 14px 16px;
+    margin: 0 0 1em;
+    white-space: normal;
+}
+
+/* Sangría francesa por línea: al envolverse, la continuación cae a
+   indentación+4 (--h la calcula el back) — espejo del render del PDF */
+#overlay-content pre .code-line,
+#welcome-content pre .code-line {
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    padding-left: var(--h, 0px);
+    text-indent: calc(-1 * var(--h, 0px));
+}
+
+/* Paleta de sintaxis del PDF (routes/pdf.js) adaptada a fondo oscuro */
+#overlay-content pre .tok-comment,
+#welcome-content pre .tok-comment { color: #3fb950; }  /* lenguaje natural dentro del formal */
+#overlay-content pre .tok-kw,
+#welcome-content pre .tok-kw      { color: #ff7b72; }
+#overlay-content pre .tok-num,
+#welcome-content pre .tok-num     { color: #79c0ff; }
+#overlay-content pre .tok-str,
+#welcome-content pre .tok-str     { color: #a5d6ff; }
+#overlay-content pre .tok-header,
+#welcome-content pre .tok-header  { color: var(--accent); font-weight: bold; }
+
 #close-overlay {
     position: absolute;
     top: 16px;

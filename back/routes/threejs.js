@@ -66,40 +66,53 @@ router.get('/note/:id/content', async (req, res) => {
     console.log(`Solicitando contenido para nota: ${noteId}`);
 
     // OPCIÓN A: Usar NoteService.getNoteContent (más eficiente)
-    const note = await noteService.getNoteContent(noteId);
-    
+    let note = await noteService.getNoteContent(noteId);
+
     if (!note) {
       // OPCIÓN B: Buscar en el árbol completo (fallback)
       console.log(`Nota no encontrada directamente, buscando en árbol...`);
       const tree = await noteService.getCompleteTree();
       const node = findNodeById(tree, noteId);
-      
+
       if (!node) {
         return res.status(404).json({
           success: false,
           error: 'Nota no encontrada'
         });
       }
-      
+
       // Usar el nodo del árbol
       note = {
         id: node.noteId,
         noteId: node.noteId,
         title: node.title,
+        type: node.type,
+        mime: node.mime,
         content: node.content || ''
       };
     }
 
     console.log(`Nota encontrada: "${note.title}"`);
 
-    // Procesar el contenido para frontend
-    const htmlContent = ContentProcessor.processForFrontend(note.content);
-    const references = ContentProcessor.extractReferences(note.content);
-    
-    // Extraer texto plano (sin HTML)
-    const plainText = ContentProcessor.decodeHTMLEntities(
-      (note.content || '').replace(/<[^>]*>/g, '')
-    ).replace(/\s+/g, ' ').trim();
+    // Procesar el contenido para frontend.
+    // Las notas type=code guardan texto plano: esquivan el pipeline HTML
+    // (que colapsa indentación y saltos) y van directo a un <pre> escapado.
+    const esCodigo = note.type === 'code';
+    const contenidoStr = Buffer.isBuffer(note.content)
+      ? note.content.toString('utf8')
+      : (note.content || '');
+
+    const htmlContent = esCodigo
+      ? ContentProcessor.processCodeForFrontend(contenidoStr)
+      : ContentProcessor.processForFrontend(note.content);
+    const references = esCodigo ? [] : ContentProcessor.extractReferences(note.content);
+
+    // Extraer texto plano (sin HTML); en código se conserva el espacio en blanco
+    const plainText = esCodigo
+      ? contenidoStr.replace(/\s+$/, '')
+      : ContentProcessor.decodeHTMLEntities(
+          contenidoStr.replace(/<[^>]*>/g, '')
+        ).replace(/\s+/g, ' ').trim();
 
     // Devolver múltiples formatos
     res.json({
@@ -109,15 +122,17 @@ router.get('/note/:id/content', async (req, res) => {
         noteId: note.noteId,
         title: note.title,
         content: {
-          raw: note.content || '',           // Original de Trilium
+          raw: contenidoStr,                 // Original de Trilium
           html: htmlContent,                 // HTML procesado para frontend
           plain: plainText,                  // Texto plano limpio
-          markdown: ContentProcessor.processForPDF(note.content) // Para futuro uso
+          markdown: esCodigo                 // Para futuro uso
+            ? '```' + ((note.mime || '').includes('javascript') ? 'js' : '') + '\n' + plainText + '\n```'
+            : ContentProcessor.processForPDF(note.content)
         },
         metadata: {
           references: references,           // Para futura navegación
           referenceCount: references.length,
-          type: 'note',
+          type: note.type || 'text',
           lastModified: new Date().toISOString(),
           wordCount: plainText.split(/\s+/).filter(word => word.length > 0).length
         }
@@ -218,15 +233,22 @@ router.post('/notes/batch', async (req, res) => {
         try {
           const note = await noteService.getNoteContent(noteId);
           if (note) {
-            const htmlContent = ContentProcessor.processForFrontend(note.content);
+            const esCodigo = note.type === 'code';
+            const contenidoStr = Buffer.isBuffer(note.content)
+              ? note.content.toString('utf8')
+              : (note.content || '');
             return {
               id: note.id,
               title: note.title,
               content: {
-                html: htmlContent,
-                plain: ContentProcessor.decodeHTMLEntities(
-                  (note.content || '').replace(/<[^>]*>/g, '')
-                ).trim()
+                html: esCodigo
+                  ? ContentProcessor.processCodeForFrontend(contenidoStr)
+                  : ContentProcessor.processForFrontend(note.content),
+                plain: esCodigo
+                  ? contenidoStr.replace(/\s+$/, '')
+                  : ContentProcessor.decodeHTMLEntities(
+                      contenidoStr.replace(/<[^>]*>/g, '')
+                    ).trim()
               }
             };
           }
