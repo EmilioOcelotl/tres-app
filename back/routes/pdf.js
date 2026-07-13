@@ -107,11 +107,37 @@ function insertarImagen(doc, rutaImagen, caption, fontPath, figNum) {
   doc.moveDown(1.2);
 }
 
+// ── Numeración de capítulos y secciones ──────────────────────────────────────
+// Los hijos de cada Parte llevan el romano de su Parte como prefijo (I.1, II.3)
+// y sus hijos un nivel más (I.2.1). Más profundo no se numera. Agradecimientos
+// y Referencias quedan exentos por convención académica.
+const TITULOS_SIN_NUMERO = new Set(['agradecimientos', 'referencias']);
+
+function asignarNumeracion(root) {
+  for (const parte of root.children || []) {
+    const romano = parte.title?.match(/parte\s+([ivx]+)/i)?.[1]?.toUpperCase();
+    if (!romano) continue;
+    let nCap = 0;
+    for (const capitulo of parte.children || []) {
+      if (TITULOS_SIN_NUMERO.has(capitulo.title?.trim().toLowerCase())) continue;
+      capitulo.numero = `${romano}.${++nCap}`;
+      let nSec = 0;
+      for (const seccion of capitulo.children || []) {
+        seccion.numero = `${capitulo.numero}.${++nSec}`;
+      }
+    }
+  }
+}
+
+function tituloConNumero(nodo) {
+  return nodo.numero ? `${nodo.numero}  ${nodo.title}` : nodo.title;
+}
+
 // Recolectar entradas del índice desde el árbol (sin página, solo estructura)
 function recolectarEntradasToc(nodo, nivel, omitirTitulo, resultado) {
   if (!nodo) return;
   if (!omitirTitulo && !nodo.title?.toLowerCase().includes('tres estudios')) {
-    resultado.push({ title: nodo.title, nivel, pageIndex: 0 });
+    resultado.push({ title: tituloConNumero(nodo), nivel, pageIndex: 0 });
   }
   if (nodo.children) {
     const esReferencias = nodo.title?.trim().toLowerCase() === 'referencias';
@@ -667,13 +693,13 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         registrarDestino();
 
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
+          tocCtx.push({ title: tituloConNumero(nodo), nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
         }
 
         doc.fillColor(COLOR_ACCENT)
            .font(fontPath)
            .fontSize(fontSize)
-           .text(nodo.title.toUpperCase(), { align: 'left', paragraphGap: 6, characterSpacing: 1 })
+           .text(tituloConNumero(nodo).toUpperCase(), { align: 'left', paragraphGap: 6, characterSpacing: 1 })
            .moveDown(0.4);
 
         reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
@@ -688,14 +714,14 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
         registrarDestino();
 
         if (tocCtx && !nodo.title?.toLowerCase().includes('tres estudios')) {
-          tocCtx.push({ title: nodo.title, nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
+          tocCtx.push({ title: tituloConNumero(nodo), nivel, pageIndex: doc.bufferedPageRange().count - 1, noteId: nodo.noteId });
         }
 
         doc.moveDown(1);
         doc.fillColor(COLOR_TEXT)
            .font(fontPath)
            .fontSize(fontSize)
-           .text(nodo.title.toUpperCase(), { characterSpacing: 2.5, paragraphGap: 4 })
+           .text(tituloConNumero(nodo).toUpperCase(), { characterSpacing: 2.5, paragraphGap: 4 })
            .moveDown(0.3);
         break;
 
@@ -795,6 +821,7 @@ router.get('/', async (req, res) => {
     }
 
     const rootFiltrado = await noteService.getCompleteTree();
+    asignarNumeracion(rootFiltrado);
 
     const doc = new PDFDocument({
       size: [PAGE_W, PAGE_H],
