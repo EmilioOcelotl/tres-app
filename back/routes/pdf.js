@@ -519,7 +519,7 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService, figCt
 
           const maxWidth    = PAGE_W - MARGIN * 2;
           const maxHeight   = 240;
-          const minUtil     = 120;
+          const minUtil     = 200;
           const footerBuf   = 18;
           const captionH    = 20;
 
