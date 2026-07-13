@@ -446,7 +446,7 @@ function renderizarBloqueCodigo(doc, codigo, fontMono, fontMonoBold) {
   const lineasLogicas = codigo.replace(/\r\n/g, '\n').replace(/\t/g, '  ').split('\n');
   while (lineasLogicas.length && !lineasLogicas[0].trim()) lineasLogicas.shift();
   while (lineasLogicas.length && !lineasLogicas[lineasLogicas.length - 1].trim()) lineasLogicas.pop();
-  if (!lineasLogicas.length) return;
+  if (!lineasLogicas.length) return null;
 
   doc.font(fontMono).fontSize(CODE_SIZE);
   const charW     = doc.widthOfString('M'); // monoespaciada: todo glifo mide igual
@@ -466,6 +466,9 @@ function renderizarBloqueCodigo(doc, codigo, fontMono, fontMonoBold) {
 
   doc.moveDown(0.6);
   if (doc.y + CODE_PAD + lineH * 2 > maxY) doc.addPage();
+
+  // Página donde arranca el bloque (para el índice de notas de código)
+  const paginaInicio = doc.bufferedPageRange().count - 1;
 
   let y = doc.y;
   fondo(y, CODE_PAD);
@@ -497,6 +500,8 @@ function renderizarBloqueCodigo(doc, codigo, fontMono, fontMonoBold) {
   doc.x = MARGIN;
   doc.y = y;
   doc.fillColor(COLOR_TEXT);
+
+  return paginaInicio;
 }
 
 function renderizarBloqueMarkdown(doc, markdown, fontPath, linkCtx) {
@@ -642,7 +647,56 @@ function insertarIndiceFiguras(doc, figCtx, fontPath, paginasNoNumeradas) {
   }
 }
 
-async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null, figCtx = null, tocCtx = null, linkCtx = null) {
+function insertarIndiceNotasCodigo(doc, codeCtx, fontPath, paginasNoNumeradas) {
+  if (codeCtx.notas.length === 0) return;
+
+  doc.addPage();
+
+  doc.fillColor(COLOR_ACCENT)
+     .font(fontPath)
+     .fontSize(11)
+     .text('ÍNDICE DE NOTAS DE CÓDIGO', { align: 'left', characterSpacing: 3 })
+     .moveDown(0.5);
+
+  reglaTenue(doc, doc.y, COLOR_ACCENT, 0.5);
+  doc.moveDown(1);
+
+  const colWidth  = PAGE_W - MARGIN * 2;
+  const pageCol   = 28; // ancho reservado para el número de página
+  const tituloCol = colWidth - pageCol;
+
+  for (const nota of codeCtx.notas) {
+    const pageNum = nota.pageIndex - paginasNoNumeradas + 1;
+
+    // Altura real de la entrada: el título puede envolver a varias líneas
+    doc.font(fontPath).fontSize(8.5);
+    const alturaTitulo = doc.heightOfString(nota.titulo, { width: tituloCol, lineGap: 2 });
+
+    if (doc.y + alturaTitulo > PAGE_H - MARGIN - 18) {
+      doc.addPage();
+    }
+
+    const y = doc.y;
+
+    // Título de la nota (define la altura de la entrada)
+    doc.fillColor(COLOR_TEXT)
+       .text(nota.titulo, MARGIN, y, { width: tituloCol, lineGap: 2 });
+    const yFinTitulo = doc.y;
+
+    // Número de página (alineado a la derecha)
+    doc.fillColor(COLOR_DIM)
+       .text(String(pageNum), MARGIN + tituloCol, y, {
+         width: pageCol,
+         align: 'right',
+         lineBreak: false
+       });
+
+    doc.y = Math.max(doc.y, yFinTitulo);
+    doc.moveDown(0.5);
+  }
+}
+
+async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0, contadorPaginas, fontPath, omitirTitulo = false, noteSvc = null, figCtx = null, tocCtx = null, linkCtx = null, codeCtx = null) {
   if (!nodo) return contadorPaginas;
 
   let fontSize, isTitle;
@@ -777,7 +831,10 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
 
     if (nodo.type === 'code') {
       // Nota de código: texto plano, directo al render monoespaciado
-      renderizarBloqueCodigo(doc, content, FUENTE_MONO, FUENTE_MONO_BOLD);
+      const paginaBloque = renderizarBloqueCodigo(doc, content, FUENTE_MONO, FUENTE_MONO_BOLD);
+      if (codeCtx && paginaBloque !== null) {
+        codeCtx.notas.push({ titulo: tituloConNumero(nodo), pageIndex: paginaBloque });
+      }
       doc.moveDown(0.4);
     } else {
       let markdown;
@@ -802,7 +859,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
     const omitirTituloHijos = omitirTitulo || esReferencias;
     for (const hijo of nodo.children) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc, figCtx, tocCtx, linkCtx
+        doc, hijo, turndownService, nivel + 1, contadorPaginas, fontPath, omitirTituloHijos, noteSvc, figCtx, tocCtx, linkCtx, codeCtx
       );
     }
   }
@@ -830,7 +887,8 @@ router.get('/', async (req, res) => {
     });
 
     let contadorPaginas = 0;
-    const figCtx = { count: 0, figuras: [] };
+    const figCtx  = { count: 0, figuras: [] };
+    const codeCtx = { notas: [] };
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="TEA.pdf"');
@@ -975,19 +1033,19 @@ router.get('/', async (req, res) => {
 
     if (aclaracionesChapter) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx
+        doc, aclaracionesChapter, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx, codeCtx
       );
     }
 
     for (const capitulo of remainingChapters) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx
+        doc, capitulo, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx, codeCtx
       );
     }
 
     if (referencesNode) {
       contadorPaginas = await procesarContenidoJerarquico(
-        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx
+        doc, referencesNode, turndownService, 0, contadorPaginas, fontPath, false, noteService, figCtx, tocCtx, linkCtx, codeCtx
       );
     }
 
@@ -1000,6 +1058,9 @@ router.get('/', async (req, res) => {
 
     // ── ÍNDICE DE FIGURAS ─────────────────────────────────────────────────────
     insertarIndiceFiguras(doc, figCtx, fontPath, PAGINAS_NO_NUMERADAS);
+
+    // ── ÍNDICE DE NOTAS DE CÓDIGO ─────────────────────────────────────────────
+    insertarIndiceNotasCodigo(doc, codeCtx, fontPath, PAGINAS_NO_NUMERADAS);
 
     // ── FOOTERS ───────────────────────────────────────────────────────────────
     insertarFooters(doc, fontPath, PAGINAS_NO_NUMERADAS);
