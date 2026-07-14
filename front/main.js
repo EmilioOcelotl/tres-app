@@ -28,15 +28,23 @@ const CONFIG = {
         part1: 0x00ddff,
         part2: 0xff3388,
         part3: 0xaa55ff,
-        refs: 0xddeeff
+        refs: 0xddeeff,
+        refsOrphan: 0x5b6377
     },
     levelRadii: [2.6, 1.9, 1.25, 0.85, 0.55, 0.4, 0.3],
     linkDistances: [18, 14, 10, 7, 5, 4, 3],
     charge: -160,
+    // Las refs llevan carga suave: con la completa, la repulsión entre los dos
+    // cúmulos grandes (89 refs vs cuerpo) pelea contra los resortes de cita y
+    // estira el sistema en pesa (validado en el mockup de órbitas, 2026-07-13)
+    refsCharge: -50,
     hemisphereOffset: 45,
     hemisphereStrength: 0.2,
-    refsLiftTarget: 28,
-    refsLiftStrength: 0.12,
+    refsLiftTarget: 40,
+    refsLiftStrength: 0.2,
+    // Citas (enlaces internos del documento) como fuerza y como arcos
+    cite: { strength: 0.4, distance: 24 },
+    arcs: { opacity: 0.5, selectedOpacity: 0.85, segments: 24 },
     bloom: {
         strength: 0.95,
         radius: 0.55,
@@ -46,7 +54,9 @@ const CONFIG = {
         near: 12,
         far: 260
     },
-    cameraStart: new THREE.Vector3(0, 35, 145)
+    // Alejada respecto al layout anterior (0,35,145): la nube de refs elevada
+    // y los arcos de cita extienden la escena en vertical
+    cameraStart: new THREE.Vector3(0, 50, 240)
 };
 
 // ========================================
@@ -56,6 +66,8 @@ const CONFIG = {
 const AppState = {
     nodes: [],
     links: [],
+    crossLinks: [],
+    arcs: [],
     nodesById: new Map(),
     loadedNotes: new Map(),
     simulation: null,
@@ -82,7 +94,8 @@ let linksObject = null;
 const groups = {
     halos: new THREE.Group(),
     cores: new THREE.Group(),
-    links: new THREE.Group()
+    links: new THREE.Group(),
+    arcs: new THREE.Group()
 };
 
 const loadingScreen = document.getElementById('loading-screen');
@@ -100,8 +113,8 @@ async function fetchTree() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (!json.success) throw new Error('Error al obtener estructura');
-    console.log(`Árbol cargado: ${json.metadata.totalNodes} nodos`);
-    return json.data;
+    console.log(`Árbol cargado: ${json.metadata.totalNodes} nodos, ${(json.crossLinks || []).length} enlaces internos`);
+    return { tree: json.data, crossLinks: json.crossLinks || [] };
 }
 
 async function fetchNoteContent(noteId, useCache = true) {
@@ -139,7 +152,10 @@ function flattenTree(root) {
     const links = [];
     function walk(n, level, parentId, inheritedPart) {
         const detected = classifyPart(n.title);
-        const part = inheritedPart || detected || 'root';
+        // Referencias vive dentro de Parte I en el árbol actual: la detección
+        // le gana a la herencia para que conserve su identidad (color, lift,
+        // carga suave) aunque esté anidada.
+        const part = detected === 'refs' ? 'refs' : (inheritedPart || detected || 'root');
         nodes.push({
             id: n.id,
             title: n.title,
@@ -177,6 +193,18 @@ function getRadiusForNode(node) {
 
 function getColor(part) {
     return CONFIG.colors[part] ?? CONFIG.colors.root;
+}
+
+// Hojas de Referencias: las entradas bibliográficas (no el hub contenedor)
+function esRefHoja(node) {
+    return node.part === 'refs' && node.childCount === 0;
+}
+
+// Color por nodo: las referencias huérfanas (sin citas desde el documento)
+// se atenúan; las citadas conservan el blanco-azul brillante.
+function getNodeColor(node) {
+    if (esRefHoja(node) && !node.cited) return CONFIG.colors.refsOrphan;
+    return getColor(node.part);
 }
 
 function getLinkDistance(level) {
@@ -242,6 +270,7 @@ function initScene() {
     composer.addPass(bloomPass);
 
     scene.add(groups.links);
+    scene.add(groups.arcs);
     scene.add(groups.halos);
     scene.add(groups.cores);
 
@@ -284,20 +313,40 @@ function onWindowResize() {
 // Construcción del grafo
 // ========================================
 
-function buildGraph(tree) {
+function buildGraph(tree, crossLinks) {
     const { nodes, links } = flattenTree(tree);
     AppState.nodes = nodes;
     AppState.links = links;
     AppState.nodesById.clear();
     nodes.forEach(n => AppState.nodesById.set(n.id, n));
 
+    // Citas resueltas a objetos nodo; marca las refs citadas (vs huérfanas)
+    AppState.crossLinks = crossLinks
+        .map(l => ({ source: AppState.nodesById.get(l.source), target: AppState.nodesById.get(l.target) }))
+        .filter(l => l.source && l.target);
+    for (const l of AppState.crossLinks) {
+        for (const n of [l.source, l.target]) {
+            if (esRefHoja(n)) n.cited = true;
+        }
+    }
+
+    // Las refs arrancan arriba: el eje refs↔cuerpo es bistable (±Y; el X lo
+    // ocupan los hemisferios) y la posición inicial selecciona el pozo.
+    for (const n of nodes) {
+        if (n.part !== 'refs') continue;
+        n.x = (Math.random() - 0.5) * 70;
+        n.y = CONFIG.refsLiftTarget + 30 + (Math.random() - 0.5) * 40;
+        n.z = (Math.random() - 0.5) * 70;
+    }
+
     nodes.forEach(n => buildNodeMeshes(n));
     buildLinksGeometry();
+    buildArcs();
 }
 
 function buildNodeMeshes(node) {
     const radius = getRadiusForNode(node);
-    const color = getColor(node.part);
+    const color = getNodeColor(node);
 
     const coreGeo = new THREE.SphereGeometry(radius, 20, 16);
     const coreMat = new THREE.MeshBasicMaterial({ color });
@@ -352,10 +401,13 @@ function buildLinksGeometry() {
         const s = AppState.nodesById.get(l.source);
         const t = AppState.nodesById.get(l.target);
         if (!s || !t) return;
-        const sc = new THREE.Color(getColor(s.part));
-        const tc = new THREE.Color(getColor(t.part));
-        cArr[i * 6 + 0] = sc.r; cArr[i * 6 + 1] = sc.g; cArr[i * 6 + 2] = sc.b;
-        cArr[i * 6 + 3] = tc.r; cArr[i * 6 + 4] = tc.g; cArr[i * 6 + 5] = tc.b;
+        const sc = new THREE.Color(getNodeColor(s));
+        const tc = new THREE.Color(getNodeColor(t));
+        // Los 89 radios hub→referencia saturan la escena: se atenúan
+        // oscureciendo el color (blending aditivo → línea más tenue)
+        const dim = esRefHoja(t) ? 0.3 : 1;
+        cArr[i * 6 + 0] = sc.r * dim; cArr[i * 6 + 1] = sc.g * dim; cArr[i * 6 + 2] = sc.b * dim;
+        cArr[i * 6 + 3] = tc.r * dim; cArr[i * 6 + 4] = tc.g * dim; cArr[i * 6 + 5] = tc.b * dim;
     });
     geo.attributes.color.needsUpdate = true;
 }
@@ -367,6 +419,12 @@ function updateLinkPositions() {
         const s = typeof l.source === 'object' ? l.source : AppState.nodesById.get(l.source);
         const t = typeof l.target === 'object' ? l.target : AppState.nodesById.get(l.target);
         if (!s || !t) return;
+        // Con REFS: OFF los enlaces que tocan referencias colapsan a longitud
+        // cero (la geometría es un solo buffer; no se pueden ocultar por segmento)
+        if (!AppState.referencesVisible && (s.part === 'refs' || t.part === 'refs')) {
+            arr.fill(0, i * 6, i * 6 + 6);
+            return;
+        }
         arr[i * 6 + 0] = s.x; arr[i * 6 + 1] = s.y; arr[i * 6 + 2] = s.z;
         arr[i * 6 + 3] = t.x; arr[i * 6 + 4] = t.y; arr[i * 6 + 5] = t.z;
     });
@@ -374,16 +432,101 @@ function updateLinkPositions() {
 }
 
 // ========================================
+// Arcos de cita (Bezier con degradado)
+// ========================================
+
+function buildArcs() {
+    const SEGS = CONFIG.arcs.segments;
+    for (const cl of AppState.crossLinks) {
+        const pts = SEGS + 1;
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts * 3), 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pts * 3), 3));
+
+        const sc = new THREE.Color(getNodeColor(cl.source));
+        const tc = new THREE.Color(getNodeColor(cl.target));
+        const cArr = geo.attributes.color.array;
+        const tmp = new THREE.Color();
+        for (let i = 0; i <= SEGS; i++) {
+            tmp.copy(sc).lerp(tc, i / SEGS);
+            cArr[i * 3] = tmp.r; cArr[i * 3 + 1] = tmp.g; cArr[i * 3 + 2] = tmp.b;
+        }
+        geo.attributes.color.needsUpdate = true;
+
+        const mat = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            transparent: true,
+            opacity: CONFIG.arcs.opacity,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const line = new THREE.Line(geo, mat);
+        groups.arcs.add(line);
+        AppState.arcs.push({
+            line,
+            source: cl.source,
+            target: cl.target,
+            curve: new THREE.QuadraticBezierCurve3(new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3())
+        });
+    }
+}
+
+const _arcMid = new THREE.Vector3();
+const _arcPt = new THREE.Vector3();
+
+function updateArcs() {
+    const SEGS = CONFIG.arcs.segments;
+    for (const arc of AppState.arcs) {
+        const s = arc.source, t = arc.target;
+        arc.curve.v0.set(s.x, s.y, s.z);
+        arc.curve.v2.set(t.x, t.y, t.z);
+        // Punto de control: el arco se comba alejándose del centro de la escena
+        _arcMid.set((s.x + t.x) / 2, (s.y + t.y) / 2, (s.z + t.z) / 2);
+        const dist = arc.curve.v0.distanceTo(arc.curve.v2);
+        if (_arcMid.lengthSq() < 25) _arcMid.set(0, 1, 0);
+        _arcMid.normalize().multiplyScalar(dist * 0.35);
+        arc.curve.v1.set((s.x + t.x) / 2 + _arcMid.x, (s.y + t.y) / 2 + _arcMid.y, (s.z + t.z) / 2 + _arcMid.z);
+
+        const arr = arc.line.geometry.attributes.position.array;
+        for (let i = 0; i <= SEGS; i++) {
+            arc.curve.getPoint(i / SEGS, _arcPt);
+            arr[i * 3] = _arcPt.x; arr[i * 3 + 1] = _arcPt.y; arr[i * 3 + 2] = _arcPt.z;
+        }
+        arc.line.geometry.attributes.position.needsUpdate = true;
+    }
+}
+
+function refreshArcVisibility() {
+    for (const arc of AppState.arcs) {
+        const tocaRefs = arc.source.part === 'refs' || arc.target.part === 'refs';
+        if (tocaRefs && !AppState.referencesVisible) {
+            arc.line.visible = false;
+            continue;
+        }
+        const isSel = AppState.selectedNode &&
+            (arc.source === AppState.selectedNode || arc.target === AppState.selectedNode);
+        arc.line.material.opacity = isSel ? CONFIG.arcs.selectedOpacity : CONFIG.arcs.opacity;
+        arc.line.visible = true;
+    }
+}
+
+// ========================================
 // Simulación d3-force-3d
 // ========================================
 
 function startSimulation() {
+    // Los enlaces de cita se clonan: forceLink muta source/target a objetos
+    // y AppState.crossLinks ya los tiene resueltos para los arcos
+    const citeLinks = AppState.crossLinks.map(l => ({ source: l.source.id, target: l.target.id }));
+
     AppState.simulation = forceSimulation(AppState.nodes, 3)
         .force('link', forceLink(AppState.links).id(d => d.id).distance(l => {
             const target = typeof l.target === 'object' ? l.target : AppState.nodesById.get(l.target);
             return getLinkDistance(target?.level ?? 3);
         }).strength(0.55))
-        .force('charge', forceManyBody().strength(CONFIG.charge).distanceMax(220))
+        .force('charge', forceManyBody()
+            .strength(n => esRefHoja(n) ? CONFIG.refsCharge : CONFIG.charge)
+            .distanceMax(220))
         .force('center', forceCenter(0, 0, 0).strength(0.02))
         .force('hemisphere', forceX(n => {
             if (n.part === 'part1') return -CONFIG.hemisphereOffset;
@@ -391,8 +534,14 @@ function startSimulation() {
             return 0;
         }).strength(CONFIG.hemisphereStrength))
         .force('refs-lift', forceY(n => n.part === 'refs' ? CONFIG.refsLiftTarget : 0).strength(CONFIG.refsLiftStrength))
-        .velocityDecay(0.35)
-        .alphaDecay(0.008);
+        .force('citas', forceLink(citeLinks).id(d => d.id)
+            .distance(CONFIG.cite.distance)
+            .strength(CONFIG.cite.strength))
+        // Más amortiguación y enfriamiento más lento que antes (0.35/0.008):
+        // las citas acoplan los cúmulos y crean un vaivén lento que con la
+        // curva original se congelaba a media fase
+        .velocityDecay(0.5)
+        .alphaDecay(0.004);
 }
 
 // ========================================
@@ -407,6 +556,7 @@ function animate() {
         if (n.halo) n.halo.position.set(n.x, n.y, n.z);
     }
     updateLinkPositions();
+    updateArcs();
     updateLabelOpacity();
     controls.update();
     composer.render();
@@ -464,6 +614,15 @@ async function selectNode(id) {
     node.halo.scale.setScalar(1.5);
     node.halo.material.opacity = 0.32;
     if (node.labelDiv) node.labelDiv.classList.add('node-label--selected');
+    // Sus arcos de cita se encienden y sus contrapartes se iluminan
+    node._partners = [];
+    for (const arc of AppState.arcs) {
+        const partner = arc.source === node ? arc.target : (arc.target === node ? arc.source : null);
+        if (!partner) continue;
+        partner.halo.material.opacity = 0.28;
+        node._partners.push(partner);
+    }
+    refreshArcVisibility();
     displaySnapshot(node);
     activateGrains(node);
     try {
@@ -481,7 +640,12 @@ function deselectNode() {
     s.halo.scale.setScalar(1);
     s.halo.material.opacity = s.baseHaloOpacity;
     if (s.labelDiv) s.labelDiv.classList.remove('node-label--selected');
+    for (const p of (s._partners || [])) {
+        p.halo.material.opacity = p.baseHaloOpacity;
+    }
+    s._partners = [];
     AppState.selectedNode = null;
+    refreshArcVisibility();
     hideNoteOverlay();
 }
 
@@ -491,7 +655,11 @@ function toggleReferences() {
         if (n.part !== 'refs') continue;
         if (n.core) n.core.visible = AppState.referencesVisible;
         if (n.halo) n.halo.visible = AppState.referencesVisible;
+        // CSS2DRenderer reescribe style.display cada frame: ocultar vía visibility
+        if (n.labelDiv) n.labelDiv.style.visibility = AppState.referencesVisible ? '' : 'hidden';
     }
+    // Enlaces jerárquicos: updateLinkPositions los colapsa; arcos: visible por línea
+    refreshArcVisibility();
     const btn = document.getElementById('toggle-references');
     if (btn) btn.textContent = AppState.referencesVisible ? 'REFS: ON' : 'REFS: OFF';
 }
@@ -833,12 +1001,17 @@ async function init() {
     animate();
 
     try {
-        const tree = await fetchTree();
+        const { tree, crossLinks } = await fetchTree();
         loadingScreen.style.display = 'none';
-        await showWelcomeModal(tree);
-        buildGraph(tree);
+        // ?nowelcome salta el modal (desarrollo/capturas; el audio queda sin iniciar)
+        if (new URLSearchParams(location.search).has('nowelcome')) {
+            document.getElementById('welcome-modal').style.display = 'none';
+        } else {
+            await showWelcomeModal(tree);
+        }
+        buildGraph(tree, crossLinks);
         startSimulation();
-        console.log(`Grafo creado: ${AppState.nodes.length} nodos, ${AppState.links.length} enlaces`);
+        console.log(`Grafo creado: ${AppState.nodes.length} nodos, ${AppState.links.length} enlaces, ${AppState.arcs.length} arcos de cita`);
     } catch (err) {
         console.error('Error inicializando:', err);
         overlayTitle.textContent = 'Error';

@@ -186,9 +186,47 @@ export class NoteService {
   // Método específico para Three.js (existente)
   async getStructureForThreeJS() {
     const root = await this.getCompleteTree();
-    
+
     // Transformar el árbol a formato optimizado para 3D
-    return this.transformToThreeJSStructure(root);
+    // + enlaces internos entre notas del árbol (citas) para el grafo
+    return {
+      structure: this.transformToThreeJSStructure(root),
+      crossLinks: this.extractCrossLinks(root)
+    };
+  }
+
+  // Enlaces internos de Trilium entre notas del árbol renderizado.
+  // Un href interno tiene la forma #root/<id>/.../<idDestino>: el último
+  // segmento es el noteId destino (mismo criterio que extraerNoteIdDeEnlace
+  // en routes/pdf.js — NO el regex de extractReferences, que es más estrecho).
+  extractCrossLinks(root) {
+    const ids = new Set();
+    (function collect(n) {
+      ids.add(n.noteId);
+      (n.children || []).forEach(collect);
+    })(root);
+
+    const links = [];
+    const seen = new Set();
+    (function walk(n) {
+      const content = n.content
+        ? (Buffer.isBuffer(n.content) ? n.content.toString('utf8') : n.content)
+        : '';
+      const re = /href="#root\/([^"]+)"/g;
+      let m;
+      while ((m = re.exec(content)) !== null) {
+        const segs = m[1].split('/').filter(Boolean);
+        const target = segs[segs.length - 1];
+        // Solo destinos dentro del árbol (los externos se ignoran, como en el PDF)
+        if (!ids.has(target) || target === n.noteId) continue;
+        const key = `${n.noteId}→${target}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        links.push({ source: n.noteId, target });
+      }
+      (n.children || []).forEach(walk);
+    })(root);
+    return links;
   }
   
   transformToThreeJSStructure(node, level = 0) {

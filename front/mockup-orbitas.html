@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — órbitas de Referencias y Parte II</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #060606; color: #cfd6e4; font-family: 'Courier New', monospace; }
+
+    #scene-container { position: absolute; top: 0; left: 0; width: calc(100% - 300px); height: 100%; }
+
+    #panel {
+        position: absolute; top: 0; right: 0; width: 300px; height: 100%;
+        background: #0a0a0c; border-left: 1px solid #1c1c22;
+        padding: 18px 16px; overflow-y: auto; font-size: 11px;
+    }
+    #panel h1 { font-size: 12px; letter-spacing: 0.18em; color: #eee; margin-bottom: 4px; }
+    #panel .sub { color: #666; font-size: 10px; margin-bottom: 14px; line-height: 1.5; }
+    #panel section { margin-bottom: 16px; border-top: 1px solid #1c1c22; padding-top: 10px; }
+    #panel section h2 { font-size: 10px; letter-spacing: 0.22em; color: #7f8ba3; margin-bottom: 8px; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; gap: 6px; }
+    .row label { color: #9aa3b5; flex: 1; }
+    .row .val { color: #eee; min-width: 38px; text-align: right; }
+    input[type=range] { width: 120px; accent-color: #00ddff; }
+    .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .btns button {
+        flex: 1; background: #131318; color: #9aa3b5; border: 1px solid #26262e;
+        padding: 5px 4px; font-family: inherit; font-size: 10px; letter-spacing: 0.08em;
+        cursor: pointer; white-space: nowrap;
+    }
+    .btns button.on { background: #10222a; color: #00ddff; border-color: #0a5566; }
+    .btns button.on.mag { background: #2a1020; color: #ff3388; border-color: #661040; }
+    #legend { border-top: 1px solid #1c1c22; padding-top: 10px; color: #666; line-height: 1.7; font-size: 10px; }
+    #legend b { color: #9aa3b5; font-weight: normal; }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+    #sel-info { margin-top: 8px; color: #7f8ba3; min-height: 28px; line-height: 1.5; }
+    #sel-info b { color: #eee; font-weight: normal; }
+
+    .node-label {
+        color: #fff; font-size: 11px; letter-spacing: 0.04em; white-space: nowrap;
+        text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95);
+        pointer-events: none;
+    }
+    .node-label--part1 { color: #9ceeff; }
+    .node-label--part2 { color: #ffa8cc; }
+    .node-label--part3 { color: #d3aaff; }
+    .node-label--refs  { color: #c4d2ea; font-size: 10px; }
+    .node-label--root  { color: #ffffff; font-size: 13px; letter-spacing: 0.12em; }
+    .node-label--selected { color: #ffffff !important; font-weight: bold; }
+</style>
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.module.js",
+        "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/",
+        "d3-force-3d": "https://cdn.jsdelivr.net/npm/d3-force-3d@3.0.5/+esm"
+    }
+}
+</script>
+</head>
+<body>
+<div id="scene-container"></div>
+
+<div id="panel">
+    <h1>MOCKUP · ÓRBITAS</h1>
+    <div class="sub">Datos sintéticos con la forma del árbol real. Click en un nodo: enciende sus arcos de cita.</div>
+
+    <section>
+        <h2>[PRESETS]</h2>
+        <div class="btns">
+            <button id="preset-actual">ACTUAL</button>
+            <button id="preset-propuesta">PROPUESTA</button>
+        </div>
+    </section>
+
+    <section>
+        <h2>[REFERENCIAS]</h2>
+        <div class="btns">
+            <button data-group="ringMode" data-val="corona">NUBE (como P.II)</button>
+            <button data-group="ringMode" data-val="anillo">ANILLO</button>
+        </div>
+        <div class="btns">
+            <button data-group="ringOrder" data-val="libre">LIBRE</button>
+            <button data-group="ringOrder" data-val="ordenado">ORDENADO</button>
+        </div>
+        <div class="row"><label>radio</label><input type="range" id="ringRadius" min="60" max="170" step="1" value="110"><span class="val" id="v-ringRadius">110</span></div>
+        <div class="row"><label>altura</label><input type="range" id="ringHeight" min="-40" max="60" step="1" value="8"><span class="val" id="v-ringHeight">8</span></div>
+        <div class="row"><label>inclinación°</label><input type="range" id="ringIncl" min="0" max="45" step="1" value="12"><span class="val" id="v-ringIncl">12</span></div>
+        <div class="row"><label>fuerza anillo</label><input type="range" id="ringStrength" min="0" max="1" step="0.05" value="0.8"><span class="val" id="v-ringStrength">0.80</span></div>
+    </section>
+
+    <section>
+        <h2>[CITAS COMO FUERZA]</h2>
+        <div class="row"><label>fuerza cita</label><input type="range" id="citeStrength" min="0" max="0.4" step="0.01" value="0.08"><span class="val" id="v-citeStrength">0.08</span></div>
+        <div class="row"><label>distancia cita</label><input type="range" id="citeDistance" min="10" max="60" step="1" value="24"><span class="val" id="v-citeDistance">24</span></div>
+    </section>
+
+    <section>
+        <h2>[ARCOS DE CITA]</h2>
+        <div class="btns">
+            <button data-group="arcMode" data-val="siempre">SIEMPRE</button>
+            <button data-group="arcMode" data-val="seleccion">SELECCIÓN</button>
+            <button data-group="arcMode" data-val="ocultos">OCULTOS</button>
+        </div>
+        <div class="row"><label>opacidad base</label><input type="range" id="arcOpacity" min="0" max="0.5" step="0.01" value="0.14"><span class="val" id="v-arcOpacity">0.14</span></div>
+    </section>
+
+    <section>
+        <h2>[SIMULACIÓN]</h2>
+        <div class="btns">
+            <button id="reheat">RECALENTAR</button>
+            <button id="reseed">REDISTRIBUIR</button>
+        </div>
+        <div id="sel-info">—</div>
+    </section>
+
+    <div id="legend">
+        <span class="dot" style="background:#00ddff"></span>Parte I &nbsp;
+        <span class="dot" style="background:#ff3388"></span>Parte II &nbsp;
+        <span class="dot" style="background:#aa55ff"></span>Parte III<br>
+        <span class="dot" style="background:#ddeeff"></span>Ref citada &nbsp;
+        <span class="dot" style="background:#5b6377"></span>Ref huérfana<br>
+        <span id="counts"></span>
+    </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { forceSimulation, forceLink, forceManyBody, forceCenter, forceX } from 'd3-force-3d';
+
+const PANEL_W = 300;
+
+const CONFIG = {
+    colors: {
+        background: 0x060606,
+        root:  0xffffff,
+        part1: 0x00ddff,
+        part2: 0xff3388,
+        part3: 0xaa55ff,
+        refs:  0xddeeff,
+        refsOrphan: 0x5b6377
+    },
+    levelRadii: [2.6, 1.9, 1.25, 0.85, 0.55, 0.4, 0.3],
+    linkDistances: [18, 14, 10, 7, 5, 4, 3],
+    charge: -160,
+    hemisphereOffset: 45,
+    hemisphereStrength: 0.2,
+    bloom: { strength: 0.95, radius: 0.55, threshold: 0 }
+};
+
+// Parámetros vivos del panel
+const PARAMS = {
+    ringMode: 'corona',        // 'corona' (nube libre, como Parte II) | 'anillo'
+    ringOrder: 'libre',        // 'libre' | 'ordenado' (solo aplica al anillo)
+    ringRadius: 110,
+    ringHeight: 8,
+    ringIncl: 12,              // grados
+    ringStrength: 0.8,
+    citeStrength: 0.12,
+    citeDistance: 24,
+    arcMode: 'siempre',        // 'siempre' | 'seleccion' | 'ocultos'
+    arcOpacity: 0.14,
+    // Sesgo vertical de la nube de refs. Como Parte II: mismo peso que el
+    // sesgo hemisférico (0.2). El preset ACTUAL restaura el 28/0.12 del front.
+    liftTarget: 40,
+    liftStrength: 0.2,
+    // Carga de las refs. Con la carga completa (-160), la repulsión entre los
+    // dos cúmulos grandes (89 refs vs cuerpo) pelea contra los resortes de
+    // cita y estira el sistema en pesa (~470 unidades, fuera de encuadre).
+    refsCharge: -50
+};
+
+// Propuesta (decisión del autor): Referencias funciona como Parte II —
+// nube libre sin forma impuesta, deformada solo por las fuerzas de cita.
+const PRESETS = {
+    actual:     { ringMode: 'corona', ringOrder: 'libre', citeStrength: 0, arcMode: 'ocultos',
+                  liftTarget: 28, liftStrength: 0.12, refsCharge: -160 },
+    propuesta:  { ringMode: 'corona', ringOrder: 'libre', citeStrength: 0.12, citeDistance: 24,
+                  arcMode: 'siempre', arcOpacity: 0.14, liftTarget: 40, liftStrength: 0.2, refsCharge: -50 }
+};
+
+// ========================================
+// Datos sintéticos — forma del árbol real
+// ========================================
+
+// RNG con semilla fija: el dataset es estable entre recargas,
+// solo el layout (posiciones iniciales) cambia.
+function mulberry32(seed) {
+    let s = seed >>> 0;
+    return () => {
+        s = (s + 0x6D2B79F5) >>> 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+const dataRng = mulberry32(20260713);
+
+function N(title, wc = 0, children = [], key = null) {
+    return { title, wc, children, key };
+}
+
+const CITED_REFS = [
+    '(Norman, 2013)', '(Gaver y Bowers, 2012)', '(Neustaedter y Sengers, 2012)',
+    '(Schön, 1983)', '(Collins y Knotts, 2019)', '(Collins, 2005)',
+    '(Rohrhuber, 2011)', '(Montfort, 2008)', '(Schaeffer, 2003)',
+    '(McLean, 2014)', '(Magnusson, 2019)', '(Roads, 2001)',
+    '(Xenakis, 1992)', '(Villaseñor y Paz, 2020)', '(Solís, 2018)',
+    '(Schwab, 2018)', '(Bardzell et al., 2018)', '(Fuller, 2008)',
+    '(Perec, 1974)', '(Garfinkel, 1967)', '(Reas y Fry, 2014)', '(Wilson, 2013)'
+];
+
+const SURNAME_POOL = [
+    'Aldana','Barrón','Cifuentes','Duarte','Esparza','Fentanes','Gaitán','Huerta',
+    'Ibarra','Juárez','Kraus','Lomelí','Mendieta','Nájera','Olvera','Palacios',
+    'Quiroz','Rentería','Salgado','Tapia','Urrutia','Valdez','Wong','Yáñez','Zepeda',
+    'Arriaga','Bravo','Cordero','Delgadillo','Escamilla','Fierro','Galindo'
+];
+
+function buildRefs() {
+    const total = 89;
+    const refs = CITED_REFS.map(t => N(t, 0, [], 'ref:' + t));
+    const seen = new Set();
+    while (refs.length < total) {
+        const a = SURNAME_POOL[Math.floor(dataRng() * SURNAME_POOL.length)];
+        const year = 1968 + Math.floor(dataRng() * 56);
+        const dua = dataRng() < 0.25 ? ` y ${SURNAME_POOL[Math.floor(dataRng() * SURNAME_POOL.length)]}` : '';
+        const t = `(${a}${dua}, ${year})`;
+        if (seen.has(t)) continue;
+        seen.add(t);
+        refs.push(N(t));
+    }
+    refs.sort((a, b) => a.title.localeCompare(b.title, 'es'));
+    return refs;
+}
+
+const TREE = N('Tres Estudios Abiertos', 0, [
+    N('Parte I — Archivo Principal', 0, [
+        N('Agradecimientos', 14),
+        N('Introducción', 0, [
+            N('Léeme', 245),
+            N('Mapa de navegación', 218),
+            N('Contexto', 301, [], 'contexto'),
+            N('Investigaciones Previas', 334, [], 'invprevias'),
+            N('Antecedentes Artísticos', 101),
+            N('Antecedentes Técnicos', 1811, [], 'anttecnicos'),
+            N('Preguntas de investigación', 0, [
+                N('Principal', 83), N('Transformación y Escritura', 121),
+                N('Sistema y Documento', 61), N('Arquitectura', 57)
+            ]),
+            N('Doble Estructura', 84)
+        ]),
+        N('Marco Metodológico', 120, [
+            N('Tipo de investigación', 250, [], 'bloque1'),
+            N('Postura', 220, [], 'bloque2'),
+            N('Método en operación', 900, [], 'bloque3'),
+            N('Relación con la doble estructura', 12)
+        ]),
+        N('Conceptos operativos', 0, [
+            N('La iteración como modo de conocimiento', 500, [], 'iteracion'),
+            N('Tensiones obra/prototipo/sistema', 120),
+            N('Error y experimentación', 80),
+            N('Escritura y parsing', 60, [], 'escrituraparsing')
+        ]),
+        N('Arquitectura del sistema', 0, [
+            N('Léeme', 60),
+            N('Servidor', 357, [], 'servidor'),
+            N('Servicios', 460, [], 'servicios'),
+            N('Interfaz', 48, [], 'arq-interfaz'),
+            N('treslib', 361, [
+                N('Grain.js', 404), N('GLoop.js', 333), N('GrainEngine.js', 424),
+                N('GrainSequencer.js', 352), N('OnsetDetector.js', 338),
+                N('Primera Versión', 603, [], 'primeraversion'), N('Segunda Versión', 0)
+            ]),
+            N('Bibliotecas adicionales', 0, [N('Hydra', 0), N('Strudel', 0)])
+        ]),
+        N('Iteraciones experimentales', 0, [
+            N('Sobre las iteraciones', 234, [], 'sobreiter'),
+            N('Anti', 0, [
+                N('Anti v1', 1006, [], 'antiv1'), N('Anti v2', 596),
+                N('antiv1.js', 478), N('antiv2.js', 650)
+            ]),
+            N('THREE.studies', 0, [N('v1', 8), N('v2', 0), N('v3', 20)]),
+            N('RisOSC', 0, [N('v1', 0), N('v2', 0), N('v3', 0)], 'risosc')
+        ]),
+        N('Resultados', 0, [
+            N('Los datos como partitura', 136), N('HCI y usabilidad', 90),
+            N('Parametrización vs interpretación', 70), N('El Archivo personalizado', 0)
+        ]),
+        N('Conclusiones', 0, [
+            N('Trabajo futuro', 150), N('Dispositivos de exploración', 120),
+            N('Sistemas Experimentales', 0), N('Texto Plano', 0)
+        ])
+    ]),
+    N('Parte II — Archivo Transversal', 0, [
+        N('Léeme', 56),
+        N('Interfaz de usuario', 37, [], 'p2-interfaz'),
+        N('Experiencia de Usuario', 39, [], 'p2-ux'),
+        N('Temporalidad', 0),
+        N('Error', 0),
+        N('Data Center', 0, [], 'p2-datacenter'),
+        N('Máquina Virtual', 0, [], 'p2-maquinavirtual'),
+        N('Claude Code', 244),
+        N('from scratch', 0, [], 'p2-fromscratch'),
+        N('Alcance', 38, [], 'p2-alcance'),
+        N('Comando', 39, [], 'p2-comando'),
+        N('Buffer', 20, [], 'p2-buffer'),
+        N('Parsing', 78, [], 'p2-parsing'),
+        N('Artefacto', 10),
+        N('Textura', 15, [], 'p2-textura'),
+        N('Aprendizaje de Máquinas', 12, [], 'p2-ml'),
+        N('Control de versiones', 0, [], 'p2-versiones'),
+        N('SuperCollider', 25, [], 'p2-sc'),
+        N('Tone.js', 18, [], 'p2-tonejs'),
+        N('Hydra.js', 106),
+        N('P5.js', 13)
+    ]),
+    N('Parte III — Archivos Comprimidos', 0, [
+        N('Archivos comprimidos (ejemplos)', 138)
+    ]),
+    N('Referencias', 0, buildRefs())
+]);
+
+// Citas: [key origen, key destino] — proporciones del documento real
+// (~22 citas a Referencias, ~10 puentes Parte I → Parte II, algunos internos).
+const CROSS_LINKS_BY_KEY = [
+    // Parte I → Referencias
+    ['bloque2', 'ref:(Schön, 1983)'],
+    ['bloque2', 'ref:(Neustaedter y Sengers, 2012)'],
+    ['bloque2', 'ref:(Garfinkel, 1967)'],
+    ['bloque3', 'ref:(Gaver y Bowers, 2012)'],
+    ['bloque1', 'ref:(Schwab, 2018)'],
+    ['bloque1', 'ref:(Bardzell et al., 2018)'],
+    ['iteracion', 'ref:(Norman, 2013)'],
+    ['primeraversion', 'ref:(Collins y Knotts, 2019)'],
+    ['primeraversion', 'ref:(Collins, 2005)'],
+    ['invprevias', 'ref:(Schaeffer, 2003)'],
+    ['invprevias', 'ref:(Magnusson, 2019)'],
+    ['invprevias', 'ref:(McLean, 2014)'],
+    ['invprevias', 'ref:(Rohrhuber, 2011)'],
+    ['invprevias', 'ref:(Solís, 2018)'],
+    ['anttecnicos', 'ref:(Montfort, 2008)'],
+    ['anttecnicos', 'ref:(Roads, 2001)'],
+    ['anttecnicos', 'ref:(Fuller, 2008)'],
+    ['anttecnicos', 'ref:(Reas y Fry, 2014)'],
+    ['anttecnicos', 'ref:(Wilson, 2013)'],
+    ['sobreiter', 'ref:(Xenakis, 1992)'],
+    ['contexto', 'ref:(Perec, 1974)'],
+    ['escrituraparsing', 'ref:(Villaseñor y Paz, 2020)'],
+    // Parte I → Parte II (puentes)
+    ['contexto', 'p2-fromscratch'],
+    ['servidor', 'p2-datacenter'],
+    ['servidor', 'p2-maquinavirtual'],
+    ['invprevias', 'p2-parsing'],
+    ['antiv1', 'p2-sc'],
+    ['antiv1', 'p2-tonejs'],
+    ['antiv1', 'p2-textura'],
+    ['bloque3', 'p2-comando'],
+    ['sobreiter', 'p2-alcance'],
+    ['anttecnicos', 'p2-versiones'],
+    ['iteracion', 'p2-ml'],
+    ['sobreiter', 'p2-buffer'],
+    // Internos y Parte II → Parte I
+    ['servicios', 'arq-interfaz'],
+    ['servicios', 'risosc'],
+    ['p2-ux', 'p2-interfaz'],
+    ['p2-ux', 'iteracion']
+];
+
+// ========================================
+// Árbol → nodos planos + enlaces
+// ========================================
+
+function classifyPart(title) {
+    const t = (title || '').toLowerCase();
+    if (t.includes('referencias')) return 'refs';
+    if (t.startsWith('parte iii') || t.includes('archivos comprimidos')) return 'part3';
+    if (t.startsWith('parte ii') || t.includes('transversal')) return 'part2';
+    if (t.startsWith('parte i') || t.includes('archivo principal')) return 'part1';
+    return null;
+}
+
+function flattenTree(root) {
+    const nodes = [];
+    const links = [];
+    const byKey = new Map();
+    let counter = 0;
+    function walk(n, level, parentId, inheritedPart) {
+        const detected = classifyPart(n.title);
+        const part = inheritedPart || detected || 'root';
+        const id = 'n' + (counter++);
+        const node = {
+            id, title: n.title, level, parentId, part,
+            childCount: n.children.length,
+            wordCount: n.wc,
+            cited: false,
+            x: (Math.random() - 0.5) * 60,
+            y: (Math.random() - 0.5) * 30,
+            z: (Math.random() - 0.5) * 60
+        };
+        nodes.push(node);
+        if (n.key) byKey.set(n.key, node);
+        if (parentId) links.push({ source: parentId, target: id });
+        const childPart = level === 0 ? null : part;
+        n.children.forEach(c => walk(c, level + 1, id, childPart));
+    }
+    walk(root, 0, null, null);
+
+    const crossLinks = [];
+    for (const [a, b] of CROSS_LINKS_BY_KEY) {
+        const s = byKey.get(a), t = byKey.get(b);
+        if (!s || !t) { console.warn('crossLink sin resolver:', a, b); continue; }
+        t.cited = true;
+        crossLinks.push({ source: s, target: t });
+    }
+    return { nodes, links, crossLinks };
+}
+
+// ========================================
+// Estado + escena
+// ========================================
+
+const App = {
+    nodes: [], links: [], crossLinks: [],
+    nodesById: new Map(),
+    refNodes: [],
+    simulation: null,
+    citeForce: null,
+    selected: null,
+    arcs: []
+};
+
+let scene, camera, renderer, labelRenderer, controls, composer;
+let raycaster, mouse, linksObject = null;
+const groups = { halos: new THREE.Group(), cores: new THREE.Group(), links: new THREE.Group(), arcs: new THREE.Group() };
+
+function initScene() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(CONFIG.colors.background);
+    scene.fog = new THREE.FogExp2(CONFIG.colors.background, 0.004);
+
+    const w = window.innerWidth - PANEL_W, h = window.innerHeight;
+    camera = new THREE.PerspectiveCamera(62, w / h, 0.1, 800);
+    const q = new URLSearchParams(location.search);
+    if (q.has('top')) camera.position.set(0, 380, 0.1);
+    else camera.position.set(0, 40, 330);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.getElementById('scene-container').appendChild(renderer.domElement);
+
+    labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(w, h);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0';
+    labelRenderer.domElement.style.left = '0';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    document.getElementById('scene-container').appendChild(labelRenderer.domElement);
+
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.05;
+    let rotTimer = null;
+    renderer.domElement.addEventListener('pointerdown', () => { controls.autoRotate = false; clearTimeout(rotTimer); });
+    renderer.domElement.addEventListener('pointerup', () => {
+        clearTimeout(rotTimer);
+        rotTimer = setTimeout(() => { controls.autoRotate = true; }, 4000);
+    });
+
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(w, h), CONFIG.bloom.strength, CONFIG.bloom.radius, CONFIG.bloom.threshold));
+
+    scene.add(groups.links, groups.arcs, groups.halos, groups.cores);
+
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+    renderer.domElement.addEventListener('click', onClick);
+    window.addEventListener('resize', onResize);
+}
+
+function onResize() {
+    const w = window.innerWidth - PANEL_W, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    labelRenderer.setSize(w, h);
+    composer.setSize(w, h);
+}
+
+// ========================================
+// Meshes
+// ========================================
+
+function getRadiusForNode(node) {
+    const base = CONFIG.levelRadii[Math.min(node.level, CONFIG.levelRadii.length - 1)];
+    const t = Math.min(1, node.wordCount / 300);
+    return Math.max(0.25, base * (1 + t * 0.8));
+}
+
+function getNodeColor(node) {
+    if (node.part === 'refs' && node.level >= 2 && !node.cited) return CONFIG.colors.refsOrphan;
+    return CONFIG.colors[node.part] ?? CONFIG.colors.root;
+}
+
+// Etiquetas: 'always' se muestran siempre; 'partner' solo cuando el nodo
+// está seleccionado o es contraparte de cita del seleccionado.
+function labelPolicy(node) {
+    if (node.level <= 1) return 'always';
+    if (node.level === 2 && (node.part === 'part1' || node.part === 'part2' || node.part === 'part3')) return 'always';
+    return 'partner';
+}
+
+function buildNodeMeshes(node) {
+    const radius = getRadiusForNode(node);
+    const color = getNodeColor(node);
+
+    const core = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 20, 16),
+        new THREE.MeshBasicMaterial({ color })
+    );
+    core.userData = { id: node.id };
+    groups.cores.add(core);
+
+    const halo = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 2.4, 16, 12),
+        new THREE.MeshBasicMaterial({
+            color, transparent: true, opacity: 0.12,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        })
+    );
+    groups.halos.add(halo);
+
+    const div = document.createElement('div');
+    div.className = `node-label node-label--${node.part}`;
+    div.textContent = node.title;
+    const label = new CSS2DObject(div);
+    label.position.set(0, radius + 1.4, 0);
+    core.add(label);
+
+    node.core = core;
+    node.halo = halo;
+    node.labelDiv = div;
+    node.labelMode = labelPolicy(node);
+    // CSS2DRenderer reescribe style.display cada frame: ocultar vía visibility.
+    if (node.labelMode === 'partner') div.style.visibility = 'hidden';
+}
+
+function buildLinksGeometry() {
+    const n = App.links.length;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 6), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 6), 3));
+    linksObject = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+        vertexColors: true, transparent: true, opacity: 0.22,
+        blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    groups.links.add(linksObject);
+
+    const cArr = geo.attributes.color.array;
+    App.links.forEach((l, i) => {
+        const s = App.nodesById.get(l.source), t = App.nodesById.get(l.target);
+        const sc = new THREE.Color(getNodeColor(s)), tc = new THREE.Color(getNodeColor(t));
+        // Los 89 radios hub→referencia saturan la escena: se atenúan
+        // oscureciendo el color (blending aditivo → línea más tenue).
+        const dim = (t.part === 'refs' && t.level >= 2) ? 0.3 : 1;
+        cArr.set([sc.r * dim, sc.g * dim, sc.b * dim, tc.r * dim, tc.g * dim, tc.b * dim], i * 6);
+    });
+    geo.attributes.color.needsUpdate = true;
+}
+
+function updateLinkPositions() {
+    const arr = linksObject.geometry.attributes.position.array;
+    App.links.forEach((l, i) => {
+        const s = typeof l.source === 'object' ? l.source : App.nodesById.get(l.source);
+        const t = typeof l.target === 'object' ? l.target : App.nodesById.get(l.target);
+        arr.set([s.x, s.y, s.z, t.x, t.y, t.z], i * 6);
+    });
+    linksObject.geometry.attributes.position.needsUpdate = true;
+}
+
+// ========================================
+// Arcos de cita (Bezier con degradado)
+// ========================================
+
+const ARC_SEGS = 24;
+
+function buildArcs() {
+    for (const cl of App.crossLinks) {
+        const pts = ARC_SEGS + 1;
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts * 3), 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pts * 3), 3));
+
+        const sc = new THREE.Color(getNodeColor(cl.source));
+        const tc = new THREE.Color(getNodeColor(cl.target));
+        const cArr = geo.attributes.color.array;
+        const tmp = new THREE.Color();
+        for (let i = 0; i <= ARC_SEGS; i++) {
+            tmp.copy(sc).lerp(tc, i / ARC_SEGS);
+            cArr.set([tmp.r, tmp.g, tmp.b], i * 3);
+        }
+        geo.attributes.color.needsUpdate = true;
+
+        const mat = new THREE.LineBasicMaterial({
+            vertexColors: true, transparent: true, opacity: PARAMS.arcOpacity,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const line = new THREE.Line(geo, mat);
+        groups.arcs.add(line);
+        App.arcs.push({ line, source: cl.source, target: cl.target,
+                        curve: new THREE.QuadraticBezierCurve3(
+                            new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()) });
+    }
+}
+
+const _mid = new THREE.Vector3(), _pt = new THREE.Vector3();
+
+function updateArcs() {
+    for (const arc of App.arcs) {
+        const s = arc.source, t = arc.target;
+        arc.curve.v0.set(s.x, s.y, s.z);
+        arc.curve.v2.set(t.x, t.y, t.z);
+        // Punto de control: el arco se comba alejándose del centro de la escena.
+        _mid.set((s.x + t.x) / 2, (s.y + t.y) / 2, (s.z + t.z) / 2);
+        const dist = arc.curve.v0.distanceTo(arc.curve.v2);
+        if (_mid.lengthSq() < 25) _mid.set(0, 1, 0);
+        _mid.normalize().multiplyScalar(dist * 0.35);
+        arc.curve.v1.set((s.x + t.x) / 2 + _mid.x, (s.y + t.y) / 2 + _mid.y, (s.z + t.z) / 2 + _mid.z);
+
+        const arr = arc.line.geometry.attributes.position.array;
+        for (let i = 0; i <= ARC_SEGS; i++) {
+            arc.curve.getPoint(i / ARC_SEGS, _pt);
+            arr.set([_pt.x, _pt.y, _pt.z], i * 3);
+        }
+        arc.line.geometry.attributes.position.needsUpdate = true;
+    }
+}
+
+function refreshArcVisibility() {
+    for (const arc of App.arcs) {
+        const isSel = App.selected && (arc.source === App.selected || arc.target === App.selected);
+        let opacity;
+        if (PARAMS.arcMode === 'ocultos') opacity = 0;
+        else if (PARAMS.arcMode === 'seleccion') opacity = isSel ? 0.85 : 0;
+        else opacity = isSel ? 0.85 : PARAMS.arcOpacity;
+        arc.line.material.opacity = opacity;
+        arc.line.visible = opacity > 0.001;
+    }
+}
+
+// ========================================
+// Fuerza de anillo / corona para Referencias
+// ========================================
+
+// Anillo: plano inclinado (giro sobre el eje X) a altura ringHeight;
+// empuja cada referencia hacia el plano y hacia el radio R dentro del plano.
+// Corona: réplica del refs-lift actual (forceY hacia +28).
+function makeRefsForce(refNodes) {
+    return function (alpha) {
+        if (PARAMS.ringMode === 'corona') {
+            const k = PARAMS.liftStrength * alpha;
+            for (const n of refNodes) n.vy += (PARAMS.liftTarget - n.y) * k;
+            return;
+        }
+        const kR = PARAMS.ringStrength * alpha;
+        if (kR === 0) return;
+        // El plano necesita ganancia propia y más dura: con la misma que el
+        // radio, la repulsión entre 89 refs pandea el anillo en cáscara
+        // (verificado numéricamente: plano ±28 → ±5 con esta separación).
+        const kP = Math.min(1.5, PARAMS.ringStrength * 2.5) * alpha;
+        const inc = PARAMS.ringIncl * Math.PI / 180;
+        const cosI = Math.cos(inc), sinI = Math.sin(inc);
+        // normal del plano del anillo: (0, cosI, sinI)
+        for (const n of refNodes) {
+            const px = n.x, py = n.y - PARAMS.ringHeight, pz = n.z;
+            const dn = py * cosI + pz * sinI;
+            const ix = px, iy = py - dn * cosI, iz = pz - dn * sinI;
+            const r = Math.sqrt(ix * ix + iy * iy + iz * iz) || 1e-6;
+            const dr = (PARAMS.ringRadius - r) / r;
+            n.vy += -dn * cosI * kP;
+            n.vz += -dn * sinI * kP;
+            n.vx += ix * dr * kR;
+            n.vy += iy * dr * kR;
+            n.vz += iz * dr * kR;
+        }
+    };
+}
+
+// Ordenado: posiciones fijas sobre el anillo en orden alfabético.
+// (Fijadas: la fuerza de cita no las deforma — el índice queda rígido.)
+function applyRingOrder() {
+    const refs = App.refNodes;
+    if (PARAMS.ringOrder === 'ordenado' && PARAMS.ringMode === 'anillo') {
+        const sorted = [...refs].sort((a, b) => a.title.localeCompare(b.title, 'es'));
+        const inc = PARAMS.ringIncl * Math.PI / 180;
+        const cosI = Math.cos(inc), sinI = Math.sin(inc);
+        sorted.forEach((n, i) => {
+            const th = (i / sorted.length) * Math.PI * 2;
+            n.fx = PARAMS.ringRadius * Math.cos(th);
+            n.fy = PARAMS.ringHeight + PARAMS.ringRadius * Math.sin(th) * sinI;
+            n.fz = -PARAMS.ringRadius * Math.sin(th) * cosI;
+        });
+    } else {
+        for (const n of refs) { delete n.fx; delete n.fy; delete n.fz; }
+    }
+}
+
+// ========================================
+// Simulación
+// ========================================
+
+function chargeForNode(n) {
+    if (n.part === 'refs' && n.level >= 2) return PARAMS.refsCharge;
+    return CONFIG.charge;
+}
+
+// La posición inicial de las refs selecciona el pozo de equilibrio:
+// - anillo: si parten del centro, todas alcanzan la órbita por el acimut
+//   del hub y se apiñan en un segmento (verificado: hueco máx 110° → 11°).
+// - nube: el eje refs↔cuerpo es bistable (±Y, el X lo ocupan las Partes);
+//   arrancar arriba garantiza que la nube quede elevada.
+function initRefsPositions() {
+    const inc = PARAMS.ringIncl * Math.PI / 180;
+    const cosI = Math.cos(inc), sinI = Math.sin(inc);
+    for (const n of App.refNodes) {
+        if (n.fx !== undefined) continue;
+        if (PARAMS.ringMode === 'anillo') {
+            const th = Math.random() * Math.PI * 2;
+            n.x = PARAMS.ringRadius * Math.cos(th);
+            n.y = PARAMS.ringHeight + PARAMS.ringRadius * Math.sin(th) * sinI + (Math.random() - 0.5) * 6;
+            n.z = -PARAMS.ringRadius * Math.sin(th) * cosI + (Math.random() - 0.5) * 6;
+        } else {
+            n.x = (Math.random() - 0.5) * 70;
+            n.y = PARAMS.liftTarget + 30 + (Math.random() - 0.5) * 40;
+            n.z = (Math.random() - 0.5) * 70;
+        }
+        n.vx = n.vy = n.vz = 0;
+    }
+}
+
+function startSimulation() {
+    const citeLinksForSim = App.crossLinks.map(l => ({ source: l.source.id, target: l.target.id }));
+    App.citeForce = forceLink(citeLinksForSim).id(d => d.id)
+        .distance(() => PARAMS.citeDistance)
+        .strength(() => PARAMS.citeStrength);
+
+    // Las hojas de Referencias las sostiene el anillo: el tirante jerárquico
+    // al hub queda casi suelto (0.05) — más fuerte las arrastra
+    // tangencialmente hacia el acimut del hub y las apiña en un segmento.
+    // En corona conserva el 0.55 del front real.
+    const hierStrength = l => {
+        const t = typeof l.target === 'object' ? l.target : App.nodesById.get(l.target);
+        const esRef = t && t.part === 'refs' && t.level >= 2;
+        return (esRef && PARAMS.ringMode === 'anillo') ? 0.05 : 0.55;
+    };
+    App.hierForce = forceLink(App.links).id(d => d.id).distance(l => {
+        const t = typeof l.target === 'object' ? l.target : App.nodesById.get(l.target);
+        return CONFIG.linkDistances[Math.min(t?.level ?? 3, CONFIG.linkDistances.length - 1)];
+    }).strength(hierStrength);
+    App.hierStrength = hierStrength;
+
+    App.simulation = forceSimulation(App.nodes, 3)
+        .force('link', App.hierForce)
+        .force('charge', forceManyBody().strength(chargeForNode).distanceMax(220))
+        .force('center', forceCenter(0, 0, 0).strength(0.02))
+        .force('hemisphere', forceX(n => {
+            if (n.part === 'part1') return -CONFIG.hemisphereOffset;
+            if (n.part === 'part2') return CONFIG.hemisphereOffset;
+            return 0;
+        }).strength(CONFIG.hemisphereStrength))
+        .force('refs', makeRefsForce(App.refNodes))
+        .force('citas', App.citeForce)
+        // Más amortiguación y enfriamiento más lento que el front (0.35/0.008):
+        // los resortes de cita acoplan los dos cúmulos grandes y crean un
+        // vaivén lento que con la curva original se congela a media fase
+        // (la nube quedaba arriba o abajo según la semilla).
+        .velocityDecay(0.5)
+        .alphaDecay(0.004)
+        .stop();
+}
+
+function reheat(alpha = 0.5) {
+    App.simulation.alpha(Math.max(App.simulation.alpha(), alpha));
+}
+
+function reseed() {
+    for (const n of App.nodes) {
+        if (n.fx !== undefined) continue;
+        n.x = (Math.random() - 0.5) * 60;
+        n.y = (Math.random() - 0.5) * 30;
+        n.z = (Math.random() - 0.5) * 60;
+        n.vx = n.vy = n.vz = 0;
+    }
+    initRefsPositions();
+    App.simulation.alpha(1);
+}
+
+// ========================================
+// Loop
+// ========================================
+
+const _tmpVec = new THREE.Vector3();
+
+let _frame = 0;
+function animate() {
+    requestAnimationFrame(animate);
+    App.simulation.tick();
+    if (++_frame % 120 === 0 && new URLSearchParams(location.search).has('debug')) {
+        const rs = App.refNodes.map(n => Math.sqrt(n.x * n.x + n.z * n.z));
+        const ys = App.refNodes.map(n => n.y);
+        const bodyYs = App.nodes.filter(n => n.part === 'part1').map(n => n.y);
+        const mean = a => a.reduce((p, c) => p + c, 0) / a.length;
+        const sd = a => { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); };
+        document.getElementById('sel-info').textContent =
+            `f${_frame} α=${App.simulation.alpha().toFixed(3)} r=${mean(rs).toFixed(0)}±${sd(rs).toFixed(0)} refsY=${mean(ys).toFixed(0)}±${sd(ys).toFixed(0)} bodyY=${mean(bodyYs).toFixed(0)} camY=${camera.position.y.toFixed(0)}`;
+    }
+    for (const n of App.nodes) {
+        n.core.position.set(n.x, n.y, n.z);
+        n.halo.position.set(n.x, n.y, n.z);
+    }
+    updateLinkPositions();
+    updateArcs();
+    updateLabelOpacity();
+    controls.update();
+    composer.render();
+    labelRenderer.render(scene, camera);
+}
+
+function updateLabelOpacity() {
+    const camPos = camera.position;
+    for (const n of App.nodes) {
+        if (n.labelDiv.style.visibility === 'hidden') continue;
+        _tmpVec.set(n.x, n.y, n.z);
+        const dist = _tmpVec.distanceTo(camPos);
+        let opacity;
+        if (n.level <= 1) opacity = Math.max(0.45, Math.min(1, (320 - dist) / 140));
+        else opacity = Math.max(0.2, Math.min(1, (260 - dist) / 248));
+        n.labelDiv.style.opacity = opacity.toFixed(2);
+    }
+}
+
+// ========================================
+// Selección
+// ========================================
+
+function onClick(e) {
+    const w = window.innerWidth - PANEL_W;
+    mouse.x = (e.clientX / w) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(groups.cores.children, false);
+    if (hits.length > 0) selectNode(hits[0].object.userData.id);
+    else deselectNode();
+}
+
+function partnersOf(node) {
+    const set = new Set();
+    for (const cl of App.crossLinks) {
+        if (cl.source === node) set.add(cl.target);
+        if (cl.target === node) set.add(cl.source);
+    }
+    return set;
+}
+
+function selectNode(id) {
+    const node = App.nodesById.get(id);
+    if (!node) return;
+    if (App.selected === node) { deselectNode(); return; }
+    deselectNode();
+    App.selected = node;
+    node.core.scale.setScalar(1.4);
+    node.halo.scale.setScalar(1.5);
+    node.halo.material.opacity = 0.32;
+    node.labelDiv.classList.add('node-label--selected');
+    if (node.labelMode === 'partner') node.labelDiv.style.visibility = '';
+
+    const partners = partnersOf(node);
+    for (const p of partners) {
+        if (p.labelMode === 'partner') p.labelDiv.style.visibility = '';
+        p.halo.material.opacity = 0.28;
+    }
+    node._partners = partners;
+    refreshArcVisibility();
+
+    const info = document.getElementById('sel-info');
+    info.innerHTML = `<b>${node.title}</b><br>${partners.size} vínculo(s) de cita`;
+}
+
+function deselectNode() {
+    const s = App.selected;
+    if (!s) return;
+    s.core.scale.setScalar(1);
+    s.halo.scale.setScalar(1);
+    s.halo.material.opacity = 0.12;
+    s.labelDiv.classList.remove('node-label--selected');
+    if (s.labelMode === 'partner') s.labelDiv.style.visibility = 'hidden';
+    for (const p of (s._partners || [])) {
+        if (p.labelMode === 'partner') p.labelDiv.style.visibility = 'hidden';
+        p.halo.material.opacity = 0.12;
+    }
+    App.selected = null;
+    refreshArcVisibility();
+    document.getElementById('sel-info').textContent = '—';
+}
+
+// ========================================
+// Panel
+// ========================================
+
+function syncPanel() {
+    document.querySelectorAll('[data-group]').forEach(btn => {
+        const on = PARAMS[btn.dataset.group] === btn.dataset.val;
+        btn.classList.toggle('on', on);
+    });
+    for (const id of ['ringRadius', 'ringHeight', 'ringIncl', 'ringStrength', 'citeStrength', 'citeDistance', 'arcOpacity']) {
+        const el = document.getElementById(id);
+        el.value = PARAMS[id];
+        const dec = (id === 'ringStrength' || id === 'citeStrength' || id === 'arcOpacity') ? 2 : 0;
+        document.getElementById('v-' + id).textContent = Number(PARAMS[id]).toFixed(dec);
+    }
+}
+
+function onParamChange() {
+    App.citeForce.strength(() => PARAMS.citeStrength);
+    App.citeForce.distance(() => PARAMS.citeDistance);
+    // Re-evalúa fuerzas cacheadas por nodo/enlace (dependen de ringMode)
+    App.simulation.force('charge').strength(chargeForNode);
+    App.hierForce.strength(App.hierStrength);
+    applyRingOrder();
+    refreshArcVisibility();
+    syncPanel();
+    reheat();
+}
+
+function wirePanel() {
+    document.querySelectorAll('[data-group]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            PARAMS[btn.dataset.group] = btn.dataset.val;
+            if (btn.dataset.group === 'ringMode') initRefsPositions();
+            onParamChange();
+        });
+    });
+    for (const id of ['ringRadius', 'ringHeight', 'ringIncl', 'ringStrength', 'citeStrength', 'citeDistance', 'arcOpacity']) {
+        document.getElementById(id).addEventListener('input', e => {
+            PARAMS[id] = parseFloat(e.target.value);
+            onParamChange();
+        });
+    }
+    document.getElementById('preset-actual').addEventListener('click', () => {
+        Object.assign(PARAMS, PRESETS.actual);
+        onParamChange();
+        reheat(0.8);
+    });
+    document.getElementById('preset-propuesta').addEventListener('click', () => {
+        Object.assign(PARAMS, PRESETS.propuesta);
+        initRefsPositions();
+        onParamChange();
+        reheat(0.8);
+    });
+    document.getElementById('reheat').addEventListener('click', () => reheat(0.8));
+    document.getElementById('reseed').addEventListener('click', reseed);
+}
+
+// ========================================
+// Init
+// ========================================
+
+// Cualquier parámetro puede fijarse por URL: ?ringMode=corona&citeStrength=0.2
+{
+    const q = new URLSearchParams(location.search);
+    for (const [k, v] of q) {
+        if (k in PARAMS) PARAMS[k] = isNaN(+v) ? v : +v;
+    }
+}
+
+const { nodes, links, crossLinks } = flattenTree(TREE);
+App.nodes = nodes;
+App.links = links;
+App.crossLinks = crossLinks;
+nodes.forEach(n => App.nodesById.set(n.id, n));
+App.refNodes = nodes.filter(n => n.part === 'refs' && n.level >= 2);
+
+initScene();
+nodes.forEach(buildNodeMeshes);
+buildLinksGeometry();
+buildArcs();
+startSimulation();
+applyRingOrder();
+initRefsPositions();
+refreshArcVisibility();
+wirePanel();
+syncPanel();
+
+// ?ff=N adelanta N ticks antes del primer render (para capturas headless)
+const _ff = parseInt(new URLSearchParams(location.search).get('ff') || '0', 10);
+for (let i = 0; i < _ff; i++) App.simulation.tick();
+
+const orphans = App.refNodes.filter(n => !n.cited).length;
+document.getElementById('counts').innerHTML =
+    `<b>${nodes.length}</b> nodos · <b>${crossLinks.length}</b> vínculos de cita · <b>${orphans}</b> refs huérfanas`;
+
+animate();
+</script>
+</body>
+</html>

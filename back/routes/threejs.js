@@ -23,8 +23,8 @@ function countNodes(node) {
 router.get('/structure', async (req, res) => {
   try {
     console.log('Solicitando estructura para Three.js...');
-    const structure = await noteService.getStructureForThreeJS();
-    console.log(`Estructura generada: ${countNodes(structure)} nodos`);
+    const { structure, crossLinks } = await noteService.getStructureForThreeJS();
+    console.log(`Estructura generada: ${countNodes(structure)} nodos, ${crossLinks.length} enlaces internos`);
 
     // Limpiar estructura para frontend
     const cleanStructure = (node) => {
@@ -43,8 +43,10 @@ router.get('/structure', async (req, res) => {
     res.json({
       success: true,
       data: cleanedStructure,
+      crossLinks,
       metadata: {
         totalNodes: countNodes(cleanedStructure),
+        crossLinkCount: crossLinks.length,
         generatedAt: new Date().toISOString()
       }
     });
