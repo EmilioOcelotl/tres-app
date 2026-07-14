@@ -3,7 +3,8 @@
     "type": "module",
     "scripts": {
       "start": "node app.js",
-      "dev": "node --watch app.js"
+      "dev": "node --watch app.js",
+      "comprimido": "node comprimidos/render.js"
     },
     "dependencies": {
       "express": "^4.18.2",

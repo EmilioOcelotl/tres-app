@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tres Estudios Abiertos — Archivo Comprimido</title>
+    <link rel="stylesheet" href="comprimido.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "treslib/GrainEngine":  "https://cdn.jsdelivr.net/npm/treslib@1.10.0/src/GrainEngine.js",
+                "treslib/SnapToGrains": "https://cdn.jsdelivr.net/npm/treslib@1.10.0/src/SnapToGrains.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <header id="barra">
+        <div id="barra-titulo">
+            <span class="eyebrow">TRES ESTUDIOS ABIERTOS</span>
+            <span class="sub">archivo comprimido · parte III</span>
+        </div>
+        <div id="barra-controles">
+            <select id="sel-receta" title="Receta"></select>
+            <input id="inp-semilla" type="number" min="1" max="9999" title="Semilla">
+            <button id="btn-render" title="Renderizar con esta semilla">RENDER</button>
+            <button id="btn-regenerar" title="Nueva instancia (semilla nueva)">REGENERAR</button>
+            <button id="btn-audio" title="Granulación sobre el snapshot del panel visible">AUD: OFF</button>
+        </div>
+    </header>
+
+    <main id="tira">
+        <div id="estado">cargando instancia…</div>
+    </main>
+
+    <script type="module" src="comprimido.js"></script>
+</body>
+</html>

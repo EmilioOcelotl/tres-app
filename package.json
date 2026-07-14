@@ -6,7 +6,8 @@
   "scripts": {
     "start": "cd back && node app.js",
     "dev": "nodemon app.js",
-    "avance": "node back/scripts/avance.js"
+    "avance": "node back/scripts/avance.js",
+    "comprimido": "node back/comprimidos/render.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
