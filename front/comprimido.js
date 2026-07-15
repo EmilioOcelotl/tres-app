@@ -11,6 +11,11 @@ import { SnapToGrains } from 'treslib/SnapToGrains';
 const RECETA_DEFAULT  = 'iteracion-zine';
 const SEMILLA_DEFAULT = 12;
 
+const NOMBRE_PARTE = {
+    p1: 'parte I', p2: 'parte II', p3: 'parte III',
+    refs: 'referencias', root: 'raíz'
+};
+
 // Paletas por Parte sobre papel: mismas tintas que el PDF de render.js,
 // índice 0 = tinta plena → 3 = papel (espejo del (3−v)/3 del impreso)
 const SNAPSHOT_PALETTES = {
@@ -245,10 +250,16 @@ function construirTira(instancia) {
     // fragmentos
     pasos.forEach((paso, i) => {
         const panel = panelConSnap('panel-fragmento', paso, paso.part);
-        const num = el('div', 'num', String(i + 1).padStart(2, '0'));
-        num.style.color = `var(--${paso.part}, var(--accent))`;
-        panel.appendChild(num);
+        // sin número de página: el id de la nota y sus datos relacionales, como
+        // en el pliego. La secuencia no jerarquiza.
+        const id = el('div', 'noteid', paso.id);
+        id.style.color = `var(--${paso.part}, var(--accent))`;
+        panel.appendChild(id);
         panel.appendChild(el('h2', null, paso.title));
+
+        const enlaces = paso.grado === 1 ? '1 enlace interno' : `${paso.grado || 0} enlaces internos`;
+        panel.appendChild(el('div', 'via',
+            `${NOMBRE_PARTE[paso.part] || ''} · ${paso.wc} palabras · ${enlaces}`));
 
         const via = paso.via === 'inicio' ? 'punto de partida'
                   : paso.via === 'salto' ? `salto desde: ${paso.origen}`
@@ -261,12 +272,13 @@ function construirTira(instancia) {
             panel.appendChild(el('p', 'frag', paso.frag));
         }
 
-        // imágenes reales de la nota, intercaladas con el dither sintético
+        // imágenes reales de la nota, ya separadas a dos tintas y tramadas por el
+        // back (`?riso`): en el visor se ve lo que va a salir impreso
         if (paso.imagenes?.length) {
             const cont = el('div', 'imagenes');
             paso.imagenes.forEach(im => {
                 const img = document.createElement('img');
-                img.src = `/api/comprimidos/attachment/${im.attachmentId}`;
+                img.src = `/api/comprimidos/attachment/${im.attachmentId}?riso`;
                 img.alt = im.nombre;
                 img.loading = 'lazy';
                 cont.appendChild(img);
@@ -277,7 +289,6 @@ function construirTira(instancia) {
             panel.appendChild(crearCanvasDither(paso, paso.part));
         }
 
-        panel.appendChild(el('div', 'pie', `${paso.wc} palabras en la nota`));
         tira.appendChild(panel);
 
         // interludio sintético cada dos fragmentos (la mezcla: dither entre notas)

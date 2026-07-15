@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { generarInstancia } from '../comprimidos/instancia.js';
 import { traducirReceta } from '../comprimidos/traducir.js';
+import { procesarParaWeb } from '../comprimidos/riso.js';
 import { NoteService } from '../services/noteService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -52,11 +53,31 @@ router.get('/instancia', async (req, res) => {
   }
 });
 
-// Imagen adjunta de una nota (las notas embeben api/attachments/<id>/image/…)
+// Imagen adjunta de una nota (las notas embeben api/attachments/<id>/image/…).
+// Con `?riso` se entrega ya separada a cian/magenta y tramada, igual que en el
+// pliego: el visor muestra la imagen impresa, no la original de pantalla.
+const cacheRiso = new Map();
+
 router.get('/attachment/:id', async (req, res) => {
   try {
+    const riso = req.query.riso !== undefined;
+    if (riso && cacheRiso.has(req.params.id)) {
+      res.set('Content-Type', 'image/png');
+      res.set('Cache-Control', 'public, max-age=3600');
+      return res.send(cacheRiso.get(req.params.id));
+    }
+
     const blob = await noteService.getAttachmentBlob(req.params.id);
     if (!blob || !blob.content) return res.status(404).json({ error: 'Adjunto no encontrado' });
+
+    if (riso && /image\/(jpe?g|jpg|png)/i.test(blob.mime || '')) {
+      const { previa } = procesarParaWeb(blob.content, blob.mime);
+      cacheRiso.set(req.params.id, previa);
+      res.set('Content-Type', 'image/png');
+      res.set('Cache-Control', 'public, max-age=3600');
+      return res.send(previa);
+    }
+
     res.set('Content-Type', blob.mime || 'application/octet-stream');
     res.set('Cache-Control', 'public, max-age=3600');
     res.send(blob.content);

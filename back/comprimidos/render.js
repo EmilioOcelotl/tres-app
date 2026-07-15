@@ -12,6 +12,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { generarInstancia, hashString, seededRandom } from './instancia.js';
+import { NoteService } from '../services/noteService.js';
+import { procesarImagen, DPI, LPI_MOCKUP } from './riso.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fontsPath = path.join(__dirname, '..', '..', 'assets', 'fonts');
@@ -73,6 +75,69 @@ function dibujarSnapshot(doc, px, W, H, x, y, celda, color, escala = 1) {
   doc.fillOpacity(1).restore();
 }
 
+// ------------------------------------------------- imágenes reales de la nota
+
+// Espejo del visor web: si la nota trae adjuntos embebidos se imprimen; si no,
+// el panel cae al dither sintético. Sólo jpeg/png — es lo que sabemos decodificar.
+async function cargarImagenes(pasos) {
+  const ns = new NoteService();
+  const blobs = new Map();
+  for (const paso of pasos) {
+    for (const im of paso.imagenes || []) {
+      if (blobs.has(im.attachmentId)) continue;
+      const blob = await ns.getAttachmentBlob(im.attachmentId);
+      if (blob?.content && /image\/(jpe?g|png)/i.test(blob.mime || '')) {
+        blobs.set(im.attachmentId, { ...blob, nombre: im.nombre });
+      } else {
+        console.warn(`  (adjunto omitido: ${im.nombre} — ${blob?.mime || 'sin blob'})`);
+      }
+    }
+  }
+  return blobs;
+}
+
+// La separación es cara y cada imagen se dibuja dos veces (pliego impuesto y
+// páginas de lectura): se procesa una vez por caja y se reusa.
+const cacheRiso = new Map();
+
+function imagenRiso(blobs, im, wPt, hPt) {
+  const clave = `${im.attachmentId}@${Math.round(wPt)}x${Math.round(hPt)}`;
+  if (!cacheRiso.has(clave)) {
+    const blob = blobs.get(im.attachmentId);
+    const r = procesarImagen(blob.content, blob.mime, wPt, hPt);
+    cacheRiso.set(clave, r);
+    const { cian, magenta } = r.cobertura;
+    console.log(`  ${blob.nombre.padEnd(20)} cian ${(cian * 100).toFixed(0)}% · magenta ${(magenta * 100).toFixed(0)}%`
+              + ` · total ${((cian + magenta) * 100).toFixed(0)}%`);
+  }
+  return cacheRiso.get(clave);
+}
+
+// Mosaico de hasta tres imágenes dentro de la banda inferior del panel.
+// Ya vienen recortadas a la caja y tramadas a dos tintas, así que se colocan
+// tal cual: lo que se ve en pantalla es la simulación del sobreimpreso.
+function dibujarBanda(doc, imgs, blobs, x, y, w, h, color) {
+  const g = 4;
+  const cajas = imgs.length === 1
+    ? [[x, y, w, h]]
+    : imgs.length === 2
+      ? [[x, y, (w - g) / 2, h], [x + (w + g) / 2, y, (w - g) / 2, h]]
+      : [[x, y, w * 0.58, h],
+         [x + w * 0.58 + g, y, w * 0.42 - g, (h - g) / 2],
+         [x + w * 0.58 + g, y + (h + g) / 2, w * 0.42 - g, (h - g) / 2]];
+
+  imgs.forEach((im, i) => {
+    const [ix, iy, iw, ih] = cajas[i];
+    doc.image(imagenRiso(blobs, im, iw, ih).previa, ix, iy, { width: iw, height: ih });
+    doc.save().strokeColor(color).strokeOpacity(0.5).lineWidth(0.5)
+       .rect(ix, iy, iw, ih).stroke().restore();
+  });
+
+  doc.font('mono').fontSize(4.6).fillColor(COLOR_GRIS)
+     .text(imgs.map(im => im.nombre).join(' · '), x, y + h + 3,
+           { width: w, height: 7, ellipsis: true });
+}
+
 // ------------------------------------------------------------ páginas lógicas
 
 // Cada página lógica se dibuja en coordenadas locales (0..w, 0..h) dentro de
@@ -103,37 +168,52 @@ function pagPortada(doc, w, h, params, narrativa, fecha) {
      .text(`semilla ${params.semilla} · ${fecha}`, m, h - m - 8);
 }
 
-function pagFragmento(doc, w, h, paso, num) {
+// El panel no lleva número de página: en su lugar, el identificador de la nota
+// en Trilium y sus datos relacionales (parte, palabras, grado en el grafo de
+// citas). La secuencia la marca el pliego, no una jerarquía impresa.
+const NOMBRE_PARTE = { p1: 'parte I', p2: 'parte II', p3: 'parte III', refs: 'referencias', root: 'raíz' };
+
+function pagFragmento(doc, w, h, paso, blobs) {
   const m = 16;
   const color = COLOR_PARTE[paso.part] || COLOR_TINTA;
   doc.rect(0, 0, 4, h).fill(color);
 
-  doc.font('texto').fontSize(26).fillColor(color).fillOpacity(0.35)
-     .text(String(num).padStart(2, '0'), m, m - 4);
+  const imgs = (paso.imagenes || []).filter(im => blobs.has(im.attachmentId)).slice(0, 3);
+  const bandaH = imgs.length ? h * 0.32 : 0;
+  const bandaY = h - m - 20 - bandaH;               // deja aire para el pie de imagen
+  const reserva = imgs.length ? h - bandaY + 10 : 70;   // sin imágenes: hueco del dither
+
+  doc.font('mono').fontSize(11).fillColor(color).fillOpacity(0.55)
+     .text(paso.id, m, m - 2, { characterSpacing: 1.2 });
   doc.fillOpacity(1);
   doc.font('texto').fontSize(10.5).fillColor(COLOR_TINTA)
-     .text(paso.title, m, m + 26, { width: w - 2 * m });
+     .text(paso.title, m, m + 20, { width: w - 2 * m });
 
   const via = paso.via === 'inicio' ? 'punto de partida'
             : paso.via === 'salto' ? `salto desde: ${paso.origen}`
             : `enlazada desde: ${paso.origen}`;
+  const enlaces = paso.grado === 1 ? '1 enlace interno' : `${paso.grado || 0} enlaces internos`;
   doc.font('mono').fontSize(5.5).fillColor(COLOR_GRIS)
-     .text(via, m, doc.y + 4, { width: w - 2 * m });
+     .text(`${NOMBRE_PARTE[paso.part] || ''} · ${paso.wc} palabras · ${enlaces}`,
+           m, doc.y + 4, { width: w - 2 * m })
+     .text(via, m, doc.y + 2, { width: w - 2 * m });
 
   const yTexto = doc.y + 10;
   if (paso.esCodigo) {
     doc.font('mono').fontSize(5.8).fillColor(COLOR_TINTA)
-       .text(paso.frag, m, yTexto, { width: w - 2 * m, height: h - yTexto - 70, ellipsis: true });
+       .text(paso.frag, m, yTexto, { width: w - 2 * m, height: h - yTexto - reserva, ellipsis: true });
   } else {
     doc.font('texto').fontSize(7.8).fillColor(COLOR_TINTA)
-       .text(paso.frag, m, yTexto, { width: w - 2 * m, height: h - yTexto - 70, lineGap: 1.5, ellipsis: true });
+       .text(paso.frag, m, yTexto, { width: w - 2 * m, height: h - yTexto - reserva, lineGap: 1.5, ellipsis: true });
   }
 
-  const px = pixelesSinteticos(paso.id, paso.level, paso.childCount, 22, 22);
-  const lado = 40;
-  dibujarSnapshot(doc, px, 22, 22, w - m - lado, h - m - lado, lado / 22, color);
-  doc.font('mono').fontSize(5).fillColor(COLOR_GRIS)
-     .text(`${paso.wc}w`, m, h - m - 6);
+  if (imgs.length) {
+    dibujarBanda(doc, imgs, blobs, m, bandaY, w - 2 * m, bandaH, color);
+  } else {
+    const px = pixelesSinteticos(paso.id, paso.level, paso.childCount, 22, 22);
+    const lado = 40;
+    dibujarSnapshot(doc, px, 22, 22, w - m - lado, h - m - lado, lado / 22, color);
+  }
 }
 
 function pagInterludio(doc, w, h, params, num) {
@@ -258,10 +338,15 @@ async function main() {
   console.log('Caminata:');
   pasos.forEach((p, i) => console.log(`  ${i + 1}. [${p.via}] ${p.title} (${p.wc}w, ${p.part})`));
 
+  const blobs = await cargarImagenes(pasos);
+  const conImg = pasos.filter(p => (p.imagenes || []).some(im => blobs.has(im.attachmentId)));
+  console.log(`Imágenes: ${blobs.size} adjuntos en ${conImg.length} de ${pasos.length} pasos`);
+  console.log(`Riso (mockup): separación cian/magenta, trama de punto ${LPI_MOCKUP} lpi sobre ${DPI} dpi`);
+
   const paginas = [(w, h) => pagPortada(doc, w, h, params, narrativa, fecha)];
   const cuerpo = params.formato === 'zine8' ? 6 : pasos.length;
   for (let i = 0; i < cuerpo; i++) {
-    if (i < pasos.length) paginas.push((w, h) => pagFragmento(doc, w, h, pasos[i], i + 1));
+    if (i < pasos.length) paginas.push((w, h) => pagFragmento(doc, w, h, pasos[i], blobs));
     else paginas.push((w, h) => pagInterludio(doc, w, h, params, i));
   }
   paginas.push((w, h) => pagContraportada(doc, w, h, params, pasos, fecha));

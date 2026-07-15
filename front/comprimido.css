@@ -129,16 +129,17 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
 /* fragmento */
 
 .panel-fragmento { position: relative; }
-.panel-fragmento .num {
-    font-size: 3.4em;
-    font-weight: 300;
-    opacity: 0.35;
+.panel-fragmento .noteid {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.15em;
+    letter-spacing: 0.18em;
+    opacity: 0.55;
     line-height: 1;
 }
 .panel-fragmento h2 {
     font-weight: 400;
     font-size: 1.35em;
-    margin: 10px 0 6px;
+    margin: 14px 0 6px;
     color: var(--tinta);
 }
 .panel-fragmento .via {
@@ -146,8 +147,9 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
     font-size: 0.6em;
     letter-spacing: 0.08em;
     color: var(--text-dim);
-    margin-bottom: 22px;
+    margin-bottom: 4px;
 }
+.panel-fragmento .via + .via { margin-bottom: 22px; }   /* la segunda línea cierra el bloque */
 .panel-fragmento .frag {
     font-size: 1.02em;
     line-height: 1.75;

@@ -119,7 +119,9 @@ function caminata(nodos, crossLinks, params, rng) {
     pasos.push({ nodo: sig, via, origen: anterior.title });
     anterior = sig;
   }
-  return pasos;
+  // El grado en el grafo de citas: con cuántas notas conversa cada una. Es el
+  // dato que el archivo comprimido imprime en vez de un número de página.
+  return pasos.map(p => ({ ...p, grado: (ady.get(p.nodo.id) || new Set()).size }));
 }
 
 const LINEAS_CODIGO = 16;
@@ -140,7 +142,7 @@ export async function generarInstancia(rutaReceta, semillaOverride = null) {
   // El fragmento se congela aquí para que PDF y web muestren el mismo texto:
   // ventana determinista por nota (hash del id ⊕ semilla), igual que hacía
   // pagFragmento en render.js.
-  const pasos = caminataPasos.map(({ nodo, via, origen }) => {
+  const pasos = caminataPasos.map(({ nodo, via, origen, grado }) => {
     const rngNota = seededRandom(hashString(nodo.id) ^ params.semilla);
     const frag = nodo.esCodigo
       ? nodo.texto.split('\n').slice(0, LINEAS_CODIGO).join('\n')
@@ -148,7 +150,7 @@ export async function generarInstancia(rutaReceta, semillaOverride = null) {
     return {
       id: nodo.id, title: nodo.title, part: nodo.part, level: nodo.level,
       childCount: nodo.childCount, wc: nodo.wc, esCodigo: nodo.esCodigo,
-      via, origen, frag, imagenes: nodo.imagenes,
+      grado, via, origen, frag, imagenes: nodo.imagenes,
     };
   });
 
