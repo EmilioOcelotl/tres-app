@@ -97,6 +97,13 @@ function aplanar(root) {
   return nodos;
 }
 
+// Tipos de contenido que cubre una nota, para el cue `cobertura:`. Una nota
+// de texto con adjuntos cubre prosa e imagen a la vez.
+function tiposDe(nodo) {
+  if (nodo.esCodigo) return ['codigo'];
+  return nodo.imagenes.length > 0 ? ['prosa', 'imagen'] : ['prosa'];
+}
+
 function caminata(nodos, crossLinks, params, rng) {
   const ady = new Map();
   const conecta = (a, b) => {
@@ -112,26 +119,64 @@ function caminata(nodos, crossLinks, params, rng) {
 
   const visitados = new Set([actual.id]);
   const pasos = [];
-  // `codigo: evitar` filtra las notas type=code de la caminata; el arranque
-  // por `desde:` queda exento (lo nombró el autor).
-  const elegibles = ids => [...ids].filter(id =>
-    !visitados.has(id) && nodos.has(id) && nodos.get(id).wc >= 15
-    && !(params.codigo === 'evitar' && nodos.get(id).esCodigo));
+  const soloCodigo = params.codigo === 'solo';
+  // `codigo: evitar` filtra las notas type=code de la caminata; `codigo: solo`
+  // deja únicamente las de código. El arranque por `desde:` queda exento en
+  // ambos casos (lo nombró el autor).
+  const elegibles = ids => [...ids].filter(id => {
+    if (visitados.has(id) || !nodos.has(id)) return false;
+    const n = nodos.get(id);
+    if (n.wc < 15) return false;
+    if (params.codigo === 'evitar' && n.esCodigo) return false;
+    if (soloCodigo && !n.esCodigo) return false;
+    return true;
+  });
+  // Entre notas de código no hay enlaces reales (solo 4/11 tienen grado ≥1),
+  // así que en modo `solo` el teletransporte sale de todas las notas de
+  // código, no del grafo de citas: la caminata es (casi) pura de saltos y el
+  // cuadernillo lo asume.
+  const universoSalto = () => elegibles(soloCodigo ? nodos.keys() : ady.keys());
 
-  if (actual.wc >= 15) pasos.push({ nodo: actual, via: 'inicio', origen: null });
+  // Cobertura: tipos que el recorrido promete incluir. Se van tachando con
+  // cada paso; los saltos prefieren tipos faltantes y, cuando quedan justo
+  // los pasos para cumplir, la selección se dirige (por enlace si se puede,
+  // salto forzado sobre todo el árbol si no).
+  const porCubrir = new Set(params.cobertura || []);
+  const cubre = nodo => tiposDe(nodo).forEach(t => porCubrir.delete(t));
+  const cubreFaltante = id => tiposDe(nodos.get(id)).some(t => porCubrir.has(t));
+
+  if (actual.wc >= 15) { pasos.push({ nodo: actual, via: 'inicio', origen: null }); cubre(actual); }
 
   let anterior = actual;
   while (pasos.length < params.pasos) {
     let candidatos = elegibles(ady.get(anterior.id) || []);
     let via = 'enlace';
+
+    if (porCubrir.size >= params.pasos - pasos.length) {
+      const porEnlace = candidatos.filter(cubreFaltante);
+      if (porEnlace.length > 0) {
+        candidatos = porEnlace;
+      } else {
+        const porSalto = elegibles(nodos.keys()).filter(cubreFaltante);
+        if (porSalto.length > 0) { candidatos = porSalto; via = 'salto'; }
+        // Si no queda nota que cubra, la caminata sigue normal: la cobertura
+        // es mejor-esfuerzo cuando el corpus se agota.
+      }
+    }
+
     if (candidatos.length === 0) {
-      candidatos = elegibles(ady.keys());   // teletransporte dentro del grafo de citas
+      candidatos = universoSalto();   // teletransporte
       via = 'salto';
+      if (porCubrir.size > 0) {
+        const dirigidos = candidatos.filter(cubreFaltante);
+        if (dirigidos.length > 0) candidatos = dirigidos;
+      }
       if (candidatos.length === 0) break;
     }
     const sig = nodos.get(candidatos[Math.floor(rng() * candidatos.length)]);
     visitados.add(sig.id);
     pasos.push({ nodo: sig, via, origen: anterior.title });
+    cubre(sig);
     anterior = sig;
   }
   // El grado en el grafo de citas: con cuántas notas conversa cada una. Es el

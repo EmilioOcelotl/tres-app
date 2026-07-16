@@ -16,8 +16,12 @@ const DEFAULTS = {
   desde: 'Léeme',        // título (o fragmento) de la nota donde arranca la caminata
   pasos: 6,              // notas que recoge la caminata por crossLinks
   recorte: 70,           // palabras máximas por fragmento
-  codigo: 'incluir',     // notas type=code en la caminata: incluir | evitar
+  codigo: 'incluir',     // notas type=code en la caminata: incluir | evitar | solo
+  cobertura: null,       // tipos de contenido garantizados en el recorrido:
+                         // lista de prosa | codigo | imagen (al menos una nota de cada uno)
 };
+
+const TIPOS_COBERTURA = ['prosa', 'codigo', 'imagen'];
 
 const CUE_RE = /^([a-záéíóúñ]+)\s*:\s*(.+)$/i;
 
@@ -58,8 +62,23 @@ export function traducirReceta(rutaReceta) {
   if (params.formato !== 'zine8' && params.formato !== 'mapa') {
     throw new Error(`Formato desconocido: "${params.formato}" (usa zine8 o mapa)`);
   }
-  if (params.codigo !== 'incluir' && params.codigo !== 'evitar') {
-    throw new Error(`Cue codigo desconocido: "${params.codigo}" (usa incluir o evitar)`);
+  if (!['incluir', 'evitar', 'solo'].includes(params.codigo)) {
+    throw new Error(`Cue codigo desconocido: "${params.codigo}" (usa incluir, evitar o solo)`);
+  }
+  if (params.cobertura) {
+    params.cobertura = params.cobertura.split(',')
+      .map(t => t.trim().toLowerCase().replace(/^código$/, 'codigo'))
+      .filter(t => t);
+    const raros = params.cobertura.filter(t => !TIPOS_COBERTURA.includes(t));
+    if (raros.length > 0) {
+      throw new Error(`Tipo de cobertura desconocido: "${raros.join(', ')}" (usa prosa, codigo o imagen)`);
+    }
+    if (params.codigo === 'solo') {
+      throw new Error('cobertura no combina con codigo: solo (esa caminata ya es solo código)');
+    }
+    if (params.codigo === 'evitar' && params.cobertura.includes('codigo')) {
+      throw new Error('cobertura pide codigo pero el cue codigo dice evitar');
+    }
   }
 
   return { params, narrativa };
