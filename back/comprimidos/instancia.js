@@ -6,6 +6,7 @@
 // Misma semilla ⇒ misma caminata y mismos fragmentos en ambas.
 
 import { NoteService } from '../services/noteService.js';
+import { ContentProcessor } from '../services/contentProcessor.js';
 import { traducirReceta } from './traducir.js';
 
 // Mismo hash y LCG que el snapshot sintético del front (front/main.js)
@@ -46,6 +47,17 @@ function recortarConSemilla(texto, recorte, rng) {
   const inicio = Math.floor(rng() * maxInicio);
   const frag = palabras.slice(inicio, inicio + recorte).join(' ');
   return { frag: (inicio > 0 ? '…' : '') + frag + '…', parcial: true };
+}
+
+// Lo mismo para notas de código, pero por líneas: la indentación es parte del
+// material, así que la ventana nunca corta dentro de una línea.
+function recortarLineasConSemilla(texto, recorte, rng) {
+  const lineas = texto.replace(/\s+$/, '').split('\n');
+  if (lineas.length <= recorte) return { frag: lineas.join('\n'), parcial: false };
+  const maxInicio = lineas.length - recorte;
+  const inicio = Math.floor(rng() * maxInicio);
+  const frag = lineas.slice(inicio, inicio + recorte).join('\n');
+  return { frag: (inicio > 0 ? '…\n' : '') + frag + '\n…', parcial: true };
 }
 
 function extraerImagenes(html) {
@@ -100,8 +112,11 @@ function caminata(nodos, crossLinks, params, rng) {
 
   const visitados = new Set([actual.id]);
   const pasos = [];
+  // `codigo: evitar` filtra las notas type=code de la caminata; el arranque
+  // por `desde:` queda exento (lo nombró el autor).
   const elegibles = ids => [...ids].filter(id =>
-    !visitados.has(id) && nodos.has(id) && nodos.get(id).wc >= 15);
+    !visitados.has(id) && nodos.has(id) && nodos.get(id).wc >= 15
+    && !(params.codigo === 'evitar' && nodos.get(id).esCodigo));
 
   if (actual.wc >= 15) pasos.push({ nodo: actual, via: 'inicio', origen: null });
 
@@ -143,14 +158,19 @@ export async function generarInstancia(rutaReceta, semillaOverride = null) {
   // ventana determinista por nota (hash del id ⊕ semilla), igual que hacía
   // pagFragmento en render.js.
   const pasos = caminataPasos.map(({ nodo, via, origen, grado }) => {
-    const rngNota = seededRandom(hashString(nodo.id) ^ params.semilla);
+    // La semilla entra al hash FNV, no por XOR: el primer sorteo del LCG casi
+    // no responde a cambios en bits bajos y la ventana quedaba fija por nota.
+    const rngNota = seededRandom(hashString(`${nodo.id}#${params.semilla}`));
     const frag = nodo.esCodigo
-      ? nodo.texto.split('\n').slice(0, LINEAS_CODIGO).join('\n')
+      ? recortarLineasConSemilla(nodo.texto, LINEAS_CODIGO, rngNota).frag
       : recortarConSemilla(nodo.texto, params.recorte, rngNota).frag;
     return {
       id: nodo.id, title: nodo.title, part: nodo.part, level: nodo.level,
       childCount: nodo.childCount, wc: nodo.wc, esCodigo: nodo.esCodigo,
       grado, via, origen, frag, imagenes: nodo.imagenes,
+      // Para el visor: el fragmento de código ya colorizado con el mismo
+      // espejo del overlay 3D (.code-line + tok-*); el PDF toma `frag`.
+      fragHtml: nodo.esCodigo ? ContentProcessor.processCodeForFrontend(frag) : undefined,
     };
   });
 

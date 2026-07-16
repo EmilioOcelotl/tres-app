@@ -266,7 +266,13 @@ function construirTira(instancia) {
                   : `enlazada desde: ${paso.origen}`;
         panel.appendChild(el('div', 'via', via));
 
-        if (paso.esCodigo) {
+        if (paso.esCodigo && paso.fragHtml) {
+            // colorizado en el back con el mismo espejo del overlay 3D
+            // (.code-line con sangría francesa + spans tok-*)
+            const cont = el('div', 'frag frag-codigo');
+            cont.innerHTML = paso.fragHtml;
+            panel.appendChild(cont);
+        } else if (paso.esCodigo) {
             panel.appendChild(el('pre', 'frag', paso.frag));
         } else {
             panel.appendChild(el('p', 'frag', paso.frag));

@@ -5,6 +5,7 @@ import turndown from 'turndown';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { NoteService } from '../services/noteService.js';
+import { tokenizarLineaCodigo, envolverLineaTokens } from '../utils/tokensCodigo.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -370,77 +371,17 @@ function renderizarSegmentosInline(doc, texto, fontPath, linkCtx) {
 // al PDF sin turndown, en monoespaciada, con la indentación intacta y un
 // resaltado mínimo pensado para el pseudocódigo de la tesis: comentarios //,
 // encabezados de sección en MAYÚSCULAS, palabras clave, números y cadenas.
+// La tokenización vive en utils/tokensCodigo.js (compartida con el
+// renderizador de archivos comprimidos); aquí solo se mapea tipo → color.
 
-const REGEX_TOKEN_CODIGO = /("[^"]*"|'[^']*'|“[^”]*”|\b\d+(?:[.,]\d+)?\b|\b(?:await|async|new|nuevo|function|funcion|función|return|const|let|var)\b)/g;
-
-function clasificarTokenCodigo(parte) {
-  if (/^(?:"[^"]*"|'[^']*'|“[^”]*”)$/.test(parte)) return COLOR_CODE_STRING;
-  if (/^\d+(?:[.,]\d+)?$/.test(parte))             return COLOR_CODE_NUMBER;
-  if (/^(?:await|async|new|nuevo|function|funcion|función|return|const|let|var)$/.test(parte)) return COLOR_CODE_KEYWORD;
-  return COLOR_TEXT;
-}
-
-function tokenizarLineaCodigo(linea) {
-  const tokens = [];
-
-  // Comentario: primer "//" que no venga de un protocolo (https://)
-  const iComentario = linea.search(/(?<!:)\/\//);
-  let codigo     = iComentario >= 0 ? linea.slice(0, iComentario) : linea;
-  const comentario = iComentario >= 0 ? linea.slice(iComentario) : '';
-
-  // Encabezado de sección: palabras en MAYÚSCULAS al inicio de línea (se admite sangría)
-  if (/^ *[A-ZÁÉÍÓÚÑÜ]{2,}/.test(codigo)) {
-    const m = codigo.match(/^ *(?:[A-ZÁÉÍÓÚÑÜ0-9]+(?:\s+|$))+/);
-    if (m) {
-      tokens.push({ texto: m[0], color: COLOR_TEXT, bold: true });
-      codigo = codigo.slice(m[0].length);
-    }
-  }
-
-  for (const parte of codigo.split(REGEX_TOKEN_CODIGO)) {
-    if (parte) tokens.push({ texto: parte, color: clasificarTokenCodigo(parte), bold: false });
-  }
-
-  if (comentario) tokens.push({ texto: comentario, color: COLOR_CODE_COMMENT, bold: false });
-
-  return tokens;
-}
-
-// Envuelve una línea lógica (ya tokenizada) en líneas visuales de maxChars,
-// cortando de preferencia en espacios y con sangría de continuación.
-function envolverLineaTokens(tokens, maxChars) {
-  const textoCompleto = tokens.map(t => t.texto).join('');
-  const indentCont = Math.min(textoCompleto.match(/^ */)[0].length + 4, Math.floor(maxChars / 2));
-
-  const lineas = [];
-  let actual = [];
-  let usado  = 0;
-
-  const saltar = () => {
-    lineas.push(actual);
-    actual = [{ texto: ' '.repeat(indentCont), color: COLOR_TEXT, bold: false }];
-    usado  = indentCont;
-  };
-
-  for (const token of tokens) {
-    let resto = token.texto;
-    while (usado + resto.length > maxChars) {
-      const presupuesto = maxChars - usado;
-      const trozo   = resto.slice(0, presupuesto);
-      const iCorte  = trozo.lastIndexOf(' ');
-      const corte   = iCorte > 0 ? iCorte + 1 : (presupuesto > 0 ? presupuesto : 1);
-      actual.push({ ...token, texto: resto.slice(0, corte) });
-      resto = resto.slice(corte).replace(/^ +/, '');
-      saltar();
-    }
-    if (resto) {
-      actual.push({ ...token, texto: resto });
-      usado += resto.length;
-    }
-  }
-  lineas.push(actual);
-  return lineas;
-}
+const COLOR_POR_TIPO = {
+  comentario: COLOR_CODE_COMMENT,
+  keyword:    COLOR_CODE_KEYWORD,
+  numero:     COLOR_CODE_NUMBER,
+  cadena:     COLOR_CODE_STRING,
+  encabezado: COLOR_TEXT,
+  texto:      COLOR_TEXT,
+};
 
 function renderizarBloqueCodigo(doc, codigo, fontMono, fontMonoBold) {
   const lineasLogicas = codigo.replace(/\r\n/g, '\n').replace(/\t/g, '  ').split('\n');
@@ -485,9 +426,9 @@ function renderizarBloqueCodigo(doc, codigo, fontMono, fontMonoBold) {
     fondo(y, lineH);
     let x = MARGIN + CODE_PAD;
     for (const t of tokens) {
-      doc.font(t.bold ? fontMonoBold : fontMono)
+      doc.font(t.tipo === 'encabezado' ? fontMonoBold : fontMono)
          .fontSize(CODE_SIZE)
-         .fillColor(t.color)
+         .fillColor(COLOR_POR_TIPO[t.tipo] || COLOR_TEXT)
          .text(t.texto, x, y + CODE_GAP / 2, { lineBreak: false });
       x += t.texto.length * charW;
     }

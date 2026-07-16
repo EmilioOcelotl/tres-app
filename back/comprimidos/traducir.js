@@ -16,6 +16,7 @@ const DEFAULTS = {
   desde: 'Léeme',        // título (o fragmento) de la nota donde arranca la caminata
   pasos: 6,              // notas que recoge la caminata por crossLinks
   recorte: 70,           // palabras máximas por fragmento
+  codigo: 'incluir',     // notas type=code en la caminata: incluir | evitar
 };
 
 const CUE_RE = /^([a-záéíóúñ]+)\s*:\s*(.+)$/i;
@@ -41,8 +42,9 @@ export function traducirReceta(rutaReceta) {
     }
 
     const m = linea.match(CUE_RE);
-    if (m && m[1].toLowerCase() in DEFAULTS) {
-      const clave = m[1].toLowerCase();
+    if (m) m[1] = m[1].toLowerCase().replace(/^código$/, 'codigo');
+    if (m && m[1] in DEFAULTS) {
+      const clave = m[1];
       const valor = m[2].trim();
       params[clave] = (clave === 'semilla' || clave === 'pasos' || clave === 'recorte')
         ? parseInt(valor, 10)
@@ -55,6 +57,9 @@ export function traducirReceta(rutaReceta) {
 
   if (params.formato !== 'zine8' && params.formato !== 'mapa') {
     throw new Error(`Formato desconocido: "${params.formato}" (usa zine8 o mapa)`);
+  }
+  if (params.codigo !== 'incluir' && params.codigo !== 'evitar') {
+    throw new Error(`Cue codigo desconocido: "${params.codigo}" (usa incluir o evitar)`);
   }
 
   return { params, narrativa };

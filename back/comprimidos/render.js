@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 import { generarInstancia, hashString, seededRandom } from './instancia.js';
 import { NoteService } from '../services/noteService.js';
 import { procesarImagen, DPI, LPI_MOCKUP } from './riso.js';
+import { tokenizarLineaCodigo, envolverLineaTokens } from '../utils/tokensCodigo.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fontsPath = path.join(__dirname, '..', '..', 'assets', 'fonts');
@@ -168,6 +169,46 @@ function pagPortada(doc, w, h, params, narrativa, fecha) {
      .text(`semilla ${params.semilla} · ${fecha}`, m, h - m - 8);
 }
 
+// Fragmento de código a dos tintas: comentarios en la tinta de la Parte,
+// encabezados MAYÚSCULAS en bold, el resto en negro — mismo tokenizador que
+// el PDF de la tesis (utils/tokensCodigo.js), paleta reducida a la lógica
+// riso del cuadernillo. Sangría francesa: la continuación cae a indentación+4.
+const CODIGO_SIZE  = 5.8;
+const CODIGO_LINEA = CODIGO_SIZE + 2.2;
+
+function dibujarCodigo(doc, frag, x, y, ancho, yMax, colorParte) {
+  doc.font('mono').fontSize(CODIGO_SIZE);
+  const charW    = doc.widthOfString('M'); // monoespaciada: todo glifo mide igual
+  const maxChars = Math.floor(ancho / charW);
+
+  const visuales = [];
+  for (const linea of frag.replace(/\t/g, '  ').split('\n')) {
+    if (!linea.trim()) { visuales.push([]); continue; }
+    visuales.push(...envolverLineaTokens(tokenizarLineaCodigo(linea), maxChars));
+  }
+
+  const caben     = Math.max(Math.floor((yMax - y) / CODIGO_LINEA), 0);
+  const recortado = visuales.length > caben;
+  const aDibujar  = recortado ? visuales.slice(0, Math.max(caben - 1, 0)) : visuales;
+
+  let yl = y;
+  for (const tokens of aDibujar) {
+    let xt = x;
+    for (const t of tokens) {
+      doc.font(t.tipo === 'encabezado' ? 'monobold' : 'mono')
+         .fontSize(CODIGO_SIZE)
+         .fillColor(t.tipo === 'comentario' ? colorParte : COLOR_TINTA)
+         .text(t.texto, xt, yl, { lineBreak: false });
+      xt += t.texto.length * charW;
+    }
+    yl += CODIGO_LINEA;
+  }
+  if (recortado) {
+    doc.font('mono').fontSize(CODIGO_SIZE).fillColor(COLOR_GRIS)
+       .text('…', x, yl, { lineBreak: false });
+  }
+}
+
 // El panel no lleva número de página: en su lugar, el identificador de la nota
 // en Trilium y sus datos relacionales (parte, palabras, grado en el grafo de
 // citas). La secuencia la marca el pliego, no una jerarquía impresa.
@@ -200,8 +241,7 @@ function pagFragmento(doc, w, h, paso, blobs) {
 
   const yTexto = doc.y + 10;
   if (paso.esCodigo) {
-    doc.font('mono').fontSize(5.8).fillColor(COLOR_TINTA)
-       .text(paso.frag, m, yTexto, { width: w - 2 * m, height: h - yTexto - reserva, ellipsis: true });
+    dibujarCodigo(doc, paso.frag, m, yTexto, w - 2 * m, h - reserva, color);
   } else {
     doc.font('texto').fontSize(7.8).fillColor(COLOR_TINTA)
        .text(paso.frag, m, yTexto, { width: w - 2 * m, height: h - yTexto - reserva, lineGap: 1.5, ellipsis: true });

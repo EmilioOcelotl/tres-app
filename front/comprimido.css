@@ -167,6 +167,34 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
     border: 1px solid var(--border);
     border-radius: 2px;
 }
+
+/* Fragmento de código colorizado (fragHtml del back: .code-line + tok-*),
+   a dos tintas sobre papel: comentarios en la tinta de la Parte, encabezados
+   en bold, el resto en tinta negra — espejo del panel impreso de render.js */
+.panel-fragmento .frag-codigo pre.code-note {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72em;
+    line-height: 1.6;
+    color: var(--tinta);
+    margin: 0;
+    white-space: normal;
+}
+.frag-codigo .code-line {
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    padding-left: var(--h, 0px);
+    text-indent: calc(-1 * var(--h, 0px));
+}
+.frag-codigo .tok-header { font-weight: 700; }
+.frag-codigo .tok-kw,
+.frag-codigo .tok-num,
+.frag-codigo .tok-str { color: var(--tinta); }
+[data-part="p1"]   .tok-comment { color: var(--p1); }
+[data-part="p2"]   .tok-comment { color: var(--p2); }
+[data-part="p3"]   .tok-comment { color: var(--p3); }
+[data-part="refs"] .tok-comment { color: var(--refs); }
+[data-part="root"] .tok-comment { color: var(--root); }
 .panel-fragmento .pie {
     font-family: 'Space Mono', monospace;
     font-size: 0.58em;
