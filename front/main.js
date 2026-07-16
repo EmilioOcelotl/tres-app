@@ -187,8 +187,13 @@ function getRadius(level) {
 
 function getRadiusForNode(node) {
     const base = getRadius(node.level);
-    const t = Math.min(1, (node.wordCount || 0) / 300);
-    return Math.max(0.25, base * (1 + t * 0.8));
+    // Curva √ con tope en 1200w: separa el rango 50–600 donde vive el
+    // contenido real (el lineal con tope en 300 igualaba las 21 notas de
+    // 300+). Los nodos vacíos bajan a 0.7× de su base: los contenedores
+    // dejan de competir en tamaño con lo escrito — el grafo muestra el
+    // avance de la escritura. Solo visual: la física no usa el radio.
+    const t = Math.min(1, Math.sqrt((node.wordCount || 0) / 1200));
+    return Math.max(0.25, base * (0.7 + t * 1.6));
 }
 
 function getColor(part) {
