@@ -131,6 +131,28 @@ Agregar la tarea:
 
 ```0 2 * * * /ruta/del/script/sync_sqlite_db.sh```
 
+### Qué base se lee
+
+El destino del script tiene que caer en `back/database/`. La app resuelve la ruta así
+(`back/config/database.js`):
+
+1. Si existe la variable de entorno `TRILIUM_DB`, usa esa ruta y no busca más.
+2. Si no, toma el archivo `.db` **más reciente** de `back/database/`.
+
+Dentro del contenedor de Trilium el archivo siempre se llama `document.db`; el nombre del
+destino lo decide el script de sync. La regla del más reciente existe porque en desarrollo
+conviven copias con nombres distintos.
+
+Dos cosas que conviene tener presentes:
+
+- **La ruta se resuelve una sola vez, al cargar el módulo.** El contenido sí se relee en cada
+  consulta, así que el cron actualiza los datos sin reiniciar; pero si cambia el *nombre* del
+  archivo hay que reiniciar el proceso.
+- **Si hay más de un `.db` en el directorio gana el mtime más nuevo, sin avisar.** En producción
+  conviene fijar la ruta explícita para que no dependa de la heurística:
+
+```pm2 set tres-app:TRILIUM_DB /ruta/al/repo/back/database/<archivo>.db```
+
 ## Endpoints
 
 - GET / - Documentación de la API y endpoints disponibles
