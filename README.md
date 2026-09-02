@@ -68,7 +68,14 @@ O usar pm2:
 
 Actualizar todo en el servidor:
 
-```git pull && cd back && npm install && cd .. && pm2 reload tres-app```
+```git pull && npm install && pm2 reload tres-app```
+
+El `npm install` va en la **raíz**, no en `back/`. Las dependencias que el arranque
+importa de forma eager (`jpeg-js`, `pngjs`, vía `comprimidos/riso.js`) sólo están
+declaradas en el `package.json` de la raíz; si se instala desde `back/` se crea
+`back/node_modules`, Node deja de subir a resolverlas y el proceso muere con
+`ERR_MODULE_NOT_FOUND` antes de `app.listen()`. Cualquier commit que agregue
+dependencias exige `npm install` en el deploy.
 
 ## Lectura
 
