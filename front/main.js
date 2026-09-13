@@ -288,6 +288,7 @@ function initScene() {
         if (e.key === 'r' || e.key === 'R') toggleReferences();
     });
     closeOverlayButton.addEventListener('click', deselectNode);
+    enlazarRefLinks(overlayContent, selectNode);
 
     const btnGrain  = document.getElementById('toggle-grain');
     const audioHint = document.getElementById('audio-hint');
@@ -611,9 +612,14 @@ async function selectNode(id) {
         deselectNode();
         return;
     }
-    if (AppState.selectedNode) deselectNode();
     const node = AppState.nodesById.get(id);
-    if (!node) return;
+    if (!node) {
+        // Destino fuera de la escena (refs ocultas, nota filtrada): no se navega,
+        // pero tampoco se pierde el nodo que el usuario tenía abierto.
+        console.warn(`Nota fuera del grafo: ${id}`);
+        return;
+    }
+    if (AppState.selectedNode) deselectNode();
     AppState.selectedNode = node;
     node.core.scale.setScalar(1.4);
     node.halo.scale.setScalar(1.5);
@@ -672,6 +678,23 @@ function toggleReferences() {
 // ========================================
 // Overlay
 // ========================================
+
+// contentProcessor convierte los enlaces internos de Trilium en
+// <a class="ref-link" data-note-id="..."> sin href, para que la navegación
+// ocurra dentro de la escena en vez de recargar la página. Este listener es
+// el otro extremo de ese cable. Delegado: el innerHTML del contenedor se
+// reemplaza en cada nota, así que no sirve enlazar cada <a> por separado.
+function enlazarRefLinks(contenedor, alSeleccionar) {
+    if (!contenedor) return;
+    contenedor.addEventListener('click', (e) => {
+        const enlace = e.target.closest('.ref-link');
+        if (!enlace || !contenedor.contains(enlace)) return;
+        const id = enlace.dataset.noteId;
+        if (!id) return;
+        e.preventDefault();
+        alSeleccionar(id);
+    });
+}
 
 function displayNoteInOverlay(note) {
     overlayTitle.textContent = note.title;
@@ -986,12 +1009,20 @@ async function showWelcomeModal(tree) {
         console.warn('Resultados de búsqueda "leeme":', results);
     }
 
+    // Entrar por un enlace del Léeme es entrar: cierra el modal y arranca el
+    // audio igual que EXPLORAR (el click es el gesto que el navegador exige).
+    // Devuelve el noteId pedido, o null si se entró por el botón.
     return new Promise(resolve => {
-        enterBtn.addEventListener('click', () => {
+        let resuelto = false;
+        const entrar = (destino) => {
+            if (resuelto) return;
+            resuelto = true;
             modal.style.display = 'none';
             initAudio();
-            resolve();
-        }, { once: true });
+            resolve(destino);
+        };
+        enterBtn.addEventListener('click', () => entrar(null), { once: true });
+        enlazarRefLinks(contentEl, (id) => entrar(id));
     });
 }
 
@@ -1000,6 +1031,7 @@ async function showWelcomeModal(tree) {
 // ========================================
 
 async function init() {
+    let destinoInicial = null;
     loadingScreen.style.display = 'flex';
     document.getElementById('toggle-references').addEventListener('click', toggleReferences);
     initScene();
@@ -1012,10 +1044,11 @@ async function init() {
         if (new URLSearchParams(location.search).has('nowelcome')) {
             document.getElementById('welcome-modal').style.display = 'none';
         } else {
-            await showWelcomeModal(tree);
+            destinoInicial = await showWelcomeModal(tree);
         }
         buildGraph(tree, crossLinks);
         startSimulation();
+        if (destinoInicial) selectNode(destinoInicial);
         console.log(`Grafo creado: ${AppState.nodes.length} nodos, ${AppState.links.length} enlaces, ${AppState.arcs.length} arcos de cita`);
     } catch (err) {
         console.error('Error inicializando:', err);

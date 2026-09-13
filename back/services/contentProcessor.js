@@ -32,11 +32,17 @@ export class ContentProcessor {
       .replace(/<\/b>/gi, '</strong>');
     
     // 2. Procesar enlaces de referencia
-    // Patrón: <a class="reference-link" href="#root/xxx/yyy">texto</a>
-    // Extraemos yyy (el noteId real)
+    // Patrón: <a class="reference-link" href="#root/<id>/.../<idDestino>">texto</a>
+    // El noteId es SIEMPRE el último segmento, y la ruta puede traer de uno
+    // (nota de primer nivel, p.ej. las Partes) a N segmentos. El patrón anterior
+    // exigía exactamente dos: las de un segmento no se convertían y quedaban
+    // como ancla cruda, y las de tres o más devolvían un tramo de ruta como id.
+    // Mismo criterio que extraerNoteIdDeEnlace en routes/pdf.js.
     processed = processed.replace(
-      /<a class="reference-link" href="#root\/[^/]+\/([^"]+)">([^<]+)<\/a>/gi,
-      (match, noteId, text) => {
+      /<a class="reference-link" href="#root\/([^"]+)">([^<]+)<\/a>/gi,
+      (match, ruta, text) => {
+        const segmentos = ruta.split('/').filter(Boolean);
+        const noteId = segmentos[segmentos.length - 1];
         // Decodificar entidades HTML en el texto
         const decodedText = ContentProcessor.decodeHTMLEntities(text);
         
