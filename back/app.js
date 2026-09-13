@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { pdfRoutes, threejsRoutes, comprimidosRoutes } from './routes/index.js';
+import { pdfRoutes, threejsRoutes, comprimidosRoutes, edicionesRoutes } from './routes/index.js';
 import { generarSnapshot } from './utils/mdSnapshot.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -117,6 +117,7 @@ app.get('/pdf', (req, res) => {
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/3d', threejsRoutes);
 app.use('/api/comprimidos', comprimidosRoutes);
+app.use('/comprimidos', edicionesRoutes);
 
 // Health check
 app.get('/health', (req,res) => {

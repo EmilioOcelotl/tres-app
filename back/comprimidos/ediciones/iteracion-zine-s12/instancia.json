@@ -1,0 +1,121 @@
+{
+  "params": {
+    "titulo": "Iteración",
+    "semilla": 12,
+    "formato": "zine8",
+    "desde": "La iteración como modo de conocimiento",
+    "pasos": 6,
+    "recorte": 70,
+    "codigo": "incluir",
+    "cobertura": null,
+    "receta": "iteracion-zine"
+  },
+  "narrativa": {
+    "general": [
+      "Cues formales (los lee el traductor); todo lo demás es narrativa del autor y se ignora,",
+      "salvo la sección Portada, que se imprime como epígrafe.",
+      "Esta receta arranca en el nodo más conectado del documento (15 enlaces) y deja",
+      "que la caminata decida el resto. Cada semilla produce un cuadernillo distinto."
+    ],
+    "portada": [
+      "(Epígrafe del autor — placeholder del mockup, sustituir por texto propio.)"
+    ]
+  },
+  "pasos": [
+    {
+      "id": "0h83V0TdXzzH",
+      "title": "La iteración como modo de conocimiento",
+      "part": "p1",
+      "level": 3,
+      "childCount": 0,
+      "wc": 499,
+      "esCodigo": false,
+      "grado": 15,
+      "via": "inicio",
+      "origen": null,
+      "frag": "…cambia con el tiempo de acuerdo a un proceso de retroalmientación pero también de investigación. El resultado ya no es solamente un objeto técnico sino un resultado que contiene investigación, conocimiento y reflexión. Esta forma de trabajo parece que se acopla al diseño de productos, a las metodologías que les acompañan y a la división del trabajo que las posibilitan. Retomo 3 casos para contrastar con este proyecto de investigación:…",
+      "imagenes": [
+        {
+          "attachmentId": "UcKGNlSbuS2c",
+          "nombre": "Framework_for_Innovation_transparent.png"
+        }
+      ]
+    },
+    {
+      "id": "vTZIR7yqngj2",
+      "title": "(Ocelotl, 2019)",
+      "part": "refs",
+      "level": 3,
+      "childCount": 0,
+      "wc": 33,
+      "esCodigo": false,
+      "grado": 1,
+      "via": "enlace",
+      "origen": "La iteración como modo de conocimiento",
+      "frag": "Ocelotl, E. (2019). Cuidado con la brecha autorreferencial. Aportes para la producción-investigación en música de sistemas interactivos . Tesis de maestría en música (tecnología musical), Posgrado en Música. Universidad Nacional Autónoma de México.",
+      "imagenes": []
+    },
+    {
+      "id": "WHueMOhUiziA",
+      "title": "(McLean, 2011)",
+      "part": "refs",
+      "level": 3,
+      "childCount": 0,
+      "wc": 20,
+      "esCodigo": false,
+      "grado": 1,
+      "via": "salto",
+      "origen": "(Ocelotl, 2019)",
+      "frag": "McLean, A. (2011). Artist-Programmers and Programming Languages for the Arts . Tesis doctoral, Department of Computing, Goldsmiths, University of London.",
+      "imagenes": []
+    },
+    {
+      "id": "5K3gARoge8yV",
+      "title": "Postura de investigación",
+      "part": "p1",
+      "level": 3,
+      "childCount": 0,
+      "wc": 331,
+      "esCodigo": false,
+      "grado": 1,
+      "via": "enlace",
+      "origen": "(McLean, 2011)",
+      "frag": "…su descripción como código fuente (McLean, 2011) . El contexto de escritura de tesis doctorales, documentos académicos sugiere que esta persona que es artista programadora también es investigadora. La adscripción a un conjunto de convenciones que permiten validar al resultado de la investigación es el primer paso, el segundo paso, el que podría parecer que constriñe al cruce arte-programación es justo el que promete a las instituciones un resultado que…",
+      "imagenes": []
+    },
+    {
+      "id": "bdtZ8PdE33ft",
+      "title": "Investigaciones Previas",
+      "part": "p1",
+      "level": 3,
+      "childCount": 0,
+      "wc": 633,
+      "esCodigo": false,
+      "grado": 10,
+      "via": "salto",
+      "origen": "Postura de investigación",
+      "frag": "…para el Control de versiones , 2) la reflexión sobre la interacción entre audio e imagen en la composición musical electroacústica y 3) el uso de herramientas libres, personalizadas para la realización de prototipos audiovisuales y para el planteamiento de una observación crítica de procesos creativos donde investigador y artista son el mismo agente. La propuesta de los estudios del software fue incorporada en este momento de investigación, en específico…",
+      "imagenes": [
+        {
+          "attachmentId": "rTIKOFJRRlbv",
+          "nombre": "edges4-r.png"
+        }
+      ]
+    },
+    {
+      "id": "fcU3rVDtuPVj",
+      "title": "(Schafer, 1994)",
+      "part": "refs",
+      "level": 3,
+      "childCount": 0,
+      "wc": 18,
+      "esCodigo": false,
+      "grado": 1,
+      "via": "enlace",
+      "origen": "Investigaciones Previas",
+      "frag": "Schafer, M. R. (1994). The Soundscape. Our Sonic Environment and the Turning of the World . Destiny Books.",
+      "imagenes": []
+    }
+  ],
+  "fecha": "2026-09-13"
+}

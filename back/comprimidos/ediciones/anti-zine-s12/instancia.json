@@ -1,0 +1,128 @@
+{
+  "params": {
+    "titulo": "Anti",
+    "semilla": 12,
+    "formato": "zine8",
+    "desde": "Anti v1",
+    "pasos": 6,
+    "recorte": 45,
+    "codigo": "incluir",
+    "cobertura": null,
+    "receta": "anti-zine"
+  },
+  "narrativa": {
+    "general": [
+      "Cuadernillo de ocho páginas que arranca en el primer estudio y deja que la",
+      "caminata decida el resto. El recorte es más corto que el de la receta de",
+      "iteración porque estas notas traen imágenes: el panel las reparte con el texto."
+    ],
+    "portada": [
+      "(Epígrafe del autor — placeholder del mockup, sustituir por texto propio.)"
+    ]
+  },
+  "pasos": [
+    {
+      "id": "E6YxgTd2J2md",
+      "title": "Anti v1",
+      "part": "p1",
+      "level": 4,
+      "childCount": 1,
+      "wc": 1008,
+      "esCodigo": false,
+      "grado": 3,
+      "via": "inicio",
+      "origen": null,
+      "frag": "…distinta como capa. El texto proviene de un archivo de texto plano que registra algunas reflexiones realizadas durante el proceso de escritura de este programa. El texto es desplegado con el objetivo de comunicar al público una bitácora de frases que surgieron en el transcurso…",
+      "imagenes": [
+        {
+          "attachmentId": "biDg0XtD1kn1",
+          "nombre": "anti2.jpg"
+        },
+        {
+          "attachmentId": "QCXSD92Y77h6",
+          "nombre": "felicidades.jpg"
+        },
+        {
+          "attachmentId": "0Mb5wB8xbtvM",
+          "nombre": "antiHydra2.jpg"
+        }
+      ]
+    },
+    {
+      "id": "h2EO4TkCEmtK",
+      "title": "Aprendizaje de Máquinas",
+      "part": "p2",
+      "level": 2,
+      "childCount": 0,
+      "wc": 176,
+      "esCodigo": false,
+      "grado": 2,
+      "via": "enlace",
+      "origen": "Anti v1",
+      "frag": "…el que sucede la lectura de datos. Si una herramienta como Mediapipe dependiera de un servidor adicional, el resultado del análisis de una imagen pasaría por una agencia adicional y dependiendo de los términos y condiciones de ese servicio, podría ser recopilado y utilizado de…",
+      "imagenes": []
+    },
+    {
+      "id": "i5JwLdkmV7Qn",
+      "title": "Segunda iteración - Anti",
+      "part": "p1",
+      "level": 3,
+      "childCount": 2,
+      "wc": 50,
+      "esCodigo": false,
+      "grado": 3,
+      "via": "enlace",
+      "origen": "Aprendizaje de Máquinas",
+      "frag": "…es una obra de arte web, la segunda iteración de este proyecto. Tuvo como objetivo explorar la ofuscación a través de la tecnología digital usando seguimiento del rostro con Mediapipe, audio (Tone.js/WebAudioAPI) y gráficos generativos (Hydra). Las dos versiones de este sistema tienen pseudocódigo anotado…",
+      "imagenes": []
+    },
+    {
+      "id": "0h83V0TdXzzH",
+      "title": "La iteración como modo de conocimiento",
+      "part": "p1",
+      "level": 3,
+      "childCount": 0,
+      "wc": 499,
+      "esCodigo": false,
+      "grado": 15,
+      "via": "enlace",
+      "origen": "Segunda iteración - Anti",
+      "frag": "…retroalmientación pero también de investigación. El resultado ya no es solamente un objeto técnico sino un resultado que contiene investigación, conocimiento y reflexión. Esta forma de trabajo parece que se acopla al diseño de productos, a las metodologías que les acompañan y a la división…",
+      "imagenes": [
+        {
+          "attachmentId": "UcKGNlSbuS2c",
+          "nombre": "Framework_for_Innovation_transparent.png"
+        }
+      ]
+    },
+    {
+      "id": "cNFls39qFxn2",
+      "title": "(Hou Je Bek, 2008)",
+      "part": "refs",
+      "level": 3,
+      "childCount": 0,
+      "wc": 20,
+      "esCodigo": false,
+      "grado": 1,
+      "via": "enlace",
+      "origen": "La iteración como modo de conocimiento",
+      "frag": "Hou Je Bek, W. (2008). Loop. En M. Fuller (Ed.), Software studies: A lexicon (pp. correspondientes). The MIT Press. https://doi.org/10.7551/mitpress/9780262062749.001.0001",
+      "imagenes": []
+    },
+    {
+      "id": "WHueMOhUiziA",
+      "title": "(McLean, 2011)",
+      "part": "refs",
+      "level": 3,
+      "childCount": 0,
+      "wc": 20,
+      "esCodigo": false,
+      "grado": 1,
+      "via": "salto",
+      "origen": "(Hou Je Bek, 2008)",
+      "frag": "McLean, A. (2011). Artist-Programmers and Programming Languages for the Arts . Tesis doctoral, Department of Computing, Goldsmiths, University of London.",
+      "imagenes": []
+    }
+  ],
+  "fecha": "2026-09-13"
+}

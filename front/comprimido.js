@@ -11,6 +11,15 @@ import { SnapToGrains } from 'treslib/SnapToGrains';
 const RECETA_DEFAULT  = 'iteracion-zine';
 const SEMILLA_DEFAULT = 12;
 
+// Bajo /comprimidos/<receta>-s<semilla> el visor sirve una edición congelada:
+// lee el acta publicada en vez de pedir una caminata nueva, y toma las imágenes
+// del pozo congelado en vez de la base viva (que se vacía si se borra la nota).
+// Es lo que hace que el enlace impreso en la tesis siga diciendo lo mismo.
+const EDICION = (() => {
+    const m = window.location.pathname.match(/^\/comprimidos\/([a-z0-9-]+-s\d+)\/?$/i);
+    return m ? m[1] : null;
+})();
+
 const NOMBRE_PARTE = {
     p1: 'parte I', p2: 'parte II', p3: 'parte III',
     refs: 'referencias', root: 'raíz'
@@ -284,7 +293,9 @@ function construirTira(instancia) {
             const cont = el('div', 'imagenes');
             paso.imagenes.forEach(im => {
                 const img = document.createElement('img');
-                img.src = `/api/comprimidos/attachment/${im.attachmentId}?riso`;
+                img.src = EDICION
+                    ? `/comprimidos/${EDICION}/img/${im.attachmentId}.png`
+                    : `/api/comprimidos/attachment/${im.attachmentId}?riso`;
                 img.alt = im.nombre;
                 img.loading = 'lazy';
                 cont.appendChild(img);
@@ -357,7 +368,9 @@ async function cargarInstancia(receta, semilla) {
     AppState.panelActivo = null;
 
     const q = semilla != null ? `&semilla=${semilla}` : '';
-    const res = await fetch(`/api/comprimidos/instancia?receta=${encodeURIComponent(receta)}${q}`);
+    const res = EDICION
+        ? await fetch(`/comprimidos/${EDICION}/instancia.json`)
+        : await fetch(`/api/comprimidos/instancia?receta=${encodeURIComponent(receta)}${q}`);
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         tira.innerHTML = `<div id="estado">error: ${err.error || res.status}</div>`;
@@ -367,10 +380,12 @@ async function cargarInstancia(receta, semilla) {
     AppState.instancia = instancia;
 
     document.getElementById('inp-semilla').value = instancia.params.semilla;
-    const url = new URL(window.location);
-    url.searchParams.set('receta', receta);
-    url.searchParams.set('semilla', instancia.params.semilla);
-    history.replaceState(null, '', url);
+    if (!EDICION) {
+        const url = new URL(window.location);
+        url.searchParams.set('receta', receta);
+        url.searchParams.set('semilla', instancia.params.semilla);
+        history.replaceState(null, '', url);
+    }
 
     construirTira(instancia);
     if (window.location.hash) {
@@ -400,24 +415,43 @@ async function init() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('flat')) document.body.classList.add('flat');
     const receta  = urlParams.get('receta') || RECETA_DEFAULT;
-    const semilla = urlParams.get('semilla') !== null
-        ? parseInt(urlParams.get('semilla'), 10)
-        : SEMILLA_DEFAULT;
+    // Sin `semilla` se usa el default (la instancia de referencia). Con
+    // `semilla=nueva` se pide una sorteada por el servidor — es lo que manda
+    // REGENERAR desde una edición congelada, donde "sin semilla" no basta
+    // porque el default volvería a fijarla.
+    const semillaParam = urlParams.get('semilla');
+    const semilla = semillaParam === null ? SEMILLA_DEFAULT
+                  : semillaParam === 'nueva' ? null
+                  : parseInt(semillaParam, 10);
 
     await cargarRecetas();
     const sel = document.getElementById('sel-receta');
     if ([...sel.options].some(o => o.value === receta)) sel.value = receta;
 
+    // En una edición congelada los controles no re-sortean en sitio: llevan al
+    // visor vivo. La edición es el archivo (citable); /comprimido.html es la
+    // máquina (explorable). El salto entre los dos es explícito y va en la URL.
+    const irAVivo = (receta, semilla) => {
+        const q = new URLSearchParams({ receta, semilla: semilla != null ? String(semilla) : 'nueva' });
+        window.location.href = `/comprimido.html?${q}`;
+    };
+
     document.getElementById('btn-render').addEventListener('click', () => {
         const s = parseInt(document.getElementById('inp-semilla').value, 10);
-        cargarInstancia(sel.value, Number.isNaN(s) ? null : s);
+        const semilla = Number.isNaN(s) ? null : s;
+        if (EDICION) irAVivo(sel.value, semilla);
+        else cargarInstancia(sel.value, semilla);
     });
 
     document.getElementById('btn-regenerar').addEventListener('click', () => {
-        cargarInstancia(sel.value, null);   // el servidor elige semilla nueva
+        if (EDICION) irAVivo(sel.value, null);
+        else cargarInstancia(sel.value, null);   // el servidor elige semilla nueva
     });
 
-    sel.addEventListener('change', () => cargarInstancia(sel.value, null));
+    sel.addEventListener('change', () => {
+        if (EDICION) irAVivo(sel.value, null);
+        else cargarInstancia(sel.value, null);
+    });
 
     const btnAudio = document.getElementById('btn-audio');
     btnAudio.addEventListener('click', async () => {
@@ -438,6 +472,12 @@ async function init() {
     });
 
     await cargarInstancia(sel.value, semilla);
+
+    // Ya con el acta cargada, el selector refleja la receta de la edición.
+    if (EDICION && AppState.instancia) {
+        const r = AppState.instancia.params.receta;
+        if (r && [...sel.options].some(o => o.value === r)) sel.value = r;
+    }
 }
 
 init();

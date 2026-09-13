@@ -1,0 +1,123 @@
+{
+  "params": {
+    "titulo": "Anti",
+    "semilla": 26,
+    "formato": "zine8",
+    "desde": "Anti v1",
+    "pasos": 6,
+    "recorte": 45,
+    "codigo": "incluir",
+    "cobertura": null,
+    "receta": "anti-zine"
+  },
+  "narrativa": {
+    "general": [
+      "Cuadernillo de ocho páginas que arranca en el primer estudio y deja que la",
+      "caminata decida el resto. El recorte es más corto que el de la receta de",
+      "iteración porque estas notas traen imágenes: el panel las reparte con el texto."
+    ],
+    "portada": [
+      "(Epígrafe del autor — placeholder del mockup, sustituir por texto propio.)"
+    ]
+  },
+  "pasos": [
+    {
+      "id": "E6YxgTd2J2md",
+      "title": "Anti v1",
+      "part": "p1",
+      "level": 4,
+      "childCount": 1,
+      "wc": 1008,
+      "esCodigo": false,
+      "grado": 3,
+      "via": "inicio",
+      "origen": null,
+      "frag": "…palabra normalizar no es la mejor. La analogía más parecida que se me ocurrió durante el transcurso fue la siguiente: necesitamos vestir a la malla con la textura, si es necesario contraemos o estiramos la textura para ajustar. Texto Si bien el texto es del…",
+      "imagenes": [
+        {
+          "attachmentId": "biDg0XtD1kn1",
+          "nombre": "anti2.jpg"
+        },
+        {
+          "attachmentId": "QCXSD92Y77h6",
+          "nombre": "felicidades.jpg"
+        },
+        {
+          "attachmentId": "0Mb5wB8xbtvM",
+          "nombre": "antiHydra2.jpg"
+        }
+      ]
+    },
+    {
+      "id": "h2EO4TkCEmtK",
+      "title": "Aprendizaje de Máquinas",
+      "part": "p2",
+      "level": 2,
+      "childCount": 0,
+      "wc": 176,
+      "esCodigo": false,
+      "grado": 2,
+      "via": "enlace",
+      "origen": "Anti v1",
+      "frag": "…Mediapipe dependiera de un servidor adicional, el resultado del análisis de una imagen pasaría por una agencia adicional y dependiendo de los términos y condiciones de ese servicio, podría ser recopilado y utilizado de alguna manera. Entonces, rescato este tipo de tecnologías pensando en la…",
+      "imagenes": []
+    },
+    {
+      "id": "i5JwLdkmV7Qn",
+      "title": "Segunda iteración - Anti",
+      "part": "p1",
+      "level": 3,
+      "childCount": 2,
+      "wc": 50,
+      "esCodigo": false,
+      "grado": 3,
+      "via": "enlace",
+      "origen": "Aprendizaje de Máquinas",
+      "frag": "…es una obra de arte web, la segunda iteración de este proyecto. Tuvo como objetivo explorar la ofuscación a través de la tecnología digital usando seguimiento del rostro con Mediapipe, audio (Tone.js/WebAudioAPI) y gráficos generativos (Hydra). Las dos versiones de este sistema tienen pseudocódigo anotado…",
+      "imagenes": []
+    },
+    {
+      "id": "0GrqpWYBDaxv",
+      "title": "Iteración final - tres-app",
+      "part": "p1",
+      "level": 3,
+      "childCount": 2,
+      "wc": 186,
+      "esCodigo": false,
+      "grado": 5,
+      "via": "enlace",
+      "origen": "Segunda iteración - Anti",
+      "frag": "…este proyecto propone. Como consecuencias prácticas presentes en las diferencias entre ambas iteraciones están: la migración del un servidor privado a un servidor casero y el pendiente de realizar una segunda migración a un clúster de servidores caseros, el cambio en los subdominios que permiten…",
+      "imagenes": []
+    },
+    {
+      "id": "iBRooPTkQnG6",
+      "title": "Marco Metodológico",
+      "part": "p1",
+      "level": 2,
+      "childCount": 4,
+      "wc": 99,
+      "esCodigo": false,
+      "grado": 2,
+      "via": "enlace",
+      "origen": "Iteración final - tres-app",
+      "frag": "…general en el que el proyecto puso el método en operación. Finalmente, la relación que este proyecto tiene con la doble estructura mencionada anteriormente (que realmente es triple si consideramos Los ArchivosComprimidos. El movimiento que permite desarrollar la metodología como parte de los conceptos operativos…",
+      "imagenes": []
+    },
+    {
+      "id": "qIs5QCEXovAb",
+      "title": "Hydra.js",
+      "part": "p2",
+      "level": 2,
+      "childCount": 0,
+      "wc": 106,
+      "esCodigo": false,
+      "grado": 3,
+      "via": "salto",
+      "origen": "Marco Metodológico",
+      "frag": "…principiantes como expertos.” Tomado de: https://hydra.ojack.xyz/ Hydra, creado por Olivia Jack, como parte del ecosistema de Javascript, tiene dos consecuencias que para este proyecto son relevantes: Como entorno de programación autocontenido en el navegador, resulta un sintetizador bastante completo y práctico para hacer Live Coding…",
+      "imagenes": []
+    }
+  ],
+  "fecha": "2026-09-13"
+}
