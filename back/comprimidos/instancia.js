@@ -8,6 +8,7 @@
 import { NoteService } from '../services/noteService.js';
 import { ContentProcessor } from '../services/contentProcessor.js';
 import { traducirReceta } from './traducir.js';
+import { grafoTerminos } from '../services/semantica.js';
 
 // Mismo hash y LCG que el snapshot sintético del front (front/main.js)
 export function hashString(str) {
@@ -40,24 +41,63 @@ function htmlATexto(html) {
 
 // Ventana de `recorte` palabras elegida con semilla: la remezcla no siempre
 // empieza al principio de la nota.
-function recortarConSemilla(texto, recorte, rng) {
+function recortarConSemilla(texto, recorte, rng, terminos = null) {
   const palabras = texto.replace(/\n/g, ' ').split(/\s+/).filter(w => w);
   if (palabras.length <= recorte) return { frag: palabras.join(' '), parcial: false };
   const maxInicio = palabras.length - recorte;
-  const inicio = Math.floor(rng() * maxInicio);
+  const preferidos = iniciosPreferidos(palabras.map(normalizar), recorte, terminos);
+  const inicio = preferidos
+    ? preferidos[Math.floor(rng() * preferidos.length)]
+    : Math.floor(rng() * maxInicio);
   const frag = palabras.slice(inicio, inicio + recorte).join(' ');
   return { frag: (inicio > 0 ? '…' : '') + frag + '…', parcial: true };
 }
 
 // Lo mismo para notas de código, pero por líneas: la indentación es parte del
 // material, así que la ventana nunca corta dentro de una línea.
-function recortarLineasConSemilla(texto, recorte, rng) {
+function recortarLineasConSemilla(texto, recorte, rng, terminos = null) {
   const lineas = texto.replace(/\s+$/, '').split('\n');
   if (lineas.length <= recorte) return { frag: lineas.join('\n'), parcial: false };
   const maxInicio = lineas.length - recorte;
-  const inicio = Math.floor(rng() * maxInicio);
+  const preferidos = iniciosPreferidos(lineas.map(normalizar), recorte, terminos);
+  const inicio = preferidos
+    ? preferidos[Math.floor(rng() * preferidos.length)]
+    : Math.floor(rng() * maxInicio);
   const frag = lineas.slice(inicio, inicio + recorte).join('\n');
   return { frag: (inicio > 0 ? '…\n' : '') + frag + '\n…', parcial: true };
+}
+
+// Cuando el paso se justifica por una palabra, esa palabra tiene que verse en
+// el panel: si el cuadernillo imprime «por grain» y el término no aparece en
+// ninguno de los dos fragmentos, la justificación no es verificable en papel.
+// Medido sin sesgo: visible en ambos paneles el 48% de las veces, en ninguno el
+// 15%. La ventana sigue eligiéndose por semilla — sólo se restringe el sorteo a
+// las ventanas que contienen los términos, y si ninguna los tiene, no se fuerza.
+const normalizar = (p) => p.toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9ñ]/g, '');
+
+function iniciosPreferidos(unidades, ventana, terminos) {
+  const buscados = (terminos || []).filter(Boolean);
+  const maxInicio = unidades.length - ventana;
+  if (buscados.length === 0) return null;
+
+  const puntajes = new Array(maxInicio + 1).fill(0);
+  for (const t of buscados) {
+    const presente = new Array(maxInicio + 1).fill(false);
+    unidades.forEach((u, i) => {
+      if (!u.includes(t)) return;
+      const desde = Math.max(0, i - ventana + 1);
+      const hasta = Math.min(maxInicio, i);
+      for (let s = desde; s <= hasta; s++) presente[s] = true;
+    });
+    for (let s = 0; s <= maxInicio; s++) if (presente[s]) puntajes[s]++;
+  }
+  const mejor = Math.max(...puntajes);
+  if (mejor === 0) return null;
+  const inicios = [];
+  for (let s = 0; s <= maxInicio; s++) if (puntajes[s] === mejor) inicios.push(s);
+  return inicios;
 }
 
 function extraerImagenes(html) {
@@ -104,13 +144,23 @@ function tiposDe(nodo) {
   return nodo.imagenes.length > 0 ? ['prosa', 'imagen'] : ['prosa'];
 }
 
-function caminata(nodos, crossLinks, params, rng) {
+function caminata(nodos, crossLinks, params, rng, afinidad = null) {
   const ady = new Map();
   const conecta = (a, b) => {
     if (!ady.has(a)) ady.set(a, new Set());
     ady.get(a).add(b);
   };
   for (const l of crossLinks) { conecta(l.source, l.target); conecta(l.target, l.source); }
+
+  // Con `afinidad: termino` la caminata no sigue los enlaces sino el grafo de
+  // términos compartidos. `ady` se conserva aparte porque el cuadernillo sigue
+  // imprimiendo el grado real de cada nota en el grafo de citas — el dato que
+  // va en lugar del número de página no cambia de significado según la receta.
+  const porTermino = afinidad
+    ? new Map([...afinidad].map(([id, vecinos]) => [id, new Set(vecinos.keys())]))
+    : null;
+  const vecindad = id => (porTermino ? porTermino.get(id) : ady.get(id)) || [];
+  const terminoEntre = (a, b) => afinidad?.get(a)?.get(b)?.termino || null;
 
   const buscado = params.desde.toLowerCase();
   let actual = [...nodos.values()].find(n => n.title.toLowerCase() === buscado)
@@ -141,7 +191,7 @@ function caminata(nodos, crossLinks, params, rng) {
   // así que en modo `solo` el teletransporte sale de todas las notas de
   // código, no del grafo de citas: la caminata es (casi) pura de saltos y el
   // cuadernillo lo asume.
-  const universoSalto = () => elegibles(soloCodigo ? nodos.keys() : ady.keys());
+  const universoSalto = () => elegibles(soloCodigo ? nodos.keys() : (porTermino ? porTermino.keys() : ady.keys()));
 
   // Cobertura: tipos que el recorrido promete incluir. Se van tachando con
   // cada paso; los saltos prefieren tipos faltantes y, cuando quedan justo
@@ -151,12 +201,12 @@ function caminata(nodos, crossLinks, params, rng) {
   const cubre = nodo => tiposDe(nodo).forEach(t => porCubrir.delete(t));
   const cubreFaltante = id => tiposDe(nodos.get(id)).some(t => porCubrir.has(t));
 
-  if (actual.wc >= 15) { pasos.push({ nodo: actual, via: 'inicio', origen: null }); cubre(actual); }
+  if (actual.wc >= 15) { pasos.push({ nodo: actual, via: 'inicio', origen: null, termino: null }); cubre(actual); }
 
   let anterior = actual;
   while (pasos.length < params.pasos) {
-    let candidatos = elegibles(ady.get(anterior.id) || []);
-    let via = 'enlace';
+    let candidatos = elegibles(vecindad(anterior.id));
+    let via = porTermino ? 'palabra' : 'enlace';
 
     if (porCubrir.size >= params.pasos - pasos.length) {
       const porEnlace = candidatos.filter(cubreFaltante);
@@ -181,7 +231,10 @@ function caminata(nodos, crossLinks, params, rng) {
     }
     const sig = nodos.get(candidatos[Math.floor(rng() * candidatos.length)]);
     visitados.add(sig.id);
-    pasos.push({ nodo: sig, via, origen: anterior.title });
+    pasos.push({
+      nodo: sig, via, origen: anterior.title,
+      termino: via === 'palabra' ? terminoEntre(anterior.id, sig.id) : null,
+    });
     cubre(sig);
     anterior = sig;
   }
@@ -202,23 +255,39 @@ export async function generarInstancia(rutaReceta, semillaOverride = null) {
   const root = await ns.getCompleteTree();
   const crossLinks = ns.extractCrossLinks(root);
   const nodos = aplanar(root);
-  const rng = seededRandom(params.semilla);
-  const caminataPasos = caminata(nodos, crossLinks, params, rng);
+  // La semilla pasa por el hash FNV antes de sembrar el LCG, igual que la
+  // ventana por nota. Sembrado con el número crudo, el primer sorteo vale
+  // 0.236–0.275 para las semillas 1–100: es decir, el primer paso de la
+  // caminata era el mismo para toda semilla, y con arranques de grado bajo eso
+  // fijaba media caminata (`anti-zine` daba 10 recorridos distintos en 30
+  // semillas, y sus dos ediciones publicadas comparten los dos primeros pasos).
+  const rng = seededRandom(hashString(`caminata#${params.semilla}`));
+
+  // El grafo de afinidad sólo se calcula si la receta lo pide: son ~25 ms, pero
+  // una receta por enlaces no tiene por qué pagarlos ni cambiar de resultado.
+  const afinidad = params.afinidad === 'termino'
+    ? grafoTerminos([...nodos.values()].filter(n => n.wc >= 15 && n.part !== 'refs'))
+    : null;
+  const caminataPasos = caminata(nodos, crossLinks, params, rng, afinidad);
 
   // El fragmento se congela aquí para que PDF y web muestren el mismo texto:
   // ventana determinista por nota (hash del id ⊕ semilla), igual que hacía
   // pagFragmento en render.js.
-  const pasos = caminataPasos.map(({ nodo, via, origen, grado }) => {
+  const pasos = caminataPasos.map(({ nodo, via, origen, grado, termino }, i) => {
+    // La nota se ve con el término que la trajo y con el que lleva a la
+    // siguiente: así la palabra que justifica cada salto aparece en los dos
+    // paneles que une, no sólo en el de llegada.
+    const terminos = [termino, caminataPasos[i + 1]?.termino];
     // La semilla entra al hash FNV, no por XOR: el primer sorteo del LCG casi
     // no responde a cambios en bits bajos y la ventana quedaba fija por nota.
     const rngNota = seededRandom(hashString(`${nodo.id}#${params.semilla}`));
     const frag = nodo.esCodigo
-      ? recortarLineasConSemilla(nodo.texto, LINEAS_CODIGO, rngNota).frag
-      : recortarConSemilla(nodo.texto, params.recorte, rngNota).frag;
+      ? recortarLineasConSemilla(nodo.texto, LINEAS_CODIGO, rngNota, terminos).frag
+      : recortarConSemilla(nodo.texto, params.recorte, rngNota, terminos).frag;
     return {
       id: nodo.id, title: nodo.title, part: nodo.part, level: nodo.level,
       childCount: nodo.childCount, wc: nodo.wc, esCodigo: nodo.esCodigo,
-      grado, via, origen, frag, imagenes: nodo.imagenes,
+      grado, via, origen, termino, frag, imagenes: nodo.imagenes,
       // Para el visor: el fragmento de código ya colorizado con el mismo
       // espejo del overlay 3D (.code-line + tok-*); el PDF toma `frag`.
       fragHtml: nodo.esCodigo ? ContentProcessor.processCodeForFrontend(frag) : undefined,

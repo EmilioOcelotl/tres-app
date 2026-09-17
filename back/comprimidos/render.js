@@ -230,8 +230,14 @@ function pagFragmento(doc, w, h, paso, blobs) {
   doc.font('texto').fontSize(10.5).fillColor(COLOR_TINTA)
      .text(paso.title, m, m + 20, { width: w - 2 * m });
 
+  // Con `afinidad: termino` el paso se justifica por la palabra que comparten
+  // las dos notas, y esa palabra se imprime: el criterio de selección es
+  // material de la pieza, no un `via` mudo. El recorte se sesga para que el
+  // término se vea en los dos paneles, así el lector puede comprobarlo.
   const via = paso.via === 'inicio' ? 'punto de partida'
             : paso.via === 'salto' ? `salto desde: ${paso.origen}`
+            : paso.via === 'palabra' && paso.termino
+              ? `por «${paso.termino}» desde: ${paso.origen}`
             : `enlazada desde: ${paso.origen}`;
   const enlaces = paso.grado === 1 ? '1 enlace interno' : `${paso.grado || 0} enlaces internos`;
   doc.font('mono').fontSize(5.5).fillColor(COLOR_GRIS)

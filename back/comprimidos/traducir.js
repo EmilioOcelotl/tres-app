@@ -19,6 +19,8 @@ const DEFAULTS = {
   codigo: 'incluir',     // notas type=code en la caminata: incluir | evitar | solo
   cobertura: null,       // tipos de contenido garantizados en el recorrido:
                          // lista de prosa | codigo | imagen (al menos una nota de cada uno)
+  afinidad: 'enlace',    // por dónde camina: enlace (los crossLinks que escribió el
+                         // autor) | termino (el término que pesa en las dos notas)
 };
 
 const TIPOS_COBERTURA = ['prosa', 'codigo', 'imagen'];
@@ -64,6 +66,15 @@ export function traducirReceta(rutaReceta) {
   }
   if (!['incluir', 'evitar', 'solo'].includes(params.codigo)) {
     throw new Error(`Cue codigo desconocido: "${params.codigo}" (usa incluir, evitar o solo)`);
+  }
+  if (!['enlace', 'termino'].includes(params.afinidad)) {
+    throw new Error(`Cue afinidad desconocido: "${params.afinidad}" (usa enlace o termino)`);
+  }
+  // `codigo: solo` ya define su propio universo (las notas de código, que casi
+  // no se enlazan entre sí y se recorren a saltos). Cruzarlo con la afinidad por
+  // término daría dos criterios peleando por el mismo paso.
+  if (params.afinidad === 'termino' && params.codigo === 'solo') {
+    throw new Error('afinidad: termino no combina con codigo: solo');
   }
   if (params.cobertura) {
     params.cobertura = params.cobertura.split(',')
