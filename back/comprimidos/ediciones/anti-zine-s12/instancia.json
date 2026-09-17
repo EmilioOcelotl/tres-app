@@ -17,7 +17,10 @@
       "iteración porque estas notas traen imágenes: el panel las reparte con el texto."
     ],
     "portada": [
-      "(Epígrafe del autor — placeholder del mockup, sustituir por texto propio.)"
+      "La parte más relevante de este proyecto seguramente es el repositorio y el",
+      "texto que lo acompaña. ¿En qué momento el texto empezó a cobrar relevancia?",
+      "Influye la pretensión de desbordamiento.",
+      "(4nt1, 2021)"
     ]
   },
   "pasos": [
@@ -96,33 +99,33 @@
       ]
     },
     {
-      "id": "cNFls39qFxn2",
-      "title": "(Hou Je Bek, 2008)",
-      "part": "refs",
+      "id": "9W6g36NRxkwH",
+      "title": "Primera iteración - THREE.studies",
+      "part": "p1",
       "level": 3,
-      "childCount": 0,
-      "wc": 20,
+      "childCount": 5,
+      "wc": 109,
       "esCodigo": false,
-      "grado": 1,
+      "grado": 3,
       "via": "enlace",
       "origen": "La iteración como modo de conocimiento",
-      "frag": "Hou Je Bek, W. (2008). Loop. En M. Fuller (Ed.), Software studies: A lexicon (pp. correspondientes). The MIT Press. https://doi.org/10.7551/mitpress/9780262062749.001.0001",
+      "frag": "…live coder y navegador. Fue la primera de las iteraciones experimentales y su origen y desarrollo estuvo marcado por la pandemia de COVID-19. La colaboración a distancia y el uso de tecnologías para la comunicación digital, fueron aspectos que definieron al resto de las iteraciones…",
       "imagenes": []
     },
     {
-      "id": "WHueMOhUiziA",
-      "title": "(McLean, 2011)",
-      "part": "refs",
+      "id": "fEeA6P3tQNR9",
+      "title": "Antecedentes Técnicos",
+      "part": "p1",
       "level": 3,
       "childCount": 0,
-      "wc": 20,
+      "wc": 1815,
       "esCodigo": false,
-      "grado": 1,
-      "via": "salto",
-      "origen": "(Hou Je Bek, 2008)",
-      "frag": "McLean, A. (2011). Artist-Programmers and Programming Languages for the Arts . Tesis doctoral, Department of Computing, Goldsmiths, University of London.",
+      "grado": 4,
+      "via": "enlace",
+      "origen": "Primera iteración - THREE.studies",
+      "frag": "…que puede personalizarse para determinar cantidad de espacios de escritura y asociar cada uno de ellos con un marco específico. * Sema-engine El caso de Estuary es bastante significativo para esta investigación, cincluso,varios de los proyectos de alto nivel antes mencionados están alojados en este…",
       "imagenes": []
     }
   ],
-  "fecha": "2026-09-13"
+  "fecha": "2026-09-17"
 }

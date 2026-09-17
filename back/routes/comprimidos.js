@@ -42,9 +42,15 @@ router.get('/instancia', async (req, res) => {
     if (!nombre || !fs.existsSync(ruta)) {
       return res.status(404).json({ error: `Receta no encontrada: "${nombre}"` });
     }
-    const semilla = req.query.semilla !== undefined
-      ? parseInt(req.query.semilla, 10)
-      : Math.floor(Math.random() * 9000) + 1;   // la web regenera
+    // La web regenera: sin semilla — o con `semilla=nueva`, que es lo que manda
+    // REGENERAR desde una edición congelada — el servidor sortea una. Sólo un
+    // número la fija. Ojo: `parseInt('nueva')` es NaN, y un NaN aquí se cuela
+    // hasta `generarInstancia`, que lo descarta y vuelve a la semilla de la
+    // receta; el resultado es que REGENERAR repetía siempre la misma caminata.
+    const pedida = parseInt(req.query.semilla, 10);
+    const semilla = Number.isFinite(pedida)
+      ? pedida
+      : Math.floor(Math.random() * 9000) + 1;
     const instancia = await generarInstancia(ruta, semilla);
     res.json(instancia);
   } catch (err) {

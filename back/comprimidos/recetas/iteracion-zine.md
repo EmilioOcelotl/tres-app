@@ -14,4 +14,8 @@ que la caminata decida el resto. Cada semilla produce un cuadernillo distinto.
 
 ## Portada
 
-(Epígrafe del autor — placeholder del mockup, sustituir por texto propio.)
+Esta aplicación está alojada en un servidor privado y será obsoleta en algún
+momento. Me pregunto si no me he dejado deslumbrar y ahora viviré anclado al
+mantenimiento.
+
+(4nt1, 2021)

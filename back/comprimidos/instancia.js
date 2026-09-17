@@ -127,6 +127,12 @@ function caminata(nodos, crossLinks, params, rng) {
     if (visitados.has(id) || !nodos.has(id)) return false;
     const n = nodos.get(id);
     if (n.wc < 15) return false;
+    // Las fichas de Referencias pasan el umbral de 15 palabras pero no son
+    // material: un panel que sólo dice «Schafer, M. R. (1994). The Soundscape»
+    // ocupa el lugar de una nota. `aplanar` ya las marca part='refs' (la misma
+    // detección que el grafo 3D), así que salen de la caminata aquí. Siguen
+    // siendo enlaces del grafo — lo que no son es destino.
+    if (n.part === 'refs') return false;
     if (params.codigo === 'evitar' && n.esCodigo) return false;
     if (soloCodigo && !n.esCodigo) return false;
     return true;
