@@ -18,7 +18,10 @@
       "que la caminata decida el resto. Cada semilla produce un cuadernillo distinto."
     ],
     "portada": [
-      "(Epígrafe del autor — placeholder del mockup, sustituir por texto propio.)"
+      "Esta aplicación está alojada en un servidor privado y será obsoleta en algún",
+      "momento. Me pregunto si no me he dejado deslumbrar y ahora viviré anclado al",
+      "mantenimiento.",
+      "(4nt1, 2021)"
     ]
   },
   "pasos": [
@@ -42,80 +45,75 @@
       ]
     },
     {
-      "id": "vTZIR7yqngj2",
-      "title": "(Ocelotl, 2019)",
-      "part": "refs",
+      "id": "9W6g36NRxkwH",
+      "title": "Primera iteración - THREE.studies",
+      "part": "p1",
       "level": 3,
-      "childCount": 0,
-      "wc": 33,
+      "childCount": 5,
+      "wc": 109,
       "esCodigo": false,
-      "grado": 1,
+      "grado": 3,
       "via": "enlace",
       "origen": "La iteración como modo de conocimiento",
-      "frag": "Ocelotl, E. (2019). Cuidado con la brecha autorreferencial. Aportes para la producción-investigación en música de sistemas interactivos . Tesis de maestría en música (tecnología musical), Posgrado en Música. Universidad Nacional Autónoma de México.",
+      "frag": "…pensado para cellista, live coder y navegador. Fue la primera de las iteraciones experimentales y su origen y desarrollo estuvo marcado por la pandemia de COVID-19. La colaboración a distancia y el uso de tecnologías para la comunicación digital, fueron aspectos que definieron al resto de las iteraciones experimentales. Como ya fue mencionado en Antecedentes Técnicos , la transmisión de audio vía web, el uso de espacios compartidos y las…",
       "imagenes": []
     },
     {
-      "id": "WHueMOhUiziA",
-      "title": "(McLean, 2011)",
-      "part": "refs",
-      "level": 3,
-      "childCount": 0,
-      "wc": 20,
-      "esCodigo": false,
-      "grado": 1,
-      "via": "salto",
-      "origen": "(Ocelotl, 2019)",
-      "frag": "McLean, A. (2011). Artist-Programmers and Programming Languages for the Arts . Tesis doctoral, Department of Computing, Goldsmiths, University of London.",
-      "imagenes": []
-    },
-    {
-      "id": "5K3gARoge8yV",
-      "title": "Postura de investigación",
+      "id": "fEeA6P3tQNR9",
+      "title": "Antecedentes Técnicos",
       "part": "p1",
       "level": 3,
       "childCount": 0,
-      "wc": 331,
+      "wc": 1815,
       "esCodigo": false,
-      "grado": 1,
+      "grado": 4,
       "via": "enlace",
-      "origen": "(McLean, 2011)",
-      "frag": "…su descripción como código fuente (McLean, 2011) . El contexto de escritura de tesis doctorales, documentos académicos sugiere que esta persona que es artista programadora también es investigadora. La adscripción a un conjunto de convenciones que permiten validar al resultado de la investigación es el primer paso, el segundo paso, el que podría parecer que constriñe al cruce arte-programación es justo el que promete a las instituciones un resultado que…",
+      "origen": "Primera iteración - THREE.studies",
+      "frag": "…que permite el uso de motores de audio y gráficos en el navegador y locales. Cuenta con un editor de texto que puede personalizarse para determinar cantidad de espacios de escritura y asociar cada uno de ellos con un marco específico. * Sema-engine El caso de Estuary es bastante significativo para esta investigación, cincluso,varios de los proyectos de alto nivel antes mencionados están alojados en este contenedor, se basan parcialmente…",
       "imagenes": []
     },
     {
-      "id": "bdtZ8PdE33ft",
-      "title": "Investigaciones Previas",
+      "id": "71W6siNsB3qU",
+      "title": "Introducción",
+      "part": "p1",
+      "level": 2,
+      "childCount": 9,
+      "wc": 333,
+      "esCodigo": false,
+      "grado": 9,
+      "via": "enlace",
+      "origen": "Antecedentes Técnicos",
+      "frag": "…retoma la noción de estudios y se complementa con la idea de sistemas experimentales. El primer apartado Léeme es el mapa inicial que muestra la panorámica de las salidas de este proyecto. Adicionalmente, existe un Mapa de navegación escrito a manera de pseudocódigo. Este tipo de notas están presentes en el texto y dan una idea con estructuras e indentado de código pero escritas con lenguaje natural, del funcionamiento de…",
+      "imagenes": []
+    },
+    {
+      "id": "4jAMspo5y1Rj",
+      "title": "Léeme",
       "part": "p1",
       "level": 3,
       "childCount": 0,
-      "wc": 633,
+      "wc": 218,
       "esCodigo": false,
-      "grado": 10,
-      "via": "salto",
-      "origen": "Postura de investigación",
-      "frag": "…para el Control de versiones , 2) la reflexión sobre la interacción entre audio e imagen en la composición musical electroacústica y 3) el uso de herramientas libres, personalizadas para la realización de prototipos audiovisuales y para el planteamiento de una observación crítica de procesos creativos donde investigador y artista son el mismo agente. La propuesta de los estudios del software fue incorporada en este momento de investigación, en específico…",
-      "imagenes": [
-        {
-          "attachmentId": "rTIKOFJRRlbv",
-          "nombre": "edges4-r.png"
-        }
-      ]
+      "grado": 4,
+      "via": "enlace",
+      "origen": "Introducción",
+      "frag": "…un archivo PDF . El documento está organizado como un documento jerárquico con las tres secciones impresas una tras otra. Enlace: https://api.ocelotl.cc/pdf Si es un archivo impreso. Es la materialización de Archivos Comprimidos , versiones condensadas ajustadas para la impresión física. Si este es un repositorio externo. Todas las modalidades anteriores tienen enlaces a repositorios externos. Además de éstas, es posible tener una idea del documento con repositorios externos alojados…",
+      "imagenes": []
     },
     {
-      "id": "fcU3rVDtuPVj",
-      "title": "(Schafer, 1994)",
-      "part": "refs",
-      "level": 3,
-      "childCount": 0,
-      "wc": 18,
+      "id": "LEUrQ0gOqXEd",
+      "title": "Parte III - Archivos comprimidos",
+      "part": "p3",
+      "level": 1,
+      "childCount": 3,
+      "wc": 138,
       "esCodigo": false,
-      "grado": 1,
+      "grado": 3,
       "via": "enlace",
-      "origen": "Investigaciones Previas",
-      "frag": "Schafer, M. R. (1994). The Soundscape. Our Sonic Environment and the Turning of the World . Destiny Books.",
+      "origen": "Léeme",
+      "frag": "…modalidad física a manera de fanzine/cuadernillo. Tiene imágenes, texto, no tiene una forma académica sino más de contemplación. El tema de circulación es importante. No quiero imprimir una tesis de 200 paginas sino algo memorable que incluso tenga los enlaces de las otras salidas de la tesis. Una idea interesante es la recursividad pero queda pendiente, no es algo que necesariamente vaya a quedar en la versión final. Lo que…",
       "imagenes": []
     }
   ],
-  "fecha": "2026-09-13"
+  "fecha": "2026-09-17"
 }

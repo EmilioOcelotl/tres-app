@@ -9,7 +9,7 @@
       "semilla": 12,
       "formato": "zine8",
       "pasos": 6,
-      "fecha": "2026-09-13",
+      "fecha": "2026-09-17",
       "pdf": true,
       "imagenes": 4
     },
@@ -20,9 +20,9 @@
       "semilla": 26,
       "formato": "zine8",
       "pasos": 6,
-      "fecha": "2026-09-13",
+      "fecha": "2026-09-17",
       "pdf": true,
-      "imagenes": 3
+      "imagenes": 4
     },
     {
       "slug": "iteracion-zine-s12",
@@ -31,9 +31,9 @@
       "semilla": 12,
       "formato": "zine8",
       "pasos": 6,
-      "fecha": "2026-09-13",
+      "fecha": "2026-09-17",
       "pdf": true,
-      "imagenes": 2
+      "imagenes": 1
     }
   ]
 }

@@ -12,4 +12,8 @@ iteración porque estas notas traen imágenes: el panel las reparte con el texto
 
 ## Portada
 
-(Epígrafe del autor — placeholder del mockup, sustituir por texto propio.)
+La parte más relevante de este proyecto seguramente es el repositorio y el
+texto que lo acompaña. ¿En qué momento el texto empezó a cobrar relevancia?
+Influye la pretensión de desbordamiento.
+
+(4nt1, 2021)
