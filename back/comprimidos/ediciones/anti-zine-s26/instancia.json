@@ -8,6 +8,7 @@
     "recorte": 45,
     "codigo": "incluir",
     "cobertura": null,
+    "afinidad": "enlace",
     "receta": "anti-zine"
   },
   "narrativa": {
@@ -35,6 +36,7 @@
       "grado": 3,
       "via": "inicio",
       "origen": null,
+      "termino": null,
       "frag": "…palabra normalizar no es la mejor. La analogía más parecida que se me ocurrió durante el transcurso fue la siguiente: necesitamos vestir a la malla con la textura, si es necesario contraemos o estiramos la textura para ajustar. Texto Si bien el texto es del…",
       "imagenes": [
         {
@@ -62,6 +64,7 @@
       "grado": 2,
       "via": "enlace",
       "origen": "Anti v1",
+      "termino": null,
       "frag": "…Mediapipe dependiera de un servidor adicional, el resultado del análisis de una imagen pasaría por una agencia adicional y dependiendo de los términos y condiciones de ese servicio, podría ser recopilado y utilizado de alguna manera. Entonces, rescato este tipo de tecnologías pensando en la…",
       "imagenes": []
     },
@@ -76,55 +79,59 @@
       "grado": 3,
       "via": "enlace",
       "origen": "Aprendizaje de Máquinas",
+      "termino": null,
       "frag": "…es una obra de arte web, la segunda iteración de este proyecto. Tuvo como objetivo explorar la ofuscación a través de la tecnología digital usando seguimiento del rostro con Mediapipe, audio (Tone.js/WebAudioAPI) y gráficos generativos (Hydra). Las dos versiones de este sistema tienen pseudocódigo anotado…",
       "imagenes": []
     },
     {
-      "id": "0GrqpWYBDaxv",
-      "title": "Iteración final - tres-app",
+      "id": "0h83V0TdXzzH",
+      "title": "La iteración como modo de conocimiento",
       "part": "p1",
       "level": 3,
-      "childCount": 2,
-      "wc": 186,
+      "childCount": 0,
+      "wc": 499,
       "esCodigo": false,
-      "grado": 5,
+      "grado": 15,
       "via": "enlace",
       "origen": "Segunda iteración - Anti",
-      "frag": "…este proyecto propone. Como consecuencias prácticas presentes en las diferencias entre ambas iteraciones están: la migración del un servidor privado a un servidor casero y el pendiente de realizar una segunda migración a un clúster de servidores caseros, el cambio en los subdominios que permiten…",
-      "imagenes": []
-    },
-    {
-      "id": "iBRooPTkQnG6",
-      "title": "Marco Metodológico",
-      "part": "p1",
-      "level": 2,
-      "childCount": 4,
-      "wc": 99,
-      "esCodigo": false,
-      "grado": 2,
-      "via": "enlace",
-      "origen": "Iteración final - tres-app",
-      "frag": "…general en el que el proyecto puso el método en operación. Finalmente, la relación que este proyecto tiene con la doble estructura mencionada anteriormente (que realmente es triple si consideramos Los ArchivosComprimidos. El movimiento que permite desarrollar la metodología como parte de los conceptos operativos…",
-      "imagenes": []
-    },
-    {
-      "id": "JhXjjujnRofx",
-      "title": "THREE.studies v3",
-      "part": "p1",
-      "level": 4,
-      "childCount": 0,
-      "wc": 79,
-      "esCodigo": false,
-      "grado": 3,
-      "via": "salto",
-      "origen": "Marco Metodológico",
-      "frag": "…que estaban en SuperCollider a una librería dedicada. GrainEngine.js y GrainSequencer.js resuelven, respectivamente, este objetivo. La migración de todas las versiones últimas de las iteraciones fueron guardadas en el servidor casero descrito en Servidor . Sin backend externo. Este es el primer paso para configurar…",
+      "termino": null,
+      "frag": "…investigación de maestría rescato la lógica de una iteración que se repite de acuerdo a un intervalo específico y que parte de un prototipo que cambia con el tiempo de acuerdo a un proceso de retroalmientación pero también de investigación. El resultado ya no es…",
       "imagenes": [
         {
-          "attachmentId": "rMDvnpl64tmR",
-          "nombre": "three2024.jpg"
+          "attachmentId": "UcKGNlSbuS2c",
+          "nombre": "Framework_for_Innovation_transparent.png"
         }
       ]
+    },
+    {
+      "id": "1jb0cMhDBIyb",
+      "title": "Experiencia de Usuario",
+      "part": "p2",
+      "level": 2,
+      "childCount": 0,
+      "wc": 39,
+      "esCodigo": false,
+      "grado": 4,
+      "via": "enlace",
+      "origen": "La iteración como modo de conocimiento",
+      "termino": null,
+      "frag": "Se vincula moderadamente a lo que está en La iteración como modo de conocimiento . Usabilidad y funcionalidad. También se relaciona con Interfaz de usuario ¿Estos conceptos se pueden relacionar con el arte interactivo? La perspectiva de (Norman, 2013)",
+      "imagenes": []
+    },
+    {
+      "id": "ZDMcVsb50xy0",
+      "title": "Interfaz de usuario",
+      "part": "p2",
+      "level": 2,
+      "childCount": 0,
+      "wc": 37,
+      "esCodigo": false,
+      "grado": 4,
+      "via": "enlace",
+      "origen": "Experiencia de Usuario",
+      "termino": null,
+      "frag": "¿Cómo sucede la traducción de acciones entre un usuario y un artefacto? ¿Qué implicaciones tiene el arte digital en relación a las interfaces digitales? Se relaciona con La iteración como modo de conocimiento y Experiencia de Usuario",
+      "imagenes": []
     }
   ],
   "fecha": "2026-09-17"

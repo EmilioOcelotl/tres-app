@@ -8,6 +8,7 @@
     "recorte": 70,
     "codigo": "incluir",
     "cobertura": null,
+    "afinidad": "enlace",
     "receta": "iteracion-zine"
   },
   "narrativa": {
@@ -36,6 +37,7 @@
       "grado": 15,
       "via": "inicio",
       "origen": null,
+      "termino": null,
       "frag": "…cambia con el tiempo de acuerdo a un proceso de retroalmientación pero también de investigación. El resultado ya no es solamente un objeto técnico sino un resultado que contiene investigación, conocimiento y reflexión. Esta forma de trabajo parece que se acopla al diseño de productos, a las metodologías que les acompañan y a la división del trabajo que las posibilitan. Retomo 3 casos para contrastar con este proyecto de investigación:…",
       "imagenes": [
         {
@@ -45,59 +47,68 @@
       ]
     },
     {
-      "id": "9W6g36NRxkwH",
-      "title": "Primera iteración - THREE.studies",
+      "id": "1jb0cMhDBIyb",
+      "title": "Experiencia de Usuario",
+      "part": "p2",
+      "level": 2,
+      "childCount": 0,
+      "wc": 39,
+      "esCodigo": false,
+      "grado": 4,
+      "via": "enlace",
+      "origen": "La iteración como modo de conocimiento",
+      "termino": null,
+      "frag": "Se vincula moderadamente a lo que está en La iteración como modo de conocimiento . Usabilidad y funcionalidad. También se relaciona con Interfaz de usuario ¿Estos conceptos se pueden relacionar con el arte interactivo? La perspectiva de (Norman, 2013)",
+      "imagenes": []
+    },
+    {
+      "id": "qfBOAkVVnC03",
+      "title": "Anti v2",
       "part": "p1",
-      "level": 3,
-      "childCount": 5,
-      "wc": 109,
+      "level": 4,
+      "childCount": 1,
+      "wc": 571,
       "esCodigo": false,
       "grado": 3,
       "via": "enlace",
-      "origen": "La iteración como modo de conocimiento",
-      "frag": "…pensado para cellista, live coder y navegador. Fue la primera de las iteraciones experimentales y su origen y desarrollo estuvo marcado por la pandemia de COVID-19. La colaboración a distancia y el uso de tecnologías para la comunicación digital, fueron aspectos que definieron al resto de las iteraciones experimentales. Como ya fue mencionado en Antecedentes Técnicos , la transmisión de audio vía web, el uso de espacios compartidos y las…",
-      "imagenes": []
+      "origen": "Experiencia de Usuario",
+      "termino": null,
+      "frag": "…hay cámara o que está siendo usada por otra persona. No minimizo el papel de la experiencia y la interfaz, es un aspecto que afecta a este proyecto en la medida que los controles y la exploración sucede en un dispositivo completamente digital. Análisis Mediapipe como tecnología no cambió. En la versión anterior, Anti leía la los puntos clave del rostro y los dibujaba pero no hacía otra cosa con…",
+      "imagenes": [
+        {
+          "attachmentId": "CiOgGSloEK15",
+          "nombre": "gui-propuesta.jpg"
+        }
+      ]
     },
     {
-      "id": "fEeA6P3tQNR9",
-      "title": "Antecedentes Técnicos",
-      "part": "p1",
-      "level": 3,
-      "childCount": 0,
-      "wc": 1815,
-      "esCodigo": false,
-      "grado": 4,
-      "via": "enlace",
-      "origen": "Primera iteración - THREE.studies",
-      "frag": "…que permite el uso de motores de audio y gráficos en el navegador y locales. Cuenta con un editor de texto que puede personalizarse para determinar cantidad de espacios de escritura y asociar cada uno de ellos con un marco específico. * Sema-engine El caso de Estuary es bastante significativo para esta investigación, cincluso,varios de los proyectos de alto nivel antes mencionados están alojados en este contenedor, se basan parcialmente…",
-      "imagenes": []
-    },
-    {
-      "id": "71W6siNsB3qU",
-      "title": "Introducción",
-      "part": "p1",
+      "id": "ZDMcVsb50xy0",
+      "title": "Interfaz de usuario",
+      "part": "p2",
       "level": 2,
-      "childCount": 9,
-      "wc": 333,
-      "esCodigo": false,
-      "grado": 9,
-      "via": "enlace",
-      "origen": "Antecedentes Técnicos",
-      "frag": "…retoma la noción de estudios y se complementa con la idea de sistemas experimentales. El primer apartado Léeme es el mapa inicial que muestra la panorámica de las salidas de este proyecto. Adicionalmente, existe un Mapa de navegación escrito a manera de pseudocódigo. Este tipo de notas están presentes en el texto y dan una idea con estructuras e indentado de código pero escritas con lenguaje natural, del funcionamiento de…",
-      "imagenes": []
-    },
-    {
-      "id": "4jAMspo5y1Rj",
-      "title": "Léeme",
-      "part": "p1",
-      "level": 3,
       "childCount": 0,
-      "wc": 218,
+      "wc": 37,
       "esCodigo": false,
       "grado": 4,
       "via": "enlace",
-      "origen": "Introducción",
-      "frag": "…un archivo PDF . El documento está organizado como un documento jerárquico con las tres secciones impresas una tras otra. Enlace: https://api.ocelotl.cc/pdf Si es un archivo impreso. Es la materialización de Archivos Comprimidos , versiones condensadas ajustadas para la impresión física. Si este es un repositorio externo. Todas las modalidades anteriores tienen enlaces a repositorios externos. Además de éstas, es posible tener una idea del documento con repositorios externos alojados…",
+      "origen": "Anti v2",
+      "termino": null,
+      "frag": "¿Cómo sucede la traducción de acciones entre un usuario y un artefacto? ¿Qué implicaciones tiene el arte digital en relación a las interfaces digitales? Se relaciona con La iteración como modo de conocimiento y Experiencia de Usuario",
+      "imagenes": []
+    },
+    {
+      "id": "FarEpkEwjpQ8",
+      "title": "Servicios",
+      "part": "p1",
+      "level": 3,
+      "childCount": 0,
+      "wc": 488,
+      "esCodigo": false,
+      "grado": 3,
+      "via": "enlace",
+      "origen": "Interfaz de usuario",
+      "termino": null,
+      "frag": "…de usar componentes tecnológicos accesibles y no privativos y a partir de una búsqueda de opciones, usamos Trilium Notes para hacer este sistema. A diferencia de una página web convencional, este sistema de notas necesita acceder a una base de datos (notas) que tiene que estar alojada en algún lugar que no solamente seas el navegador.l Por este motivo, fue necesario servir esta aplicación de notas desde el servidor. Tres…",
       "imagenes": []
     },
     {
@@ -110,7 +121,8 @@
       "esCodigo": false,
       "grado": 3,
       "via": "enlace",
-      "origen": "Léeme",
+      "origen": "Servicios",
+      "termino": null,
       "frag": "…modalidad física a manera de fanzine/cuadernillo. Tiene imágenes, texto, no tiene una forma académica sino más de contemplación. El tema de circulación es importante. No quiero imprimir una tesis de 200 paginas sino algo memorable que incluso tenga los enlaces de las otras salidas de la tesis. Una idea interesante es la recursividad pero queda pendiente, no es algo que necesariamente vaya a quedar en la versión final. Lo que…",
       "imagenes": []
     }

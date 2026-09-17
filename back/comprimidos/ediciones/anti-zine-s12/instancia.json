@@ -8,6 +8,7 @@
     "recorte": 45,
     "codigo": "incluir",
     "cobertura": null,
+    "afinidad": "enlace",
     "receta": "anti-zine"
   },
   "narrativa": {
@@ -35,6 +36,7 @@
       "grado": 3,
       "via": "inicio",
       "origen": null,
+      "termino": null,
       "frag": "…distinta como capa. El texto proviene de un archivo de texto plano que registra algunas reflexiones realizadas durante el proceso de escritura de este programa. El texto es desplegado con el objetivo de comunicar al público una bitácora de frases que surgieron en el transcurso…",
       "imagenes": [
         {
@@ -52,65 +54,63 @@
       ]
     },
     {
-      "id": "h2EO4TkCEmtK",
-      "title": "Aprendizaje de Máquinas",
+      "id": "qIs5QCEXovAb",
+      "title": "Hydra.js",
       "part": "p2",
       "level": 2,
       "childCount": 0,
-      "wc": 176,
-      "esCodigo": false,
-      "grado": 2,
-      "via": "enlace",
-      "origen": "Anti v1",
-      "frag": "…el que sucede la lectura de datos. Si una herramienta como Mediapipe dependiera de un servidor adicional, el resultado del análisis de una imagen pasaría por una agencia adicional y dependiendo de los términos y condiciones de ese servicio, podría ser recopilado y utilizado de…",
-      "imagenes": []
-    },
-    {
-      "id": "i5JwLdkmV7Qn",
-      "title": "Segunda iteración - Anti",
-      "part": "p1",
-      "level": 3,
-      "childCount": 2,
-      "wc": 50,
+      "wc": 106,
       "esCodigo": false,
       "grado": 3,
       "via": "enlace",
-      "origen": "Aprendizaje de Máquinas",
-      "frag": "…es una obra de arte web, la segunda iteración de este proyecto. Tuvo como objetivo explorar la ofuscación a través de la tecnología digital usando seguimiento del rostro con Mediapipe, audio (Tone.js/WebAudioAPI) y gráficos generativos (Hydra). Las dos versiones de este sistema tienen pseudocódigo anotado…",
+      "origen": "Anti v1",
+      "termino": null,
+      "frag": "…un sintetizador de video y entorno de codificación en vivo (livecoding) que funciona sobre el navegador. Es de software libre y está pensado tanto para principiantes como expertos.” Tomado de: https://hydra.ojack.xyz/ Hydra, creado por Olivia Jack, como parte del ecosistema de Javascript, tiene dos consecuencias…",
       "imagenes": []
     },
     {
-      "id": "0h83V0TdXzzH",
-      "title": "La iteración como modo de conocimiento",
+      "id": "FqM6XYZGSQVb",
+      "title": "THREE.studies v2",
       "part": "p1",
-      "level": 3,
+      "level": 4,
       "childCount": 0,
-      "wc": 499,
+      "wc": 526,
       "esCodigo": false,
-      "grado": 15,
+      "grado": 3,
       "via": "enlace",
-      "origen": "Segunda iteración - Anti",
-      "frag": "…retroalmientación pero también de investigación. El resultado ya no es solamente un objeto técnico sino un resultado que contiene investigación, conocimiento y reflexión. Esta forma de trabajo parece que se acopla al diseño de productos, a las metodologías que les acompañan y a la división…",
+      "origen": "Hydra.js",
+      "termino": null,
+      "frag": "…de datos OSC que pudieran corresponder a eventos animados y a eventos musicales. La pregunta por eventos que pudieran estar entre la magnitud musical y el continuo de una señal de audio fue un motivante para el desarrollo de una librería propia que pudiera atender…",
       "imagenes": [
         {
-          "attachmentId": "UcKGNlSbuS2c",
-          "nombre": "Framework_for_Innovation_transparent.png"
+          "attachmentId": "arJUdp6vrOi8",
+          "nombre": "thhydra.jpg"
+        },
+        {
+          "attachmentId": "xcfBOmCoG6Zh",
+          "nombre": "threeunam.jpg"
+        },
+        {
+          "attachmentId": "4LTR2TO6E87D",
+          "nombre": "error2.jpg"
         }
       ]
     },
     {
-      "id": "9W6g36NRxkwH",
-      "title": "Primera iteración - THREE.studies",
+      "id": "4YiQfpvHubXt",
+      "title": "OSCDef y THREE.studies",
       "part": "p1",
-      "level": 3,
-      "childCount": 5,
-      "wc": 109,
-      "esCodigo": false,
-      "grado": 3,
+      "level": 4,
+      "childCount": 0,
+      "wc": 222,
+      "esCodigo": true,
+      "grado": 1,
       "via": "enlace",
-      "origen": "La iteración como modo de conocimiento",
-      "frag": "…live coder y navegador. Fue la primera de las iteraciones experimentales y su origen y desarrollo estuvo marcado por la pandemia de COVID-19. La colaboración a distancia y el uso de tecnologías para la comunicación digital, fueron aspectos que definieron al resto de las iteraciones…",
-      "imagenes": []
+      "origen": "THREE.studies v2",
+      "termino": null,
+      "frag": "…\n\n  HISTORIA COMPARTIDA — el código como mensaje\n    iniciar History                               // cada evaluación queda registrada con hora y autor\n    al recibir OSC \\hist (autor, código):\n        imprimir el mensaje                       // lo que llega se ve en la consola\n        History.enter(código, autor)              // lo evaluado en otra máquina entra a la bitácora local\n    fijar esta escucha                            // .fix: sobrevive a los reinicios del intérprete\n    apagar el registro local                      // localOff: lo propio no se anota dos veces\n    al evaluar código propio (forwardFunc):\n        enviar a todos (\\hist, \\emi, código)      // cada evaluación viaja a la red firmada con el nombre\n\n  ENTORNO\n    crear un ProxySpace sobre el servidor         // escribir y cambiar nodos en vivo\n    destino ← NetAddr(127.0.0.1, 57121)           // \"IP de la máquina con Node.js\"\n\n  GENERADOR — señal de control por pasos\n…",
+      "imagenes": [],
+      "fragHtml": "<pre class=\"code-note\"><span class=\"code-line\" style=\"--h:4ch\">…</span><span class=\"code-line\">&nbsp;</span><span class=\"code-line\" style=\"--h:6ch\"><strong class=\"tok-header\">  HISTORIA COMPARTIDA </strong>— el código como mensaje</span><span class=\"code-line\" style=\"--h:8ch\">    iniciar History                               <span class=\"tok-comment\">// cada evaluación queda registrada con hora y autor</span></span><span class=\"code-line\" style=\"--h:8ch\">    al recibir OSC \\hist (autor, código):</span><span class=\"code-line\" style=\"--h:12ch\">        imprimir el mensaje                       <span class=\"tok-comment\">// lo que llega se ve en la consola</span></span><span class=\"code-line\" style=\"--h:12ch\">        History.enter(código, autor)              <span class=\"tok-comment\">// lo evaluado en otra máquina entra a la bitácora local</span></span><span class=\"code-line\" style=\"--h:8ch\">    fijar esta escucha                            <span class=\"tok-comment\">// .fix: sobrevive a los reinicios del intérprete</span></span><span class=\"code-line\" style=\"--h:8ch\">    apagar el registro local                      <span class=\"tok-comment\">// localOff: lo propio no se anota dos veces</span></span><span class=\"code-line\" style=\"--h:8ch\">    al evaluar código propio (forwardFunc):</span><span class=\"code-line\" style=\"--h:12ch\">        enviar a todos (\\hist, \\emi, código)      <span class=\"tok-comment\">// cada evaluación viaja a la red firmada con el nombre</span></span><span class=\"code-line\">&nbsp;</span><span class=\"code-line\" style=\"--h:6ch\"><strong class=\"tok-header\">  ENTORNO</strong></span><span class=\"code-line\" style=\"--h:8ch\">    crear un ProxySpace sobre el servidor         <span class=\"tok-comment\">// escribir y cambiar nodos en vivo</span></span><span class=\"code-line\" style=\"--h:8ch\">    destino ← NetAddr(<span class=\"tok-num\">127.0</span>.<span class=\"tok-num\">0.1</span>, <span class=\"tok-num\">57121</span>)           <span class=\"tok-comment\">// \"IP de la máquina con Node.js\"</span></span><span class=\"code-line\">&nbsp;</span><span class=\"code-line\" style=\"--h:6ch\"><strong class=\"tok-header\">  GENERADOR </strong>— señal de control por pasos</span><span class=\"code-line\" style=\"--h:4ch\">…</span></pre>"
     },
     {
       "id": "fEeA6P3tQNR9",
@@ -121,9 +121,25 @@
       "wc": 1815,
       "esCodigo": false,
       "grado": 4,
-      "via": "enlace",
-      "origen": "Primera iteración - THREE.studies",
+      "via": "salto",
+      "origen": "OSCDef y THREE.studies",
+      "termino": null,
       "frag": "…que puede personalizarse para determinar cantidad de espacios de escritura y asociar cada uno de ellos con un marco específico. * Sema-engine El caso de Estuary es bastante significativo para esta investigación, cincluso,varios de los proyectos de alto nivel antes mencionados están alojados en este…",
+      "imagenes": []
+    },
+    {
+      "id": "71W6siNsB3qU",
+      "title": "Introducción",
+      "part": "p1",
+      "level": 2,
+      "childCount": 9,
+      "wc": 333,
+      "esCodigo": false,
+      "grado": 9,
+      "via": "enlace",
+      "origen": "Antecedentes Técnicos",
+      "termino": null,
+      "frag": "…de estudios y se complementa con la idea de sistemas experimentales. El primer apartado Léeme es el mapa inicial que muestra la panorámica de las salidas de este proyecto. Adicionalmente, existe un Mapa de navegación escrito a manera de pseudocódigo. Este tipo de notas están…",
       "imagenes": []
     }
   ],
