@@ -1,0 +1,154 @@
+{
+  "_": "Corpus sonoro de tres-app. Las fuentes son grabaciones propias que viven fuera del repo; lo que se versiona son los fragmentos ya recortados y normalizados (corpus/*.mp3) y su ficha medida (catalogo.json). Reconstruir con: npm run corpus",
+  "objetivo_lufs": -20,
+  "techo_dbtp": -1.0,
+  "limitar_picos": true,
+  "duracion_s": 45,
+  "bitrate": "96k",
+  "raiz": "~",
+  "fuentes": [
+    {
+      "id": "metro-cdmx",
+      "titulo": "Metro CDMX, organillero",
+      "archivo": "sonidos/grabaciones/2024/enero2024/metroCDMXorg.WAV",
+      "desde": 34,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "fierro-viejo",
+      "titulo": "Fierro viejo, CDMX",
+      "archivo": "sonidos/grabaciones/2024/enero2024/fierroViejoCDMX11dic.WAV",
+      "desde": 7,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "ofrendas-cu",
+      "titulo": "Ofrendas en CU",
+      "archivo": "sonidos/grabaciones/2024/cdmx/ofrendasCU2023.wav",
+      "desde": 2398,
+      "criterio": "de 76 min, el tramo audible más estable (el 69% del archivo es silencio)",
+      "terminos": []
+    },
+    {
+      "id": "santa-cruz-muertos",
+      "titulo": "Santa Cruz, Día de Muertos",
+      "archivo": "sonidos/grabaciones/2024/cdmx/staCruzDiaMuertos.wav",
+      "desde": 733,
+      "criterio": "de 45 min, el tramo audible más estable",
+      "terminos": []
+    },
+    {
+      "id": "uxmal-trompeta",
+      "titulo": "Uxmal, trompeta de Navidad",
+      "archivo": "sonidos/grabaciones/2024/enero2024/uxmalTrompetaNavidad.WAV",
+      "desde": 65,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "uxmal-marimba",
+      "titulo": "Uxmal, marimba",
+      "archivo": "sonidos/grabaciones/2024/enero2024/uxmalMarimba.WAV",
+      "desde": 23,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "sirenas",
+      "titulo": "Sirenas, CDMX",
+      "archivo": "sonidos/grabaciones/2024/cdmx/cdmxSirenas.wav",
+      "desde": 8,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "banco",
+      "titulo": "Banco, CDMX",
+      "archivo": "sonidos/grabaciones/2024/cdmx/bancoCDMX2023.wav",
+      "desde": 37,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "ventilador",
+      "titulo": "Ventilador de computadora",
+      "archivo": "sonidos/grabaciones/2024/enero2024/ventiladorComputadora.WAV",
+      "desde": 11,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "ronroneo",
+      "titulo": "Ronroneo",
+      "archivo": "sonidos/grabaciones/2024/cdmx/notRonroneo.wav",
+      "desde": 6,
+      "criterio": "tramo de 45 s más estable; el material es casi todo subgrave (centroide 36 Hz)",
+      "terminos": []
+    },
+    {
+      "id": "lavadora-fiesta",
+      "titulo": "Lavadora y fiesta",
+      "archivo": "sonidos/grabaciones/2024/cdmx/lavadoraFiesta03.wav",
+      "desde": 289,
+      "criterio": "la más estable de las tres tomas; tramo de 45 s más estable",
+      "terminos": []
+    },
+    {
+      "id": "cello",
+      "titulo": "Cello (THREE.studies)",
+      "archivo": "proyectos/tres-front/static/snd/cello.mp3",
+      "desde": 125,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "three-studies",
+      "titulo": "THREE.studies, audio procesado",
+      "archivo": "proyectos/THREE.studies-II/static/audio/three2.ogg",
+      "desde": 93,
+      "criterio": "tramo de 45 s más estable en nivel",
+      "terminos": []
+    },
+    {
+      "id": "anti-quieta",
+      "titulo": "4nt1, tramo estable",
+      "archivo": "@anti-pieza",
+      "desde": 203,
+      "criterio": "los 16 segmentos de anti/audio/fondos son una sola pieza; se concatenan en orden y se toma el tramo de 45 s más estable",
+      "terminos": []
+    },
+    {
+      "id": "anti-activa",
+      "titulo": "4nt1, tramo activo",
+      "archivo": "@anti-pieza",
+      "desde": 104,
+      "criterio": "misma pieza concatenada; tramo de 45 s de mayor variación de nivel",
+      "terminos": []
+    },
+    {
+      "id": "oci3",
+      "titulo": "oci3",
+      "archivo": "proyectos/tres-app/assets/snd/oci3.mp3",
+      "desde": 19,
+      "criterio": "la muestra que la pieza usaba como fuente única; entra al corpus como una más",
+      "terminos": []
+    }
+  ],
+  "compuestas": {
+    "@anti-pieza": {
+      "concatenar": [
+        "proyectos/anti/audio/fondos/0.mp3", "proyectos/anti/audio/fondos/1.mp3",
+        "proyectos/anti/audio/fondos/2.mp3", "proyectos/anti/audio/fondos/3.mp3",
+        "proyectos/anti/audio/fondos/4.mp3", "proyectos/anti/audio/fondos/5.mp3",
+        "proyectos/anti/audio/fondos/6.mp3", "proyectos/anti/audio/fondos/7.mp3",
+        "proyectos/anti/audio/fondos/8.mp3", "proyectos/anti/audio/fondos/9.mp3",
+        "proyectos/anti/audio/fondos/10.mp3", "proyectos/anti/audio/fondos/11.mp3",
+        "proyectos/anti/audio/fondos/12.mp3", "proyectos/anti/audio/fondos/13.mp3",
+        "proyectos/anti/audio/fondos/14.mp3", "proyectos/anti/audio/fondos/15.mp3"
+      ],
+      "nota": "15.mp3 es silencio digital: es la cola de la pieza, no un archivo roto"
+    }
+  }
+}
