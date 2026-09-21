@@ -51,7 +51,15 @@
           "attachmentId": "0Mb5wB8xbtvM",
           "nombre": "antiHydra2.jpg"
         }
-      ]
+      ],
+      "rasgos": {
+        "wc": 0.9911,
+        "digitos": 0.4107,
+        "parentesis": 0.3661,
+        "comas": 0.375,
+        "mayus": 0.1696,
+        "termino": "rostro"
+      }
     },
     {
       "id": "h2EO4TkCEmtK",
@@ -66,7 +74,15 @@
       "origen": "Anti v1",
       "termino": null,
       "frag": "…Mediapipe dependiera de un servidor adicional, el resultado del análisis de una imagen pasaría por una agencia adicional y dependiendo de los términos y condiciones de ese servicio, podría ser recopilado y utilizado de alguna manera. Entonces, rescato este tipo de tecnologías pensando en la…",
-      "imagenes": []
+      "imagenes": [],
+      "rasgos": {
+        "wc": 0.6161,
+        "digitos": 0,
+        "parentesis": 0,
+        "comas": 0.2589,
+        "mayus": 0.0982,
+        "termino": "autonomia"
+      }
     },
     {
       "id": "i5JwLdkmV7Qn",
@@ -81,7 +97,15 @@
       "origen": "Aprendizaje de Máquinas",
       "termino": null,
       "frag": "…es una obra de arte web, la segunda iteración de este proyecto. Tuvo como objetivo explorar la ofuscación a través de la tecnología digital usando seguimiento del rostro con Mediapipe, audio (Tone.js/WebAudioAPI) y gráficos generativos (Hydra). Las dos versiones de este sistema tienen pseudocódigo anotado…",
-      "imagenes": []
+      "imagenes": [],
+      "rasgos": {
+        "wc": 0.4107,
+        "digitos": 0,
+        "parentesis": 0.7232,
+        "comas": 0.5179,
+        "mayus": 0.5268,
+        "termino": "usando"
+      }
     },
     {
       "id": "0h83V0TdXzzH",
@@ -101,7 +125,15 @@
           "attachmentId": "UcKGNlSbuS2c",
           "nombre": "Framework_for_Innovation_transparent.png"
         }
-      ]
+      ],
+      "rasgos": {
+        "wc": 0.875,
+        "digitos": 0.5625,
+        "parentesis": 0.5982,
+        "comas": 0.7232,
+        "mayus": 0.3036,
+        "termino": "definidos"
+      }
     },
     {
       "id": "1jb0cMhDBIyb",
@@ -116,7 +148,15 @@
       "origen": "La iteración como modo de conocimiento",
       "termino": null,
       "frag": "Se vincula moderadamente a lo que está en La iteración como modo de conocimiento . Usabilidad y funcionalidad. También se relaciona con Interfaz de usuario ¿Estos conceptos se pueden relacionar con el arte interactivo? La perspectiva de (Norman, 2013)",
-      "imagenes": []
+      "imagenes": [],
+      "rasgos": {
+        "wc": 0.3661,
+        "digitos": 0.6429,
+        "parentesis": 0.6429,
+        "comas": 0.2946,
+        "mayus": 0.5179,
+        "termino": "moderadamente"
+      }
     },
     {
       "id": "ZDMcVsb50xy0",
@@ -131,8 +171,16 @@
       "origen": "Experiencia de Usuario",
       "termino": null,
       "frag": "¿Cómo sucede la traducción de acciones entre un usuario y un artefacto? ¿Qué implicaciones tiene el arte digital en relación a las interfaces digitales? Se relaciona con La iteración como modo de conocimiento y Experiencia de Usuario",
-      "imagenes": []
+      "imagenes": [],
+      "rasgos": {
+        "wc": 0.3214,
+        "digitos": 0,
+        "parentesis": 0,
+        "comas": 0,
+        "mayus": 0.4375,
+        "termino": "usuario"
+      }
     }
   ],
-  "fecha": "2026-09-17"
+  "fecha": "2026-09-21"
 }

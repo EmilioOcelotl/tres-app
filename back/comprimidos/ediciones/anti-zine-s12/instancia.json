@@ -51,7 +51,15 @@
           "attachmentId": "0Mb5wB8xbtvM",
           "nombre": "antiHydra2.jpg"
         }
-      ]
+      ],
+      "rasgos": {
+        "wc": 0.9911,
+        "digitos": 0.4107,
+        "parentesis": 0.3661,
+        "comas": 0.375,
+        "mayus": 0.1696,
+        "termino": "rostro"
+      }
     },
     {
       "id": "qIs5QCEXovAb",
@@ -66,7 +74,15 @@
       "origen": "Anti v1",
       "termino": null,
       "frag": "…un sintetizador de video y entorno de codificación en vivo (livecoding) que funciona sobre el navegador. Es de software libre y está pensado tanto para principiantes como expertos.” Tomado de: https://hydra.ojack.xyz/ Hydra, creado por Olivia Jack, como parte del ecosistema de Javascript, tiene dos consecuencias…",
-      "imagenes": []
+      "imagenes": [],
+      "rasgos": {
+        "wc": 0.5536,
+        "digitos": 0.3929,
+        "parentesis": 0.4554,
+        "comas": 0.6786,
+        "mayus": 0.3214,
+        "termino": "entorno"
+      }
     },
     {
       "id": "FqM6XYZGSQVb",
@@ -94,7 +110,15 @@
           "attachmentId": "4LTR2TO6E87D",
           "nombre": "error2.jpg"
         }
-      ]
+      ],
+      "rasgos": {
+        "wc": 0.8929,
+        "digitos": 0.4286,
+        "parentesis": 0,
+        "comas": 0.4018,
+        "mayus": 0.4732,
+        "termino": "intervalos"
+      }
     },
     {
       "id": "4YiQfpvHubXt",
@@ -110,22 +134,38 @@
       "termino": null,
       "frag": "…\n\n  HISTORIA COMPARTIDA — el código como mensaje\n    iniciar History                               // cada evaluación queda registrada con hora y autor\n    al recibir OSC \\hist (autor, código):\n        imprimir el mensaje                       // lo que llega se ve en la consola\n        History.enter(código, autor)              // lo evaluado en otra máquina entra a la bitácora local\n    fijar esta escucha                            // .fix: sobrevive a los reinicios del intérprete\n    apagar el registro local                      // localOff: lo propio no se anota dos veces\n    al evaluar código propio (forwardFunc):\n        enviar a todos (\\hist, \\emi, código)      // cada evaluación viaja a la red firmada con el nombre\n\n  ENTORNO\n    crear un ProxySpace sobre el servidor         // escribir y cambiar nodos en vivo\n    destino ← NetAddr(127.0.0.1, 57121)           // \"IP de la máquina con Node.js\"\n\n  GENERADOR — señal de control por pasos\n…",
       "imagenes": [],
+      "rasgos": {
+        "wc": 0.6786,
+        "digitos": 0.6786,
+        "parentesis": 0.7768,
+        "comas": 0.5089,
+        "mayus": 0.7232,
+        "termino": "autor"
+      },
       "fragHtml": "<pre class=\"code-note\"><span class=\"code-line\" style=\"--h:4ch\">…</span><span class=\"code-line\">&nbsp;</span><span class=\"code-line\" style=\"--h:6ch\"><strong class=\"tok-header\">  HISTORIA COMPARTIDA </strong>— el código como mensaje</span><span class=\"code-line\" style=\"--h:8ch\">    iniciar History                               <span class=\"tok-comment\">// cada evaluación queda registrada con hora y autor</span></span><span class=\"code-line\" style=\"--h:8ch\">    al recibir OSC \\hist (autor, código):</span><span class=\"code-line\" style=\"--h:12ch\">        imprimir el mensaje                       <span class=\"tok-comment\">// lo que llega se ve en la consola</span></span><span class=\"code-line\" style=\"--h:12ch\">        History.enter(código, autor)              <span class=\"tok-comment\">// lo evaluado en otra máquina entra a la bitácora local</span></span><span class=\"code-line\" style=\"--h:8ch\">    fijar esta escucha                            <span class=\"tok-comment\">// .fix: sobrevive a los reinicios del intérprete</span></span><span class=\"code-line\" style=\"--h:8ch\">    apagar el registro local                      <span class=\"tok-comment\">// localOff: lo propio no se anota dos veces</span></span><span class=\"code-line\" style=\"--h:8ch\">    al evaluar código propio (forwardFunc):</span><span class=\"code-line\" style=\"--h:12ch\">        enviar a todos (\\hist, \\emi, código)      <span class=\"tok-comment\">// cada evaluación viaja a la red firmada con el nombre</span></span><span class=\"code-line\">&nbsp;</span><span class=\"code-line\" style=\"--h:6ch\"><strong class=\"tok-header\">  ENTORNO</strong></span><span class=\"code-line\" style=\"--h:8ch\">    crear un ProxySpace sobre el servidor         <span class=\"tok-comment\">// escribir y cambiar nodos en vivo</span></span><span class=\"code-line\" style=\"--h:8ch\">    destino ← NetAddr(<span class=\"tok-num\">127.0</span>.<span class=\"tok-num\">0.1</span>, <span class=\"tok-num\">57121</span>)           <span class=\"tok-comment\">// \"IP de la máquina con Node.js\"</span></span><span class=\"code-line\">&nbsp;</span><span class=\"code-line\" style=\"--h:6ch\"><strong class=\"tok-header\">  GENERADOR </strong>— señal de control por pasos</span><span class=\"code-line\" style=\"--h:4ch\">…</span></pre>"
     },
     {
-      "id": "fEeA6P3tQNR9",
-      "title": "Antecedentes Técnicos",
+      "id": "XUeMBiW6OTsl",
+      "title": "Antecedentes Artísticos y Académicos",
       "part": "p1",
       "level": 3,
       "childCount": 0,
-      "wc": 1815,
+      "wc": 98,
       "esCodigo": false,
-      "grado": 4,
+      "grado": 3,
       "via": "salto",
       "origen": "OSCDef y THREE.studies",
       "termino": null,
-      "frag": "…que puede personalizarse para determinar cantidad de espacios de escritura y asociar cada uno de ellos con un marco específico. * Sema-engine El caso de Estuary es bastante significativo para esta investigación, cincluso,varios de los proyectos de alto nivel antes mencionados están alojados en este…",
-      "imagenes": []
+      "frag": "…relevante para esta investigación es Antitesis de Geoffrey Cox. Este proyecto retoma la lógica de programación para incorporarla al proceso de escritura. El texto puede funcionar como un comando ejecutable (Cox, 2010) La Revista de Investigación Artística (JAR, por sus siglas en inglés) es un…",
+      "imagenes": [],
+      "rasgos": {
+        "wc": 0.5268,
+        "digitos": 0.5089,
+        "parentesis": 0.5446,
+        "comas": 0.3304,
+        "mayus": 0.6071,
+        "termino": "relevante"
+      }
     },
     {
       "id": "71W6siNsB3qU",
@@ -133,15 +173,23 @@
       "part": "p1",
       "level": 2,
       "childCount": 9,
-      "wc": 333,
+      "wc": 327,
       "esCodigo": false,
       "grado": 9,
       "via": "enlace",
-      "origen": "Antecedentes Técnicos",
+      "origen": "Antecedentes Artísticos y Académicos",
       "termino": null,
-      "frag": "…de estudios y se complementa con la idea de sistemas experimentales. El primer apartado Léeme es el mapa inicial que muestra la panorámica de las salidas de este proyecto. Adicionalmente, existe un Mapa de navegación escrito a manera de pseudocódigo. Este tipo de notas están…",
-      "imagenes": []
+      "frag": "…noción de estudios y se complementa con la idea de sistemas experimentales. El primer apartado Léeme es el mapa inicial que muestra la panorámica de las salidas de este proyecto. Adicionalmente, existe un Mapa de navegación escrito a manera de pseudocódigo. Este tipo de notas…",
+      "imagenes": [],
+      "rasgos": {
+        "wc": 0.7589,
+        "digitos": 0,
+        "parentesis": 0.4196,
+        "comas": 0.1696,
+        "mayus": 0.1875,
+        "termino": "antecedentes"
+      }
     }
   ],
-  "fecha": "2026-09-17"
+  "fecha": "2026-09-21"
 }
