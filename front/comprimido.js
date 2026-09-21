@@ -70,15 +70,33 @@ function seededRandom(seed) {
     };
 }
 
-function generateSyntheticPixels(node) {
-    const seed       = hashString(node.id);
-    const rng        = seededRandom(seed);
-    const level      = node.level || 0;
-    const childCount = node.childCount || 0;
+// Espejo de paramsDeSnapshot en front/main.js: si el paso trae los rasgos de su
+// texto, manda el texto; si no, manda su lugar en el árbol. Una edición
+// congelada antes de esto no los trae y sigue sonando como el día que se
+// congeló — que para un archivo es lo que corresponde.
+function paramsDeSnapshot(node) {
+    const r = node.rasgos;
+    if (!r) {
+        const level      = node.level || 0;
+        const childCount = node.childCount || 0;
+        return {
+            brightness:  Math.max(0.05, 0.88 - level * 0.1),
+            contrastAmt: Math.min(0.75, 0.08 + childCount * 0.06),
+            complexity:  Math.min(0.7,  level * 0.08 + childCount * 0.03)
+        };
+    }
+    return {
+        brightness:  0.18 + r.wc * 0.62,
+        contrastAmt: 0.10 + (r.parentesis * 0.6 + r.digitos * 0.4) * 0.62,
+        complexity:  0.06 + (r.comas * 0.6 + r.mayus * 0.4) * 0.60
+    };
+}
 
-    const brightness  = Math.max(0.05, 0.88 - level * 0.1);
-    const contrastAmt = Math.min(0.75, 0.08 + childCount * 0.06);
-    const complexity  = Math.min(0.7,  level * 0.08 + childCount * 0.03);
+function generateSyntheticPixels(node) {
+    const seed = hashString(node.rasgos?.termino ? node.id + '#' + node.rasgos.termino : node.id);
+    const rng  = seededRandom(seed);
+
+    const { brightness, contrastAmt, complexity } = paramsDeSnapshot(node);
 
     const phaseX = ((seed & 0x3FF) / 0x3FF) * Math.PI * 2;
     const phaseY = (((seed >>> 10) & 0x3FF) / 0x3FF) * Math.PI * 2;

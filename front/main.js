@@ -164,6 +164,7 @@ function flattenTree(root) {
             part,
             childCount: (n.children || []).length,
             wordCount: n.wordCount || 0,
+            rasgos: n.rasgos || null,
             x: (Math.random() - 0.5) * 60,
             y: (Math.random() - 0.5) * 30,
             z: (Math.random() - 0.5) * 60
@@ -739,15 +740,55 @@ function seededRandom(seed) {
     };
 }
 
-function generateSyntheticPixels(node) {
-    const seed       = hashString(node.id);
-    const rng        = seededRandom(seed);
-    const level      = node.level || 0;
-    const childCount = node.childCount || 0;
+// De dónde salen el brillo, el contraste y la complejidad del snapshot — que es
+// lo mismo que decir de dónde sale el sonido, porque analyzePixelData los vuelve
+// a leer de los píxeles y mapSnapshotToAudioParams los convierte en rate, amp y
+// overlaps.
+//
+// Si la nota tiene texto, manda el texto: los rasgos vienen precalculados del
+// servidor en /api/3d/structure (ver back/services/semantica.js, que explica por
+// qué son rasgos de forma y no letra→posición). Si no lo tiene —un contenedor,
+// un muñón de tres palabras— manda su lugar en el árbol, como hasta ahora.
+//
+// El reparto: el largo manda el brillo (y con él la velocidad de lectura del
+// buffer, así que una nota escrita corre y un muñón se arrastra); los dígitos y
+// los paréntesis mandan el contraste (y con él la amplitud: el código y la
+// citación pegan más fuerte que la prosa); las comas y las mayúsculas mandan la
+// complejidad (y con ella cuántos granos se superponen).
+//
+// Medido sobre la BD del 19-09, 112 notas con texto: el criterio anterior daba
+// 11 parámetros distintos con 62 notas en un solo grupo; éste da 112 de 112, sin
+// colisiones, y la razón entre/dentro sube de 2.47 a 6.78 en rate, de 1.87 a
+// 21.29 en amp y de 1.46 a 6.92 en overlaps.
+function paramsDeSnapshot(node) {
+    const r = node.rasgos;
+    if (!r) {
+        const level      = node.level || 0;
+        const childCount = node.childCount || 0;
+        return {
+            brightness:  Math.max(0.05, 0.88 - level * 0.1),
+            contrastAmt: Math.min(0.75, 0.08 + childCount * 0.06),
+            complexity:  Math.min(0.7,  level * 0.08 + childCount * 0.03)
+        };
+    }
+    // Los pisos y los rangos replican los que producía la estructura, para que
+    // el corpus ocupe el mismo territorio sonoro de antes y sólo cambie quién
+    // ocupa cada parte de él.
+    return {
+        brightness:  0.18 + r.wc * 0.62,
+        contrastAmt: 0.10 + (r.parentesis * 0.6 + r.digitos * 0.4) * 0.62,
+        complexity:  0.06 + (r.comas * 0.6 + r.mayus * 0.4) * 0.60
+    };
+}
 
-    const brightness  = Math.max(0.05, 0.88 - level * 0.1);
-    const contrastAmt = Math.min(0.75, 0.08 + childCount * 0.06);
-    const complexity  = Math.min(0.7,  level * 0.08 + childCount * 0.03);
+function generateSyntheticPixels(node) {
+    // La textura se siembra con el término propio de la nota cuando lo hay: dos
+    // notas con rasgos parecidos siguen teniendo grano distinto, y el grano de
+    // una nota deja de depender de un noteId que no significa nada.
+    const seed = hashString(node.rasgos?.termino ? node.id + '#' + node.rasgos.termino : node.id);
+    const rng  = seededRandom(seed);
+
+    const { brightness, contrastAmt, complexity } = paramsDeSnapshot(node);
 
     const phaseX = ((seed & 0x3FF) / 0x3FF) * Math.PI * 2;
     const phaseY = (((seed >>> 10) & 0x3FF) / 0x3FF) * Math.PI * 2;

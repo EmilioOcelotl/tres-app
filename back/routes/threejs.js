@@ -34,6 +34,9 @@ router.get('/structure', async (req, res) => {
         id: node.id || node.noteId,
         title: node.title || 'Sin título',
         wordCount: node.wordCount || 0,
+        // Rasgos de forma del texto, precalculados: de ahí sale la granulación
+        // de esta nota. Ausente = nota sin texto suficiente (ver semantica.js).
+        ...(node.rasgos ? { rasgos: node.rasgos } : {}),
         children: node.children ? node.children.map(cleanStructure) : []
       };
     };
