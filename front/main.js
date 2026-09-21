@@ -17,6 +17,7 @@ import {
     forceX,
     forceY
 } from 'd3-force-3d';
+import { generateSyntheticPixels } from './snapshot.js';
 
 const SIDEBAR_W = 300;
 
@@ -723,92 +724,6 @@ const SNAPSHOT_PALETTES = {
     root:  [[4,5,8],[65,68,75],[148,152,162],[255,255,255]]
 };
 
-function hashString(str) {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) {
-        h ^= str.charCodeAt(i);
-        h = Math.imul(h, 16777619) >>> 0;
-    }
-    return h;
-}
-
-function seededRandom(seed) {
-    let s = seed >>> 0;
-    return () => {
-        s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
-        return s / 4294967296;
-    };
-}
-
-// De dónde salen el brillo, el contraste y la complejidad del snapshot — que es
-// lo mismo que decir de dónde sale el sonido, porque analyzePixelData los vuelve
-// a leer de los píxeles y mapSnapshotToAudioParams los convierte en rate, amp y
-// overlaps.
-//
-// Si la nota tiene texto, manda el texto: los rasgos vienen precalculados del
-// servidor en /api/3d/structure (ver back/services/semantica.js, que explica por
-// qué son rasgos de forma y no letra→posición). Si no lo tiene —un contenedor,
-// un muñón de tres palabras— manda su lugar en el árbol, como hasta ahora.
-//
-// El reparto: el largo manda el brillo (y con él la velocidad de lectura del
-// buffer, así que una nota escrita corre y un muñón se arrastra); los dígitos y
-// los paréntesis mandan el contraste (y con él la amplitud: el código y la
-// citación pegan más fuerte que la prosa); las comas y las mayúsculas mandan la
-// complejidad (y con ella cuántos granos se superponen).
-//
-// Medido sobre la BD del 19-09, 112 notas con texto: el criterio anterior daba
-// 11 parámetros distintos con 62 notas en un solo grupo; éste da 112 de 112, sin
-// colisiones, y la razón entre/dentro sube de 2.47 a 6.78 en rate, de 1.87 a
-// 21.29 en amp y de 1.46 a 6.92 en overlaps.
-function paramsDeSnapshot(node) {
-    const r = node.rasgos;
-    if (!r) {
-        const level      = node.level || 0;
-        const childCount = node.childCount || 0;
-        return {
-            brightness:  Math.max(0.05, 0.88 - level * 0.1),
-            contrastAmt: Math.min(0.75, 0.08 + childCount * 0.06),
-            complexity:  Math.min(0.7,  level * 0.08 + childCount * 0.03)
-        };
-    }
-    // Los pisos y los rangos replican los que producía la estructura, para que
-    // el corpus ocupe el mismo territorio sonoro de antes y sólo cambie quién
-    // ocupa cada parte de él.
-    return {
-        brightness:  0.18 + r.wc * 0.62,
-        contrastAmt: 0.10 + (r.parentesis * 0.6 + r.digitos * 0.4) * 0.62,
-        complexity:  0.06 + (r.comas * 0.6 + r.mayus * 0.4) * 0.60
-    };
-}
-
-function generateSyntheticPixels(node) {
-    // La textura se siembra con el término propio de la nota cuando lo hay: dos
-    // notas con rasgos parecidos siguen teniendo grano distinto, y el grano de
-    // una nota deja de depender de un noteId que no significa nada.
-    const seed = hashString(node.rasgos?.termino ? node.id + '#' + node.rasgos.termino : node.id);
-    const rng  = seededRandom(seed);
-
-    const { brightness, contrastAmt, complexity } = paramsDeSnapshot(node);
-
-    const phaseX = ((seed & 0x3FF) / 0x3FF) * Math.PI * 2;
-    const phaseY = (((seed >>> 10) & 0x3FF) / 0x3FF) * Math.PI * 2;
-
-    const M = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
-    const pixels = new Uint8Array(SNAP_W * SNAP_H);
-
-    for (let y = 0; y < SNAP_H; y++) {
-        for (let x = 0; x < SNAP_W; x++) {
-            let v = brightness;
-            v += (rng() - 0.5) * contrastAmt;
-            v += Math.sin(x * complexity * 0.4 + phaseX) * complexity * 0.22;
-            v += Math.cos(y * complexity * 0.3 + phaseY) * complexity * 0.18;
-            const t = M[y % 4][x % 4] / 15;
-            v += (t - 0.5) * 0.3;
-            pixels[y * SNAP_W + x] = Math.max(0, Math.min(3, Math.round(v * 3)));
-        }
-    }
-    return pixels;
-}
 
 function renderSnapshotToCanvas(pixels, canvas, part) {
     const palette = SNAPSHOT_PALETTES[part] || SNAPSHOT_PALETTES.root;
@@ -850,7 +765,7 @@ function analyzePixels(pixels) {
 function displaySnapshot(node) {
     const canvas = document.getElementById('snapshot-canvas');
     if (!canvas) return;
-    const pixels   = generateSyntheticPixels(node);
+    const pixels   = generateSyntheticPixels(node, SNAP_W, SNAP_H);
     renderSnapshotToCanvas(pixels, canvas, node.part);
     const analysis = analyzePixels(pixels);
     const fmt = v => v.toFixed(3);
@@ -920,7 +835,7 @@ function activateGrains(node) {
     const gain = AudioSystem.masterGain.gain;
     const ctx  = AudioSystem.ctx;
 
-    const pixels   = generateSyntheticPixels(node);
+    const pixels   = generateSyntheticPixels(node, SNAP_W, SNAP_H);
     const analysis = stg.analyzePixelData(pixels);
     if (!analysis) return;
 
