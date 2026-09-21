@@ -85,9 +85,45 @@ Para inspeccionar la base de datos:
 
 ## Copia
 
-Para copiar la base de datos: 
+Para copiar la base de datos desde el contenedor:
 
-```docker cp identificador:/home/node/trilium-data/document.db /home/usuaio/trilium-backup.db```
+```docker cp identificador:/home/node/trilium-data/document.db /home/usuario/trilium-backup.db```
+
+### Traer la última versión de la base al repo local
+
+```./back/scripts/traer-db.sh```
+
+Deja la base en `back/database/document.db`, borra los `-wal`/`-shm` locales e
+imprime la última modificación registrada para cotejarla.
+
+El script espera dos variables, en el entorno o en un `.env` en la raíz (no versionado):
+
+```
+TRILIUM_SSH_HOST=<alias-de-ssh-config>
+TRILIUM_REMOTE_DB=/ruta/en/el/servidor/trilium-data/document.db
+```
+
+Equivalente a mano:
+
+```
+ssh "$TRILIUM_SSH_HOST" "sqlite3 '$TRILIUM_REMOTE_DB' \".backup '/tmp/tres-snapshot.db'\"" \
+  && scp "$TRILIUM_SSH_HOST:/tmp/tres-snapshot.db" back/database/document.db \
+  && rm -f back/database/document.db-wal back/database/document.db-shm
+```
+
+**No usar `scp` directo sobre `document.db`.** Trilium corre en `journal_mode=wal`:
+las escrituras recientes viven en `document.db-wal` hasta el siguiente checkpoint,
+así que una copia directa se trae el estado del último checkpoint y no lo que se ve
+en la interfaz. El fallo es silencioso — llegan los cambios viejos, faltan los de las
+últimas horas. `sqlite3 .backup` pide el snapshot con el WAL ya incorporado; es el
+mismo mecanismo que usa el script de sync de producción. Para confirmar una sospecha:
+
+```
+sqlite3 back/database/document.db "select max(utcDateModified) from notes;"   # UTC
+ls -la back/database/document.db                                              # mtime local
+```
+
+Si el primero queda muy por detrás del segundo (ojo: UTC contra CST/UTC−6), falta WAL.
 
 ## Sincronización 
 
@@ -152,6 +188,31 @@ Dos cosas que conviene tener presentes:
   conviene fijar la ruta explícita para que no dependa de la heurística:
 
 ```pm2 set tres-app:TRILIUM_DB /ruta/al/repo/back/database/<archivo>.db```
+
+## Corpus sonoro
+
+El material que suena en el grafo y en el visor de comprimidos vive en
+`assets/snd/corpus/`: 16 fragmentos de 45 s, mono, normalizados a −20 LUFS.
+Están **versionados**, así que un `git pull` los trae y en producción no hay nada
+que construir.
+
+Reconstruirlos (sólo en la máquina del autor):
+
+```
+npm run corpus                  todos
+npm run corpus -- --solo=metro-cdmx
+npm run corpus -- --dry         sólo mide, no escribe audio
+```
+
+Las grabaciones fuente **no están en el repo** —son de campo, pesan gigas y no
+todas pertenecen a este proyecto—, así que `npm run corpus` sólo funciona donde
+existan las rutas que declara `assets/snd/fuentes.json`, relativas a `$HOME`. Ese
+archivo dice de qué grabación sale cada fragmento, desde qué segundo y con qué
+criterio; `assets/snd/catalogo.json` guarda la ficha medida de cada uno
+(sonoridad, pico, ganancia aplicada, quietud, centroide) con un bloque
+`_medicion` que explica los descriptores.
+
+Requiere `ffmpeg` en el PATH.
 
 ## Endpoints
 
