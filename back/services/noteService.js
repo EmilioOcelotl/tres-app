@@ -1,6 +1,7 @@
 // services/noteService.js
 import { getDatabase } from '../config/database.js';
 import { buildTree, findNodeByTitle, filtrarHiddenNotes, findNodeById } from '../utils/treeBuilder.js';
+import { rasgosDeNotas } from './semantica.js';
 
 export class NoteService {
   async getNotesAndBranches() {
@@ -189,10 +190,44 @@ export class NoteService {
 
     // Transformar el árbol a formato optimizado para 3D
     // + enlaces internos entre notas del árbol (citas) para el grafo
+    const structure = this.transformToThreeJSStructure(root);
+    // Los rasgos van precalculados porque el front los necesita antes de tener
+    // el contenido: selectNode llama activateGrains(node) y sólo después pide
+    // /note/:id/content. Además el rango percentil necesita el corpus entero,
+    // que aquí ya está armado.
+    this.anotarRasgos(structure, root);
     return {
-      structure: this.transformToThreeJSStructure(root),
+      structure,
       crossLinks: this.extractCrossLinks(root)
     };
+  }
+
+  // Texto plano de una nota: el mismo criterio con que se cuentan las palabras
+  // en transformToThreeJSStructure y en scripts/avance.js.
+  static textoPlano(content) {
+    const str = content
+      ? (Buffer.isBuffer(content) ? content.toString('utf8') : content)
+      : '';
+    return str.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&[a-z]+;/g, ' ');
+  }
+
+  // Cuelga de cada nodo de la estructura los rasgos de su texto, para que el
+  // sonido salga de lo que la nota dice y no sólo de dónde está en el árbol
+  // (ver el encabezado de services/semantica.js). Las notas sin texto suficiente
+  // quedan sin `rasgos` y el front cae a su comportamiento anterior.
+  anotarRasgos(structure, root) {
+    const docs = [];
+    (function recoger(n) {
+      docs.push({ id: n.noteId, texto: NoteService.textoPlano(n.content) });
+      (n.children || []).forEach(recoger);
+    })(root);
+
+    const rasgos = rasgosDeNotas(docs);
+    (function anotar(n) {
+      const r = rasgos.get(n.id);
+      if (r) n.rasgos = r;
+      (n.children || []).forEach(anotar);
+    })(structure);
   }
 
   // Enlaces internos de Trilium entre notas del árbol renderizado.

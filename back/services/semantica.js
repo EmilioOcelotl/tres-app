@@ -109,3 +109,96 @@ export function grafoTerminos(docs, top = TOP_TERMINOS) {
   }
   return grafo;
 }
+
+// ---------------------------------------------------------------------------
+// Rasgos de forma del texto, para que una nota suene a lo que dice.
+//
+// El sonido del grafo y del visor sale hoy de `generateSyntheticPixels(id,
+// level, childCount)`: la estructura del árbol, no el contenido. Medido sobre
+// la BD del 19-09, eso da 11 parámetros distintos para 112 notas con texto, y
+// 62 de ellas caen en el mismo grupo — `Léeme`, `Mapa de navegación`, `La
+// escritura` y `Live Coding` suenan idéntico porque están al mismo nivel y
+// tienen los mismos hijos.
+//
+// Por qué rasgos de forma y no `txtToSeq` (letra → posición en el buffer), que
+// era la vía planeada: medido el 2026-09-20 no diferencia. Razón entre/dentro
+// 0.049, y el puntero medio de las 78 notas cae entre 0.361 y 0.429. Todas las
+// notas están en español y el español tiene una distribución de letras fija, así
+// que letra→posición da el mismo paseo para cualquier texto. Sigue valiendo como
+// gesto —la tesis leída letra por letra— pero no como mecanismo de diferencia.
+//
+// Lo que sí varía en este corpus (cv medido el 21-09): el largo `wc` 1.30, los
+// dígitos 1.78, las comas 1.31, los paréntesis 1.11, las mayúsculas 0.81. Son
+// marcas de género antes que de tema: los dígitos y los paréntesis marcan el
+// código y la citación, las comas marcan la prosa subordinada, el largo marca
+// si la nota está escrita o es un muñón.
+//
+// Se normaliza por RANGO PERCENTIL dentro del corpus, no por una escala fija.
+// Es deliberado y tiene un costo: el rasgo de una nota depende de las demás, así
+// que agregar notas mueve un poco el sonido de todas. A cambio, el corpus usa
+// siempre el rango entero de los parámetros — que es el punto, porque las
+// distribuciones son largas de cola (una nota de 1,006 palabras contra decenas
+// de 20) y una escala fija las apelmazaría todas abajo. La misma propiedad ya la
+// tienen los archivos comprimidos: la instancia depende del estado de la BD.
+
+// Debajo de este largo las proporciones son ruido: una nota de tres palabras con
+// una coma da una densidad de comas altísima que no significa nada.
+export const MIN_PALABRAS_RASGOS = 20;
+
+function contar(texto, re) {
+  return (texto.match(re) || []).length;
+}
+
+// Rasgos crudos de una nota: el largo, y cuatro densidades por carácter.
+export function rasgosCrudos(texto) {
+  const palabras = texto.split(/\s+/).filter(Boolean);
+  const chars = texto.length || 1;
+  return {
+    wc:         palabras.length,
+    digitos:    contar(texto, /\d/g) / chars,
+    parentesis: contar(texto, /[()]/g) / chars,
+    comas:      contar(texto, /,/g) / chars,
+    mayus:      contar(texto, /[A-ZÁÉÍÓÚÑ]/g) / chars
+  };
+}
+
+const CLAVES_RASGOS = ['wc', 'digitos', 'parentesis', 'comas', 'mayus'];
+
+// docs: [{ id, texto }] con el texto ya sin etiquetas.
+// Devuelve id → { wc, digitos, parentesis, comas, mayus, termino }, con los
+// cinco rasgos en 0–1 como rango percentil y el término propio de la nota.
+// Sólo incluye las notas que llegan a MIN_PALABRAS_RASGOS: las demás no tienen
+// texto que suene y se quedan con el sonido de su lugar en el árbol.
+export function rasgosDeNotas(docs) {
+  const conTexto = docs.filter(d => d.texto.split(/\s+/).filter(Boolean).length >= MIN_PALABRAS_RASGOS);
+  if (!conTexto.length) return new Map();
+
+  const crudos = conTexto.map(d => rasgosCrudos(d.texto));
+  const ordenados = {};
+  for (const k of CLAVES_RASGOS) ordenados[k] = crudos.map(r => r[k]).sort((a, b) => a - b);
+
+  // Posición del valor dentro del corpus, 0–1. Búsqueda binaria del primer
+  // elemento no menor: los empates (muchas notas con cero dígitos) caen todos
+  // en el mismo piso en vez de repartirse por orden de llegada.
+  const percentil = (k, v) => {
+    const arr = ordenados[k];
+    let lo = 0, hi = arr.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < v) lo = m + 1; else hi = m; }
+    return arr.length > 1 ? lo / (arr.length - 1) : 0.5;
+  };
+
+  // El término top-1 de TF-IDF, que ya sabe calcular vectores(). Sobre este
+  // corpus da término propio en casi todas las notas; entra como identidad del
+  // texto para sembrar la textura, en vez del noteId.
+  const vecs = vectores(conTexto);
+
+  const out = new Map();
+  conTexto.forEach((d, i) => {
+    const r = {};
+    for (const k of CLAVES_RASGOS) r[k] = Number(percentil(k, crudos[i][k]).toFixed(4));
+    const v = vecs.get(d.id);
+    r.termino = v && v.length ? v[0][0] : null;
+    out.set(d.id, r);
+  });
+  return out;
+}

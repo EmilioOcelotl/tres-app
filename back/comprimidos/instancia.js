@@ -8,7 +8,7 @@
 import { NoteService } from '../services/noteService.js';
 import { ContentProcessor } from '../services/contentProcessor.js';
 import { traducirReceta } from './traducir.js';
-import { grafoTerminos } from '../services/semantica.js';
+import { grafoTerminos, rasgosDeNotas } from '../services/semantica.js';
 
 // Mismo hash y LCG que el snapshot sintético del front (front/main.js)
 export function hashString(str) {
@@ -273,6 +273,14 @@ export async function generarInstancia(rutaReceta, semillaOverride = null) {
   // El fragmento se congela aquí para que PDF y web muestren el mismo texto:
   // ventana determinista por nota (hash del id ⊕ semilla), igual que hacía
   // pagFragmento en render.js.
+  // Rasgos de forma del texto, para que la granulación del visor salga de lo
+  // que dice la nota y no de su nivel en el árbol (ver services/semantica.js).
+  // Se calculan sobre TODO el corpus, no sólo sobre los pasos elegidos: el
+  // rango percentil de una nota se mide contra la tesis entera, así que un
+  // cuadernillo de seis notas no se reescala a sí mismo y los dos visores
+  // —el grafo y éste— le dan a la misma nota el mismo sonido.
+  const rasgos = rasgosDeNotas([...nodos.values()].map(n => ({ id: n.id, texto: n.texto })));
+
   const pasos = caminataPasos.map(({ nodo, via, origen, grado, termino }, i) => {
     // La nota se ve con el término que la trajo y con el que lleva a la
     // siguiente: así la palabra que justifica cada salto aparece en los dos
@@ -288,6 +296,7 @@ export async function generarInstancia(rutaReceta, semillaOverride = null) {
       id: nodo.id, title: nodo.title, part: nodo.part, level: nodo.level,
       childCount: nodo.childCount, wc: nodo.wc, esCodigo: nodo.esCodigo,
       grado, via, origen, termino, frag, imagenes: nodo.imagenes,
+      rasgos: rasgos.get(nodo.id) || null,
       // Para el visor: el fragmento de código ya colorizado con el mismo
       // espejo del overlay 3D (.code-line + tok-*); el PDF toma `frag`.
       fragHtml: nodo.esCodigo ? ContentProcessor.processCodeForFrontend(frag) : undefined,
