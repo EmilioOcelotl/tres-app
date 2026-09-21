@@ -12,6 +12,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { generarInstancia, hashString, seededRandom } from './instancia.js';
+// Misma función que dibujan el grafo y el visor: el pliego y la pantalla tienen
+// que sacar la misma textura de la misma nota. Vive en front/ y esto la importa.
+import { generateSyntheticPixels } from '../../front/snapshot.js';
 import { NoteService } from '../services/noteService.js';
 import { procesarImagen, DPI, LPI_MOCKUP } from './riso.js';
 import { tokenizarLineaCodigo, envolverLineaTokens } from '../utils/tokensCodigo.js';
@@ -37,30 +40,6 @@ const URL_SALIDAS = 'https://api.ocelotl.cc/';
 
 // -------------------------------------------------------- snapshot sintético
 
-// Port del generador del front (LCG + Bayer 4×4). Valores 0..3; en papel
-// invertimos: 0 = tinta plena, 3 = papel.
-function pixelesSinteticos(idSemilla, level, childCount, W, H) {
-  const seed = hashString(idSemilla);
-  const rng = seededRandom(seed);
-  const brightness  = Math.max(0.05, 0.88 - level * 0.1);
-  const contrastAmt = Math.min(0.75, 0.08 + childCount * 0.06);
-  const complexity  = Math.min(0.7, level * 0.08 + childCount * 0.03);
-  const phaseX = ((seed & 0x3FF) / 0x3FF) * Math.PI * 2;
-  const phaseY = (((seed >>> 10) & 0x3FF) / 0x3FF) * Math.PI * 2;
-  const M = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
-  const px = new Uint8Array(W * H);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      let v = brightness;
-      v += (rng() - 0.5) * contrastAmt;
-      v += Math.sin(x * complexity * 0.4 + phaseX) * complexity * 0.22;
-      v += Math.cos(y * complexity * 0.3 + phaseY) * complexity * 0.18;
-      v += (M[y % 4][x % 4] / 15 - 0.5) * 0.3;
-      px[y * W + x] = Math.max(0, Math.min(3, Math.round(v * 3)));
-    }
-  }
-  return px;
-}
 
 function dibujarSnapshot(doc, px, W, H, x, y, celda, color, escala = 1) {
   doc.save();
@@ -158,7 +137,7 @@ function pagPortada(doc, w, h, params, narrativa, fecha) {
      .text('archivo comprimido · parte III', m, m + 9);
   doc.font('texto').fontSize(22).fillColor(COLOR_TINTA)
      .text(params.titulo || 'sin título', m, h * 0.22, { width: w - 2 * m });
-  const px = pixelesSinteticos(`portada-${params.semilla}`, 1, params.pasos, 26, 26);
+  const px = generateSyntheticPixels({ id: `portada-${params.semilla}`, level: 1, childCount: params.pasos }, 26, 26);
   const celda = (w - 2 * m) * 0.45 / 26;
   dibujarSnapshot(doc, px, 26, 26, m, h * 0.44, celda, COLOR_PARTE.p2);
   if (narrativa.portada.length) {
@@ -256,14 +235,14 @@ function pagFragmento(doc, w, h, paso, blobs) {
   if (imgs.length) {
     dibujarBanda(doc, imgs, blobs, m, bandaY, w - 2 * m, bandaH, color);
   } else {
-    const px = pixelesSinteticos(paso.id, paso.level, paso.childCount, 22, 22);
+    const px = generateSyntheticPixels(paso, 22, 22);
     const lado = 40;
     dibujarSnapshot(doc, px, 22, 22, w - m - lado, h - m - lado, lado / 22, color);
   }
 }
 
 function pagInterludio(doc, w, h, params, num) {
-  const px = pixelesSinteticos(`interludio-${params.semilla}-${num}`, 2, 3, 30, 42);
+  const px = generateSyntheticPixels({ id: `interludio-${params.semilla}-${num}`, level: 2, childCount: 3 }, 30, 42);
   const celda = Math.min((w - 32) / 30, (h - 32) / 42);
   dibujarSnapshot(doc, px, 30, 42, 16, 16, celda, COLOR_PARTE.p1);
 }
@@ -330,7 +309,7 @@ function renderMapa(doc, paginas, params, pasos) {
   // Reverso
   doc.addPage({ size: [SW, SH], margin: 0 });
   const cols = Math.floor(SW / 14), rows = Math.floor(SH / 14);
-  const px = pixelesSinteticos(`reverso-${params.semilla}`, 1, pasos.length, cols, rows);
+  const px = generateSyntheticPixels({ id: `reverso-${params.semilla}`, level: 1, childCount: pasos.length }, cols, rows);
   dibujarSnapshot(doc, px, cols, rows, (SW - cols * 14) / 2, (SH - rows * 14) / 2, 14, COLOR_PARTE.p1, 0.3);
 
   // El recorrido: nodos sobre una línea que serpentea el pliego

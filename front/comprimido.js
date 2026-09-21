@@ -7,6 +7,7 @@
 
 import { GrainEngine }  from 'treslib/GrainEngine';
 import { SnapToGrains } from 'treslib/SnapToGrains';
+import { generateSyntheticPixels } from './snapshot.js';
 
 const RECETA_DEFAULT  = 'iteracion-zine';
 const SEMILLA_DEFAULT = 12;
@@ -53,77 +54,13 @@ const AudioSystem = {
 
 const SNAP_W = 80, SNAP_H = 80;
 
-function hashString(str) {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) {
-        h ^= str.charCodeAt(i);
-        h = Math.imul(h, 16777619) >>> 0;
-    }
-    return h;
-}
-
-function seededRandom(seed) {
-    let s = seed >>> 0;
-    return () => {
-        s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
-        return s / 4294967296;
-    };
-}
-
-// Espejo de paramsDeSnapshot en front/main.js: si el paso trae los rasgos de su
-// texto, manda el texto; si no, manda su lugar en el árbol. Una edición
-// congelada antes de esto no los trae y sigue sonando como el día que se
-// congeló — que para un archivo es lo que corresponde.
-function paramsDeSnapshot(node) {
-    const r = node.rasgos;
-    if (!r) {
-        const level      = node.level || 0;
-        const childCount = node.childCount || 0;
-        return {
-            brightness:  Math.max(0.05, 0.88 - level * 0.1),
-            contrastAmt: Math.min(0.75, 0.08 + childCount * 0.06),
-            complexity:  Math.min(0.7,  level * 0.08 + childCount * 0.03)
-        };
-    }
-    return {
-        brightness:  0.18 + r.wc * 0.62,
-        contrastAmt: 0.10 + (r.parentesis * 0.6 + r.digitos * 0.4) * 0.62,
-        complexity:  0.06 + (r.comas * 0.6 + r.mayus * 0.4) * 0.60
-    };
-}
-
-function generateSyntheticPixels(node) {
-    const seed = hashString(node.rasgos?.termino ? node.id + '#' + node.rasgos.termino : node.id);
-    const rng  = seededRandom(seed);
-
-    const { brightness, contrastAmt, complexity } = paramsDeSnapshot(node);
-
-    const phaseX = ((seed & 0x3FF) / 0x3FF) * Math.PI * 2;
-    const phaseY = (((seed >>> 10) & 0x3FF) / 0x3FF) * Math.PI * 2;
-
-    const M = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
-    const pixels = new Uint8Array(SNAP_W * SNAP_H);
-
-    for (let y = 0; y < SNAP_H; y++) {
-        for (let x = 0; x < SNAP_W; x++) {
-            let v = brightness;
-            v += (rng() - 0.5) * contrastAmt;
-            v += Math.sin(x * complexity * 0.4 + phaseX) * complexity * 0.22;
-            v += Math.cos(y * complexity * 0.3 + phaseY) * complexity * 0.18;
-            const t = M[y % 4][x % 4] / 15;
-            v += (t - 0.5) * 0.3;
-            pixels[y * SNAP_W + x] = Math.max(0, Math.min(3, Math.round(v * 3)));
-        }
-    }
-    return pixels;
-}
 
 function crearCanvasDither(node, part) {
     const canvas = document.createElement('canvas');
     canvas.className = 'dither';
     canvas.width = SNAP_W;
     canvas.height = SNAP_H;
-    const pixels  = generateSyntheticPixels(node);
+    const pixels  = generateSyntheticPixels(node, SNAP_W, SNAP_H);
     const palette = SNAPSHOT_PALETTES[part] || SNAPSHOT_PALETTES.root;
     const img  = new ImageData(SNAP_W, SNAP_H);
     for (let i = 0; i < pixels.length; i++) {
@@ -187,7 +124,7 @@ function activateGrains(node) {
     const gain = AudioSystem.masterGain.gain;
     const ctx  = AudioSystem.ctx;
 
-    const pixels   = generateSyntheticPixels(node);
+    const pixels   = generateSyntheticPixels(node, SNAP_W, SNAP_H);
     const analysis = stg.analyzePixelData(pixels);
     if (!analysis) return;
 
