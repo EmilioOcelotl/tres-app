@@ -17,7 +17,7 @@ import {
     forceX,
     forceY
 } from 'd3-force-3d';
-import { generateSyntheticPixels } from './snapshot.js';
+import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
 
 const SIDEBAR_W = 300;
 
@@ -811,7 +811,8 @@ async function initAudio() {
             maxRandomPitch:       0.25,
             pointerTransitionTime: 4.0,
             transitionCurve:      'easeInOut',
-            jitter:               0.04
+            jitter:               0.04,
+            ...OPCIONES_GRANO
         });
 
         AudioSystem.initialized = true;

@@ -64,6 +64,30 @@ export function paramsDeSnapshot(node) {
     };
 }
 
+// Cómo lee SnapToGrains los píxeles que salen de aquí. Vive en este archivo por
+// la misma razón que la fórmula: el grafo y el visor tienen que sonar igual para
+// la misma nota, y dos objetos de opciones en dos archivos derivan igual que
+// derivaron las tres copias del snapshot. render.js no lo usa (no hay audio en
+// el papel) pero tampoco le estorba.
+export const OPCIONES_GRANO = {
+    // El darkBoost de treslib sube amplitud y granos por debajo de brightness
+    // 0.3. Corrige capturas oscuras de Hydra, donde un cuadro sin varianza suena
+    // flojo. Aquí el brillo es el largo de la nota, así que el umbral cortaba
+    // por palabras: 24 de 112 notas caían debajo y quedaban, todas, más fuertes
+    // y más densas que cualquier nota escrita — dos fichas de bibliografía de 26
+    // y 28 palabras sonaban con 48% de diferencia de amplitud. Y no
+    // diferenciaba: la razón entre/dentro de amp era 3.82 con boost y 3.81 sin.
+    darkBoost: false,
+
+    // Sin el boost, amp se quedaba en 0.824–1.225. No es que el texto no varíe:
+    // es que la vuelta por los píxeles comprime el contraste —entra en 0.10–0.72
+    // y sale en 0.19–0.52, porque cuatro niveles no dan para más— y el rango de
+    // treslib supone que llega entero. Abrirlo devuelve el span que había
+    // (1.011–1.746) sin el escalón, y la correlación de amp con lo que debe
+    // mandarla —paréntesis y dígitos— sube de ρ 0.854 a 0.915.
+    ampRange: [0.6, 2.8]
+};
+
 const BAYER = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
 
 // Valores 0..3. En pantalla 3 es claro; en papel render.js lo invierte, así que
