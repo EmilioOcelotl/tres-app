@@ -18,6 +18,7 @@ import {
     forceY
 } from 'd3-force-3d';
 import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
+import { cargarCatalogo, catalogo, conTermino, materialParaNota, obtenerBuffer, fijar } from './corpus.js';
 
 const SIDEBAR_W = 300;
 
@@ -78,14 +79,18 @@ const AppState = {
 
 const AudioSystem = {
     ctx:            null,
-    buffer:         null,
     grainEngine:    null,
     snapToGrains:   null,
     masterGain:     null,
     initialized:    false,
     grainEnabled:   false,
     grainActive:    false,
-    crossfadeTimer: null
+    crossfadeTimer: null,
+    material:       null,   // id del material que tiene puesto el motor
+    // Cada activateGrains toma un turno. Si mientras se descargaba un material
+    // el usuario seleccionó otra nota (o apagó el audio), el turno viejo ya no
+    // vale y su carga se descarta al llegar en vez de pisar la actual.
+    turno:          0
 };
 
 let scene, camera, renderer, labelRenderer, controls, composer, bloomPass;
@@ -792,11 +797,14 @@ async function initAudio() {
     try {
         AudioSystem.ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-        const res = await fetch('/assets/snd/oci3.mp3');
-        const raw = await res.arrayBuffer();
-        AudioSystem.buffer = await AudioSystem.ctx.decodeAudioData(raw);
+        // El material ya no se carga aquí. Antes era uno solo y duraba toda la
+        // sesión; ahora lo trae el pool cuando se sabe qué nota suena, así que el
+        // motor se construye sin buffer y el primer activateGrains se lo pone
+        // antes de arrancar. Nada se oye entre medias: masterGain sale de 0 y
+        // sólo sube ahí.
+        await cargarCatalogo();
 
-        AudioSystem.grainEngine = new GrainEngine(AudioSystem.ctx, AudioSystem.buffer, {
+        AudioSystem.grainEngine = new GrainEngine(AudioSystem.ctx, null, {
             masterAmp:  0.7,
             overlaps:   6,
             windowSize: 0.12
@@ -816,7 +824,7 @@ async function initAudio() {
         });
 
         AudioSystem.initialized = true;
-        console.log('Audio listo —', AudioSystem.buffer.duration.toFixed(1), 's');
+        console.log(`Audio listo — ${catalogo().length} materiales, ${conTermino()} con término declarado`);
     } catch (err) {
         console.error('Error iniciando audio:', err);
     }
@@ -840,7 +848,44 @@ function activateGrains(node) {
     const analysis = stg.analyzePixelData(pixels);
     if (!analysis) return;
 
+    // El material de esta nota se pide en cuanto se sabe cuál es, y el cambio de
+    // buffer entra en el mismo momento que el de parámetros: dentro del dip del
+    // crossfade. Si ya está decodificado la promesa resuelve de inmediato; si no,
+    // el gain se queda abajo hasta que llega — silencio corto antes que el
+    // material equivocado.
+    const material = materialParaNota(node);
+    const turno    = ++AudioSystem.turno;
+    const llegando = obtenerBuffer(ctx, material).catch(err => {
+        console.warn('No se pudo cargar el material', material, err);
+        return null;
+    });
+
     clearTimeout(AudioSystem.crossfadeTimer);
+
+    const arrancar = async (fadeIn) => {
+        const buf = await llegando;
+        // Otra nota ganó el turno, o el usuario apagó el audio, mientras cargaba.
+        if (turno !== AudioSystem.turno || !AudioSystem.grainEnabled) return;
+
+        if (buf && AudioSystem.grainEngine.buffer !== buf) {
+            // Basta asignarlo: GrainEngine lee this.buffer en cada createGrain, así
+            // que los granos ya agendados terminan con el material viejo y eso da
+            // un cruce corto que se suma al dip. No hace falta tocar treslib.
+            AudioSystem.grainEngine.buffer = buf;
+            AudioSystem.material = material;
+            fijar(material);
+        }
+        if (!AudioSystem.grainEngine.buffer) return;
+
+        stg.stop();
+        applyGrainParams(stg, analysis);
+        stg.start();
+        AudioSystem.grainActive = true;
+        const t = ctx.currentTime;
+        gain.cancelScheduledValues(t);
+        gain.setValueAtTime(0, t);
+        gain.linearRampToValueAtTime(1, t + fadeIn);
+    };
 
     if (AudioSystem.grainActive) {
         // Crossfade: dip → swap → rise
@@ -848,32 +893,20 @@ function activateGrains(node) {
         gain.cancelScheduledValues(now);
         gain.setValueAtTime(gain.value, now);
         gain.linearRampToValueAtTime(0, now + 0.4);
-
-        AudioSystem.crossfadeTimer = setTimeout(() => {
-            stg.stop();
-            applyGrainParams(stg, analysis);
-            stg.start();
-            const t = ctx.currentTime;
-            gain.cancelScheduledValues(t);
-            gain.setValueAtTime(0, t);
-            gain.linearRampToValueAtTime(1, t + 1.2);
-        }, 420);
+        AudioSystem.crossfadeTimer = setTimeout(() => arrancar(1.2), 420);
     } else {
         // Fade-in desde silencio
-        stg.stop();
-        applyGrainParams(stg, analysis);
-        stg.start();
-        AudioSystem.grainActive = true;
-        const now = ctx.currentTime;
-        gain.cancelScheduledValues(now);
-        gain.setValueAtTime(0, now);
-        gain.linearRampToValueAtTime(1, now + 1.5);
+        arrancar(1.5);
     }
 }
 
 function deactivateGrains() {
     if (!AudioSystem.initialized || !AudioSystem.masterGain) return;
     clearTimeout(AudioSystem.crossfadeTimer);
+    // Quema el turno: si había un material en vuelo, al llegar ya no arranca. Sin
+    // esto, deseleccionar un nodo con el audio encendido podía volver a sonar solo
+    // cuando terminara la descarga.
+    AudioSystem.turno++;
 
     const gain = AudioSystem.masterGain.gain;
     const now  = AudioSystem.ctx.currentTime;
