@@ -7,7 +7,7 @@
 
 import { GrainEngine }  from 'treslib/GrainEngine';
 import { SnapToGrains } from 'treslib/SnapToGrains';
-import { generateSyntheticPixels } from './snapshot.js';
+import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
 
 const RECETA_DEFAULT  = 'iteracion-zine';
 const SEMILLA_DEFAULT = 12;
@@ -100,7 +100,8 @@ async function initAudio() {
             maxRandomPitch:       0.25,
             pointerTransitionTime: 4.0,
             transitionCurve:      'easeInOut',
-            jitter:               0.04
+            jitter:               0.04,
+            ...OPCIONES_GRANO
         });
 
         AudioSystem.initialized = true;
