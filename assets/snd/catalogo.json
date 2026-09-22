@@ -354,7 +354,7 @@
       "archivo": "corpus/oci3.mp3",
       "terminos": [],
       "fuente": {
-        "ruta": "proyectos/tres-app/assets/snd/oci3.mp3",
+        "ruta": "sonidos/oci3.mp3",
         "desde": 19,
         "criterio": "la muestra que la pieza usaba como fuente única; entra al corpus como una más"
       },

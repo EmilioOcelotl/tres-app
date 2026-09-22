@@ -8,6 +8,7 @@
 import { GrainEngine }  from 'treslib/GrainEngine';
 import { SnapToGrains } from 'treslib/SnapToGrains';
 import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
+import { cargarCatalogo, catalogo, conTermino, materialParaNota, obtenerBuffer, fijar } from './corpus.js';
 
 const RECETA_DEFAULT  = 'iteracion-zine';
 const SEMILLA_DEFAULT = 12;
@@ -46,8 +47,10 @@ const AudioSystem = {
     initialized:  false,
     grainEnabled: false,
     grainActive:  false,
-    ctx: null, buffer: null, grainEngine: null, snapToGrains: null,
+    ctx: null, grainEngine: null, snapToGrains: null,
     masterGain: null, crossfadeTimer: null,
+    material: null,   // id del material que tiene puesto el motor
+    turno:    0,      // ver main.js: descarta cargas que llegan tarde
 };
 
 // ------------------------------------------------- snapshot sintético (port)
@@ -81,11 +84,11 @@ async function initAudio() {
     try {
         AudioSystem.ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-        const res = await fetch('/assets/snd/oci3.mp3');
-        const raw = await res.arrayBuffer();
-        AudioSystem.buffer = await AudioSystem.ctx.decodeAudioData(raw);
+        // Igual que el grafo: el material lo trae el pool cuando se sabe qué panel
+        // suena, así que el motor arranca sin buffer (ver corpus.js).
+        await cargarCatalogo();
 
-        AudioSystem.grainEngine = new GrainEngine(AudioSystem.ctx, AudioSystem.buffer, {
+        AudioSystem.grainEngine = new GrainEngine(AudioSystem.ctx, null, {
             masterAmp:  0.7,
             overlaps:   6,
             windowSize: 0.12
@@ -105,7 +108,7 @@ async function initAudio() {
         });
 
         AudioSystem.initialized = true;
-        console.log('Audio listo —', AudioSystem.buffer.duration.toFixed(1), 's');
+        console.log(`Audio listo — ${catalogo().length} materiales, ${conTermino()} con término declarado`);
     } catch (err) {
         console.error('Error iniciando audio:', err);
     }
@@ -129,7 +132,35 @@ function activateGrains(node) {
     const analysis = stg.analyzePixelData(pixels);
     if (!analysis) return;
 
+    const material = materialParaNota(node);
+    const turno    = ++AudioSystem.turno;
+    const llegando = obtenerBuffer(ctx, material).catch(err => {
+        console.warn('No se pudo cargar el material', material, err);
+        return null;
+    });
+
     clearTimeout(AudioSystem.crossfadeTimer);
+
+    const arrancar = async (fadeIn) => {
+        const buf = await llegando;
+        if (turno !== AudioSystem.turno || !AudioSystem.grainEnabled) return;
+
+        if (buf && AudioSystem.grainEngine.buffer !== buf) {
+            AudioSystem.grainEngine.buffer = buf;
+            AudioSystem.material = material;
+            fijar(material);
+        }
+        if (!AudioSystem.grainEngine.buffer) return;
+
+        stg.stop();
+        applyGrainParams(stg, analysis);
+        stg.start();
+        AudioSystem.grainActive = true;
+        const t = ctx.currentTime;
+        gain.cancelScheduledValues(t);
+        gain.setValueAtTime(0, t);
+        gain.linearRampToValueAtTime(1, t + fadeIn);
+    };
 
     if (AudioSystem.grainActive) {
         // Crossfade: dip → swap → rise (mismo patrón que el grafo 3D)
@@ -137,31 +168,16 @@ function activateGrains(node) {
         gain.cancelScheduledValues(now);
         gain.setValueAtTime(gain.value, now);
         gain.linearRampToValueAtTime(0, now + 0.4);
-
-        AudioSystem.crossfadeTimer = setTimeout(() => {
-            stg.stop();
-            applyGrainParams(stg, analysis);
-            stg.start();
-            const t = ctx.currentTime;
-            gain.cancelScheduledValues(t);
-            gain.setValueAtTime(0, t);
-            gain.linearRampToValueAtTime(1, t + 1.2);
-        }, 420);
+        AudioSystem.crossfadeTimer = setTimeout(() => arrancar(1.2), 420);
     } else {
-        stg.stop();
-        applyGrainParams(stg, analysis);
-        stg.start();
-        AudioSystem.grainActive = true;
-        const now = ctx.currentTime;
-        gain.cancelScheduledValues(now);
-        gain.setValueAtTime(0, now);
-        gain.linearRampToValueAtTime(1, now + 1.5);
+        arrancar(1.5);
     }
 }
 
 function deactivateGrains() {
     if (!AudioSystem.initialized || !AudioSystem.masterGain) return;
     clearTimeout(AudioSystem.crossfadeTimer);
+    AudioSystem.turno++;
 
     const gain = AudioSystem.masterGain.gain;
     const now  = AudioSystem.ctx.currentTime;
@@ -188,9 +204,14 @@ function el(tag, className, texto) {
 // que alimenta tanto el dither visible como los parámetros de granulación.
 function panelConSnap(clase, snapNode, part) {
     const panel = el('section', `panel ${clase}`);
-    panel.dataset.snapId = snapNode.id;
-    panel.dataset.snapLevel = snapNode.level;
-    panel.dataset.snapChildren = snapNode.childCount;
+    // El nodo entero queda colgado del elemento, no volcado a data-*. Antes el
+    // panel guardaba sólo id/level/childCount y el audio se reconstruía de ahí, así
+    // que perdía los `rasgos` que sí le llegaban al dither: desde el 2026-09-21 el
+    // mismo panel se dibujaba por el texto y sonaba por su lugar en el árbol. Es la
+    // misma clase de deriva que unificó snapshot.js, una capa más abajo — la
+    // fórmula era una sola, el sitio donde se llama no.
+    panel._snap = snapNode;
+    panel.dataset.snapId = snapNode.id;   // sigue aquí para inspeccionar en el DOM
     panel.dataset.part = part;
     return panel;
 }
@@ -312,11 +333,7 @@ function observarPaneles() {
         const panel = mejor.target;
         if (panel === AppState.panelActivo) return;
         AppState.panelActivo = panel;
-        activateGrains({
-            id: panel.dataset.snapId,
-            level: parseInt(panel.dataset.snapLevel, 10),
-            childCount: parseInt(panel.dataset.snapChildren, 10),
-        });
+        activateGrains(panel._snap);
     }, { threshold: [0.4, 0.6] });
 
     document.querySelectorAll('.panel').forEach(p => AppState.observer.observe(p));
@@ -422,12 +439,7 @@ async function init() {
         btnAudio.textContent = `AUD: ${AudioSystem.grainEnabled ? 'ON' : 'OFF'}`;
         btnAudio.classList.toggle('activo', AudioSystem.grainEnabled);
         if (AudioSystem.grainEnabled && AppState.panelActivo) {
-            const p = AppState.panelActivo;
-            activateGrains({
-                id: p.dataset.snapId,
-                level: parseInt(p.dataset.snapLevel, 10),
-                childCount: parseInt(p.dataset.snapChildren, 10),
-            });
+            activateGrains(AppState.panelActivo._snap);
         } else if (!AudioSystem.grainEnabled) {
             deactivateGrains();
         }

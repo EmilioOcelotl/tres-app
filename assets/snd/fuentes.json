@@ -130,7 +130,7 @@
     {
       "id": "oci3",
       "titulo": "oci3",
-      "archivo": "proyectos/tres-app/assets/snd/oci3.mp3",
+      "archivo": "sonidos/oci3.mp3",
       "desde": 19,
       "criterio": "la muestra que la pieza usaba como fuente única; entra al corpus como una más",
       "terminos": []

@@ -1,0 +1,159 @@
+// corpus.js — el pool de materiales sonoros.
+//
+// Hasta aquí la pieza granulaba una muestra sola: los dos fronts hacían fetch de
+// assets/snd/oci3.mp3 y ese buffer duraba toda la sesión. Desde el 2026-09-20 hay
+// corpus propio —16 fragmentos de 45 s medidos y normalizados, con su acta en
+// assets/snd/catalogo.json— y desde el 21-09 el texto de la nota ya decide *cómo*
+// suena (sus rasgos de forma → mapSnapshotToAudioParams, ver snapshot.js). Este
+// archivo es la otra mitad: *qué* suena.
+//
+// Por qué un pool y no cargarlos todos: decodificado, un fragmento de 45 s mono
+// ocupa 45 × sampleRate × 4 bytes de RAM — 7.9 MB si el AudioContext corre a
+// 44.1k y 8.2 MB si a 48k, porque decodeAudioData remuestrea a la tasa del
+// dispositivo y no a la del archivo. Son ~130 MB los dieciséis, contra 8.4 MB de
+// descarga si se piden todos y 528 KB si se pide uno. Así que se cargan bajo
+// demanda, se cachea lo decodificado y lo que no se usa se suelta.
+//
+// Vive en front/ y lo importan el grafo (main.js) y el visor de comprimidos
+// (comprimido.js), por la misma razón que snapshot.js: los dos tienen que sonar
+// igual para la misma nota, y dos copias derivan — ya pasó una vez.
+
+import { hashString } from './snapshot.js';
+
+const RUTA_CATALOGO = '/assets/snd/catalogo.json';
+const BASE_CORPUS   = '/assets/snd/';
+
+// Cuántos buffers decodificados se sostienen a la vez. A ~8 MB cada uno, cuatro
+// son ~33 MB: alcanza para que ir y volver entre dos o tres notas no vuelva a
+// descargar, y no le pelea memoria a la escena de Three.js. El que está sonando
+// está fijado y nunca se suelta, así que para navegar quedan tres.
+const PRESUPUESTO = 4;
+
+let materiales = [];            // el catálogo, en su orden
+let porTermino = new Map();     // término declarado por el autor → material
+
+const cache   = new Map();      // id → AudioBuffer. El orden del Map es el de uso:
+                                // lo más reciente al final, así que el primero que
+                                // devuelve keys() es el candidato a soltarse.
+const enVuelo = new Map();      // id → Promise<AudioBuffer> en curso
+let   fijado  = null;           // id del que está sonando: exento del desalojo
+
+// Los términos del catálogo los escribe el autor a mano y el top-1 de TF-IDF sale
+// del extractor, así que se comparan sin acentos ni mayúsculas para que
+// "Parsing", "parsing" y "parséo" no se pierdan por la forma.
+function normalizar(t) {
+    return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+export async function cargarCatalogo() {
+    if (materiales.length) return materiales;
+    const res = await fetch(RUTA_CATALOGO);
+    if (!res.ok) throw new Error(`catálogo de sonido: ${res.status}`);
+    const cat = await res.json();
+    materiales = (cat.materiales || []).filter(m => m && m.id && m.archivo);
+    porTermino = new Map();
+    for (const m of materiales) {
+        for (const t of m.terminos || []) porTermino.set(normalizar(t), m);
+    }
+    return materiales;
+}
+
+export function catalogo() {
+    return materiales;
+}
+
+// Cuántos materiales tienen término declarado. Sirve para decir en consola si el
+// puente del autor está en uso o si todo está cayendo al reparto provisional.
+export function conTermino() {
+    return materiales.filter(m => (m.terminos || []).length).length;
+}
+
+// QUÉ suena para esta nota. Dos reglas, en orden:
+//
+// 1. El término declarado. El autor escribe en catalogo.json qué términos reclama
+//    cada material (`terminos`), y si el término propio de la nota —el top-1 de
+//    TF-IDF, que ya viaja en `rasgos.termino`— está en esa lista, ese material
+//    suena. Es el mecanismo que el autor decidió el 2026-09-20 («el texto modula
+//    y selecciona») y está vivo: hoy no dispara nunca porque los dieciséis tienen
+//    `terminos: []`, y empieza a funcionar con el primero que se escriba, sin
+//    tocar código.
+//
+// 2. Reparto estable, y arbitrario a propósito. Mientras 1 no dispare, la nota cae
+//    en un material por hash de su término (o de su id, si no tiene texto). Es
+//    estable —la misma nota suena siempre con el mismo material— y reparte las
+//    notas sobre los dieciséis, que es lo que hace falta para que el corpus se
+//    oiga y el pool se ejercite. No pretende significar nada, y esto es
+//    deliberado: el emparejamiento automático nota→material está medido y no
+//    funciona (45 de 78 notas, cosenos 0.02–0.08; `ventilador` se llevaba ocho
+//    notas porque «computadora» es palabra frecuente en la tesis). Por eso el
+//    puente lo declara el autor y esto es relleno reemplazable.
+export function materialParaNota(node) {
+    if (!materiales.length) return null;
+
+    const termino = node?.rasgos?.termino;
+    if (termino) {
+        const declarado = porTermino.get(normalizar(termino));
+        if (declarado) return declarado.id;
+    }
+
+    const clave = termino || node?.id || '';
+    return materiales[hashString(`material#${clave}`) % materiales.length].id;
+}
+
+export function enCache(id) {
+    return cache.get(id) || null;
+}
+
+// Marca el que está sonando para que el desalojo no se lo lleve.
+export function fijar(id) {
+    fijado = id;
+}
+
+// Suelta lo más viejo hasta caber en el presupuesto, sin tocar el que suena.
+function desalojar() {
+    for (const id of [...cache.keys()]) {
+        if (cache.size <= PRESUPUESTO) return;
+        if (id === fijado) continue;
+        cache.delete(id);
+        console.log(`[corpus] suelta ${id} — quedan ${[...cache.keys()].join(', ')}`);
+    }
+}
+
+// Devuelve el AudioBuffer del material, decodificándolo si hace falta. Si ya está
+// en caché resuelve en el microtask siguiente, así que el llamador puede tratar el
+// caso común como si fuera inmediato.
+export async function obtenerBuffer(ctx, id) {
+    if (!id) return null;
+
+    const yaEsta = cache.get(id);
+    if (yaEsta) {
+        cache.delete(id);        // reinsertar lo manda al final: queda como reciente
+        cache.set(id, yaEsta);
+        return yaEsta;
+    }
+    if (enVuelo.has(id)) return enVuelo.get(id);
+
+    const material = materiales.find(m => m.id === id);
+    if (!material) return null;
+
+    const tarea = (async () => {
+        const res = await fetch(BASE_CORPUS + material.archivo);
+        if (!res.ok) throw new Error(`${material.archivo}: ${res.status}`);
+        const raw = await res.arrayBuffer();
+        // decodeAudioData desprende el ArrayBuffer (byteLength queda en 0 después),
+        // así que el tamaño se mide antes y el raw no se reusa.
+        const kb = raw.byteLength / 1024;
+        const buf = await ctx.decodeAudioData(raw);
+        cache.set(id, buf);
+        console.log(`[corpus] ${id} — ${buf.duration.toFixed(1)}s, ${kb.toFixed(0)} KB, ${cache.size}/${PRESUPUESTO} en caché`);
+        desalojar();
+        return buf;
+    })();
+
+    enVuelo.set(id, tarea);
+    try {
+        return await tarea;
+    } finally {
+        enVuelo.delete(id);
+    }
+}
