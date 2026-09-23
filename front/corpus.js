@@ -53,7 +53,12 @@ export async function cargarCatalogo() {
     materiales = (cat.materiales || []).filter(m => m && m.id && m.archivo);
     porTermino = new Map();
     for (const m of materiales) {
-        for (const t of m.terminos || []) porTermino.set(normalizar(t), m);
+        // Si dos materiales reclaman la misma palabra, gana el primero del
+        // catálogo: el orden del archivo es el desempate, y es visible.
+        for (const t of m.terminos || []) {
+            const k = normalizar(t);
+            if (!porTermino.has(k)) porTermino.set(k, m);
+        }
     }
     return materiales;
 }
@@ -70,13 +75,17 @@ export function conTermino() {
 
 // QUÉ suena para esta nota. Dos reglas, en orden:
 //
-// 1. El término declarado. El autor escribe en catalogo.json qué términos reclama
-//    cada material (`terminos`), y si el término propio de la nota —el top-1 de
-//    TF-IDF, que ya viaja en `rasgos.termino`— está en esa lista, ese material
-//    suena. Es el mecanismo que el autor decidió el 2026-09-20 («el texto modula
-//    y selecciona») y está vivo: hoy no dispara nunca porque los dieciséis tienen
-//    `terminos: []`, y empieza a funcionar con el primero que se escriba, sin
-//    tocar código.
+// 1. El término declarado. El autor escribe en assets/snd/fuentes.json qué
+//    palabras reclama cada material (`terminos`; `npm run corpus` las copia al
+//    catálogo). La nota trae sus términos de más peso —los 25 primeros de TF-IDF,
+//    en `rasgos.terminos`— y se recorren en orden: el primero que algún material
+//    reclame decide. Así una palabra alcanza a las notas donde de verdad pesa, no
+//    sólo a aquella donde quedó primera (hasta el 2026-09-22 se comparaba sólo el
+//    top-1, y `ciudad` no alcanzaba a Ciudad Monstruo). Si una nota coincide con
+//    varios materiales, gana el término que más pesa en ella. Es el mecanismo que
+//    el autor decidió el 2026-09-20 («el texto modula y selecciona»).
+//    Las actas publicadas antes de este cambio sólo traen `rasgos.termino`, y con
+//    eso se comparan.
 //
 // 2. Reparto estable, y arbitrario a propósito. Mientras 1 no dispare, la nota cae
 //    en un material por hash de su término (o de su id, si no tiene texto). Es
@@ -91,8 +100,9 @@ export function materialParaNota(node) {
     if (!materiales.length) return null;
 
     const termino = node?.rasgos?.termino;
-    if (termino) {
-        const declarado = porTermino.get(normalizar(termino));
+    const candidatos = node?.rasgos?.terminos || (termino ? [termino] : []);
+    for (const t of candidatos) {
+        const declarado = porTermino.get(normalizar(t));
         if (declarado) return declarado.id;
     }
 

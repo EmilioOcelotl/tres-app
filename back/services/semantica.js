@@ -198,6 +198,11 @@ export function rasgosDeNotas(docs) {
     for (const k of CLAVES_RASGOS) r[k] = Number(percentil(k, crudos[i][k]).toFixed(4));
     const v = vecs.get(d.id);
     r.termino = v && v.length ? v[0][0] : null;
+    // Los términos que más pesan en la nota, en orden de peso. Son contra los que
+    // front/corpus.js compara las palabras que el autor declara en cada material:
+    // sólo el top-1 dejaba fuera palabras que sí caracterizan la nota (`ciudad`
+    // no alcanzaba a Ciudad Monstruo, cuyo top-1 es `espacial`).
+    r.terminos = v ? v.slice(0, TOP_TERMINOS).map(([t]) => t) : [];
     out.set(d.id, r);
   });
   return out;
