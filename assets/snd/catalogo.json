@@ -16,7 +16,7 @@
   "techo_dbtp": -1,
   "duracion_s": 45,
   "bitrate": "96k",
-  "total_bytes": 9733680,
+  "total_bytes": 10274459,
   "materiales": [
     {
       "id": "metro-cdmx",
@@ -412,6 +412,28 @@
       "centroide_hz": 1121.2,
       "planitud": 0.0306,
       "rolloff_hz": 1701.1,
+      "bytes": 540779
+    },
+    {
+      "id": "neo-cdm",
+      "titulo": "neo:cdm, Ciudad Monstruo (cablebús → celebración / represión)",
+      "archivo": "corpus/neo-cdm.mp3",
+      "terminos": [],
+      "fuente": {
+        "ruta": "proyectos/ciudad-monstruo-v1/neo_cdm/analisis/salidas/relato_de_NCDM.wav",
+        "desde": 317,
+        "criterio": "tramo de 45 s más estable en nivel del máster de entrega (velo A); es el desenlace de la pieza: alientos 30–32 del guion"
+      },
+      "duracion_s": 45,
+      "lufs": -20.4,
+      "pico_dbfs": -5.9,
+      "lra": 5.9,
+      "ganancia_db": -2.9,
+      "picos_limitados_db": 0,
+      "quietud_db": 2.8,
+      "centroide_hz": 2771.3,
+      "planitud": 0.0618,
+      "rolloff_hz": 7235.2,
       "bytes": 540779
     }
   ]

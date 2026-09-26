@@ -192,7 +192,7 @@ Dos cosas que conviene tener presentes:
 ## Corpus sonoro
 
 El material que suena en el grafo y en el visor de comprimidos vive en
-`assets/snd/corpus/`: 18 fragmentos de 45 s, mono, normalizados a −20 LUFS.
+`assets/snd/corpus/`: 19 fragmentos de 45 s, mono, normalizados a −20 LUFS.
 Están **versionados**, así que un `git pull` los trae y en producción no hay nada
 que construir.
 
@@ -203,6 +203,11 @@ npm run corpus                  todos
 npm run corpus -- --solo=metro-cdmx
 npm run corpus -- --dry         sólo mide, no escribe audio
 ```
+
+**Ojo con `--solo`:** reescribe `catalogo.json` sólo con ese material y borra las
+fichas de los demás. Sirve para probar un tramo; para agregar o cambiar un
+material hay que reconstruir con `npm run corpus` (los mp3 que no cambiaron
+salen idénticos).
 
 Las grabaciones fuente **no están en el repo** —son de campo, pesan gigas y no
 todas pertenecen a este proyecto—, así que `npm run corpus` sólo funciona donde
