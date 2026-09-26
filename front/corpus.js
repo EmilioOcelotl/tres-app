@@ -2,7 +2,7 @@
 //
 // Hasta aquí la pieza granulaba una muestra sola: los dos fronts hacían fetch de
 // assets/snd/oci3.mp3 y ese buffer duraba toda la sesión. Desde el 2026-09-20 hay
-// corpus propio —16 fragmentos de 45 s medidos y normalizados, con su acta en
+// corpus propio —fragmentos de 45 s medidos y normalizados, con su acta en
 // assets/snd/catalogo.json— y desde el 21-09 el texto de la nota ya decide *cómo*
 // suena (sus rasgos de forma → mapSnapshotToAudioParams, ver snapshot.js). Este
 // archivo es la otra mitad: *qué* suena.
@@ -10,7 +10,7 @@
 // Por qué un pool y no cargarlos todos: decodificado, un fragmento de 45 s mono
 // ocupa 45 × sampleRate × 4 bytes de RAM — 7.9 MB si el AudioContext corre a
 // 44.1k y 8.2 MB si a 48k, porque decodeAudioData remuestrea a la tasa del
-// dispositivo y no a la del archivo. Son ~130 MB los dieciséis, contra 8.4 MB de
+// dispositivo y no a la del archivo. Con dieciocho son ~148 MB, contra 9.3 MB de
 // descarga si se piden todos y 528 KB si se pide uno. Así que se cargan bajo
 // demanda, se cachea lo decodificado y lo que no se usa se suelta.
 //
@@ -90,7 +90,7 @@ export function conTermino() {
 // 2. Reparto estable, y arbitrario a propósito. Mientras 1 no dispare, la nota cae
 //    en un material por hash de su término (o de su id, si no tiene texto). Es
 //    estable —la misma nota suena siempre con el mismo material— y reparte las
-//    notas sobre los dieciséis, que es lo que hace falta para que el corpus se
+//    notas sobre todo el catálogo, que es lo que hace falta para que el corpus se
 //    oiga y el pool se ejercite. No pretende significar nada, y esto es
 //    deliberado: el emparejamiento automático nota→material está medido y no
 //    funciona (45 de 78 notas, cosenos 0.02–0.08; `ventilador` se llevaba ocho

@@ -1,5 +1,5 @@
 {
-  "generado": "2026-09-20",
+  "generado": "2026-09-26",
   "_medicion": {
     "lufs": "sonoridad integrada EBU R128 del fragmento ya normalizado",
     "pico_dbfs": "pico de muestra tras la normalización",
@@ -16,7 +16,7 @@
   "techo_dbtp": -1,
   "duracion_s": 45,
   "bitrate": "96k",
-  "total_bytes": 8652122,
+  "total_bytes": 9733680,
   "materiales": [
     {
       "id": "metro-cdmx",
@@ -239,14 +239,58 @@
       "bytes": 540779
     },
     {
-      "id": "lavadora-fiesta",
-      "titulo": "Lavadora y fiesta",
-      "archivo": "corpus/lavadora-fiesta.mp3",
+      "id": "lavadora-fiesta-1",
+      "titulo": "Lavadora y fiesta, toma 1",
+      "archivo": "corpus/lavadora-fiesta-1.mp3",
+      "terminos": [],
+      "fuente": {
+        "ruta": "sonidos/grabaciones/2024/cdmx/lavadoraFiesta01.wav",
+        "desde": 35,
+        "criterio": "primera de tres tomas; tramo de 45 s más estable en nivel"
+      },
+      "duracion_s": 45,
+      "lufs": -20.4,
+      "pico_dbfs": -1.2,
+      "lra": 4.5,
+      "ganancia_db": 23,
+      "picos_limitados_db": 0.5,
+      "quietud_db": 2,
+      "centroide_hz": 2453.3,
+      "planitud": 0.0792,
+      "rolloff_hz": 5512.5,
+      "bytes": 540779
+    },
+    {
+      "id": "lavadora-fiesta-2",
+      "titulo": "Lavadora y fiesta, toma 2",
+      "archivo": "corpus/lavadora-fiesta-2.mp3",
+      "terminos": [],
+      "fuente": {
+        "ruta": "sonidos/grabaciones/2024/cdmx/lavadoraFiesta02.wav",
+        "desde": 201,
+        "criterio": "segunda de tres tomas; tramo de 45 s más estable en nivel"
+      },
+      "duracion_s": 45,
+      "lufs": -20.4,
+      "pico_dbfs": -4.5,
+      "lra": 1.9,
+      "ganancia_db": 20.1,
+      "picos_limitados_db": 0,
+      "quietud_db": 1.1,
+      "centroide_hz": 2048.1,
+      "planitud": 0.0581,
+      "rolloff_hz": 4715.8,
+      "bytes": 540779
+    },
+    {
+      "id": "lavadora-fiesta-3",
+      "titulo": "Lavadora y fiesta, toma 3",
+      "archivo": "corpus/lavadora-fiesta-3.mp3",
       "terminos": [],
       "fuente": {
         "ruta": "sonidos/grabaciones/2024/cdmx/lavadoraFiesta03.wav",
         "desde": 289,
-        "criterio": "la más estable de las tres tomas; tramo de 45 s más estable"
+        "criterio": "tercera de tres tomas, la más estable; tramo de 45 s más estable en nivel"
       },
       "duracion_s": 45,
       "lufs": -20.5,
