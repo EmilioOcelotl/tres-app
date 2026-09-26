@@ -192,7 +192,7 @@ Dos cosas que conviene tener presentes:
 ## Corpus sonoro
 
 El material que suena en el grafo y en el visor de comprimidos vive en
-`assets/snd/corpus/`: 16 fragmentos de 45 s, mono, normalizados a −20 LUFS.
+`assets/snd/corpus/`: 18 fragmentos de 45 s, mono, normalizados a −20 LUFS.
 Están **versionados**, así que un `git pull` los trae y en producción no hay nada
 que construir.
 
