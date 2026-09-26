@@ -150,6 +150,14 @@
       "desde": 19,
       "criterio": "la muestra que la pieza usaba como fuente única; entra al corpus como una más",
       "terminos": []
+    },
+    {
+      "id": "neo-cdm",
+      "titulo": "neo:cdm, Ciudad Monstruo (cablebús → celebración / represión)",
+      "archivo": "proyectos/ciudad-monstruo-v1/neo_cdm/analisis/salidas/relato_de_NCDM.wav",
+      "desde": 317,
+      "criterio": "tramo de 45 s más estable en nivel del máster de entrega (velo A); es el desenlace de la pieza: alientos 30–32 del guion",
+      "terminos": []
     }
   ],
   "compuestas": {
