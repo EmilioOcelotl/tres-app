@@ -130,19 +130,36 @@ function enPanel(doc, x, y, w, h, rotar, fn) {
   doc.restore();
 }
 
-function pagPortada(doc, w, h, params, narrativa, fecha) {
+function pagPortada(doc, w, h, params, narrativa, fecha, epigrafe = null) {
   const m = 16;
   doc.font('mono').fontSize(5.5).fillColor(COLOR_GRIS)
      .text('TRES ESTUDIOS ABIERTOS', m, m, { characterSpacing: 1.5 })
      .text('archivo comprimido · parte III', m, m + 9);
-  doc.font('texto').fontSize(22).fillColor(COLOR_TINTA)
-     .text(params.titulo || 'sin título', m, h * 0.22, { width: w - 2 * m });
+  // El título tiene hasta el snapshot (h·0.44) para caber: si a 22 pt no entra
+  // se reduce hasta 12. Con «Anti» o «Iteración» no cambia nada; con un título
+  // de tres renglones se encimaba con el dither.
+  const titulo = params.titulo || 'sin título';
+  let cuerpo = 22;
+  doc.font('texto');
+  while (cuerpo > 12 && doc.fontSize(cuerpo).heightOfString(titulo, { width: w - 2 * m }) > h * 0.21) cuerpo--;
+  doc.fontSize(cuerpo).fillColor(COLOR_TINTA)
+     .text(titulo, m, h * 0.22, { width: w - 2 * m });
   const px = generateSyntheticPixels({ id: `portada-${params.semilla}`, level: 1, childCount: params.pasos }, 26, 26);
   const celda = (w - 2 * m) * 0.45 / 26;
   dibujarSnapshot(doc, px, 26, 26, m, h * 0.44, celda, COLOR_PARTE.p2);
   if (narrativa.portada.length) {
     doc.font('mono').fontSize(6).fillColor(COLOR_GRIS)
        .text(narrativa.portada.join(' '), m, h * 0.72, { width: w - 2 * m });
+  } else if (epigrafe) {
+    // Portada automática: la frase, la atribución en su propio renglón y, si
+    // salió por afinidad, el término que la trajo (como en los pasos).
+    doc.font('mono').fontSize(6).fillColor(COLOR_GRIS)
+       .text(epigrafe.texto, m, h * 0.72, { width: w - 2 * m })
+       .text(epigrafe.atribucion, { width: w - 2 * m });
+    if (epigrafe.termino) {
+      doc.fontSize(5.5).fillColor(COLOR_PARTE.p2)
+         .text(`por «${epigrafe.termino}»`, { width: w - 2 * m });
+    }
   }
   doc.font('mono').fontSize(5.5).fillColor(COLOR_GRIS)
      .text(`semilla ${params.semilla} · ${fecha}`, m, h - m - 8);
@@ -368,7 +385,7 @@ async function main() {
   console.log(`Imágenes: ${blobs.size} adjuntos en ${conImg.length} de ${pasos.length} pasos`);
   console.log(`Riso (mockup): separación cian/magenta, trama de punto ${LPI_MOCKUP} lpi sobre ${DPI} dpi`);
 
-  const paginas = [(w, h) => pagPortada(doc, w, h, params, narrativa, fecha)];
+  const paginas = [(w, h) => pagPortada(doc, w, h, params, narrativa, fecha, instancia.epigrafe)];
   const cuerpo = params.formato === 'zine8' ? 6 : pasos.length;
   for (let i = 0; i < cuerpo; i++) {
     if (i < pasos.length) paginas.push((w, h) => pagFragmento(doc, w, h, pasos[i], blobs));
