@@ -1,39 +1,17 @@
 {
   "meta": 7,
-  "publicadas": 3,
+  "publicadas": 1,
   "ediciones": [
     {
-      "slug": "anti-zine-s12",
-      "titulo": "Anti",
-      "receta": "anti-zine",
-      "semilla": 12,
+      "slug": "primera-caminata-s9",
+      "titulo": "Una caminata por la base de datos",
+      "receta": "primera-caminata",
+      "semilla": 9,
       "formato": "zine8",
       "pasos": 6,
-      "fecha": "2026-09-21",
+      "fecha": "2026-09-28",
       "pdf": true,
-      "imagenes": 6
-    },
-    {
-      "slug": "anti-zine-s26",
-      "titulo": "Anti",
-      "receta": "anti-zine",
-      "semilla": 26,
-      "formato": "zine8",
-      "pasos": 6,
-      "fecha": "2026-09-21",
-      "pdf": true,
-      "imagenes": 4
-    },
-    {
-      "slug": "iteracion-zine-s12",
-      "titulo": "Iteración",
-      "receta": "iteracion-zine",
-      "semilla": 12,
-      "formato": "zine8",
-      "pasos": 6,
-      "fecha": "2026-09-21",
-      "pdf": true,
-      "imagenes": 2
+      "imagenes": 1
     }
   ]
 }
