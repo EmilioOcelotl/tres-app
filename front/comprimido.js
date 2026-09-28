@@ -8,7 +8,8 @@
 import { GrainEngine }  from 'treslib/GrainEngine';
 import { SnapToGrains } from 'treslib/SnapToGrains';
 import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
-import { cargarCatalogo, catalogo, conTermino, materialParaNota, obtenerBuffer, fijar } from './corpus.js';
+import { cargarCatalogo, usarCatalogo, catalogo, conTermino, materialParaNota, obtenerBuffer, fijar } from './corpus.js';
+import { snapPortada, hayInterludio, snapInterludio, snapContraportada } from './paneles.js';
 
 const RECETA_DEFAULT  = 'iteracion-zine';
 const SEMILLA_DEFAULT = 12;
@@ -85,8 +86,17 @@ async function initAudio() {
         AudioSystem.ctx = new (window.AudioContext || window.webkitAudioContext)();
 
         // Igual que el grafo: el material lo trae el pool cuando se sabe qué panel
-        // suena, así que el motor arranca sin buffer (ver corpus.js).
-        await cargarCatalogo();
+        // suena, así que el motor arranca sin buffer (ver corpus.js). Una edición
+        // con el sonido congelado no mira el catálogo vivo: el pool sólo conoce los
+        // materiales del acta, servidos desde el pozo de la edición.
+        const congelado = sonidoCongelado();
+        if (congelado) {
+            usarCatalogo({ materiales: Object.entries(congelado.materiales).map(([id, m]) => ({
+                ...m, id, url: `/comprimidos/${EDICION}/snd/${m.archivo}`
+            })) });
+        } else {
+            await cargarCatalogo();
+        }
 
         AudioSystem.grainEngine = new GrainEngine(AudioSystem.ctx, null, {
             masterAmp:  0.7,
@@ -108,10 +118,27 @@ async function initAudio() {
         });
 
         AudioSystem.initialized = true;
-        console.log(`Audio listo — ${catalogo().length} materiales, ${conTermino()} con término declarado`);
+        console.log(congelado
+            ? `Audio listo — sonido congelado el ${congelado.congelado}: ${catalogo().length} materiales del acta`
+            : `Audio listo — ${catalogo().length} materiales, ${conTermino()} con término declarado`);
     } catch (err) {
         console.error('Error iniciando audio:', err);
     }
+}
+
+// El acta de una edición publicada trae el material de cada panel (ver
+// publicar.js). Sólo cuenta dentro de la edición: REGENERAR sale al visor vivo.
+function sonidoCongelado() {
+    return EDICION ? AppState.instancia?.sonido || null : null;
+}
+
+// QUÉ suena en este panel: lo que dice el acta si la edición lo congeló; si no,
+// la regla viva de corpus.js contra el catálogo de hoy. Las ediciones publicadas
+// antes del 2026-09-28 no traen `sonido` y siguen sonando por la regla viva.
+function materialDelPanel(node) {
+    const congelado = sonidoCongelado();
+    if (congelado) return congelado.porPanel[node.id] || null;
+    return materialParaNota(node);
 }
 
 function applyGrainParams(stg, analysis) {
@@ -132,7 +159,7 @@ function activateGrains(node) {
     const analysis = stg.analyzePixelData(pixels);
     if (!analysis) return;
 
-    const material = materialParaNota(node);
+    const material = materialDelPanel(node);
     const turno    = ++AudioSystem.turno;
     const llegando = obtenerBuffer(ctx, material).catch(err => {
         console.warn('No se pudo cargar el material', material, err);
@@ -222,7 +249,7 @@ function construirTira(instancia) {
     tira.innerHTML = '';
 
     // portada
-    const portadaSnap = { id: `portada-${params.semilla}`, level: 1, childCount: params.pasos };
+    const portadaSnap = snapPortada(params);
     const portada = panelConSnap('panel-portada', portadaSnap, 'p2');
     portada.appendChild(el('div', 'eyebrow', 'TRES ESTUDIOS ABIERTOS · ARCHIVO COMPRIMIDO'));
     portada.appendChild(el('h1', null, params.titulo || 'sin título'));
@@ -292,8 +319,8 @@ function construirTira(instancia) {
         tira.appendChild(panel);
 
         // interludio sintético cada dos fragmentos (la mezcla: dither entre notas)
-        if (i % 2 === 1 && i < pasos.length - 1) {
-            const interSnap = { id: `interludio-${params.semilla}-${i}`, level: 2, childCount: 3 };
+        if (hayInterludio(i, pasos.length)) {
+            const interSnap = snapInterludio(params, i);
             const inter = panelConSnap('panel-interludio', interSnap, 'p1');
             inter.appendChild(crearCanvasDither(interSnap, 'p1'));
             tira.appendChild(inter);
@@ -301,7 +328,7 @@ function construirTira(instancia) {
     });
 
     // contraportada
-    const contraSnap = { id: `reverso-${params.semilla}`, level: 1, childCount: pasos.length };
+    const contraSnap = snapContraportada(params, pasos.length);
     const contra = panelConSnap('panel-contraportada', contraSnap, 'root');
     contra.innerHTML = `
         <div class="fuerte">instancia irrepetible</div>
