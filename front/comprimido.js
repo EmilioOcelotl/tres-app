@@ -427,6 +427,193 @@ async function cargarRecetas() {
     return recetas;
 }
 
+// ------------------------------------------------------ receta de visitante
+//
+// Los controles escriben una receta en el mismo formato que las del autor
+// (cues `clave: valor` + `## Portada`); el texto se muestra, no se edita
+// (decisión del autor 2026-09-28), y es lo que se manda. El servidor la pasa por
+// el mismo traductor. Nada se publica ni se guarda: VER la muestra en la tira,
+// DESCARGAR PDF la imprime.
+
+const Receta = {
+    notas: [],           // arranques posibles, de /api/comprimidos/notas
+};
+
+const $ = id => document.getElementById(id);
+const valorRadio = nombre => document.querySelector(`input[name="${nombre}"]:checked`)?.value;
+
+async function cargarNotasDeArranque() {
+    const res = await fetch('/api/comprimidos/notas');
+    const { notas } = await res.json();
+    Receta.notas = notas;
+    const sel = $('r-desde');
+    sel.innerHTML = '';
+    // Agrupadas por Parte, con la ruta en el árbol: hay cuatro «Léeme».
+    const grupos = new Map();
+    for (const n of notas) {
+        const parte = n.ruta[0] || 'Tres Estudios Abiertos';
+        if (!grupos.has(parte)) grupos.set(parte, []);
+        grupos.get(parte).push(n);
+    }
+    for (const [parte, lista] of grupos) {
+        const og = document.createElement('optgroup');
+        og.label = parte;
+        for (const n of lista) {
+            const opt = document.createElement('option');
+            opt.value = n.id;
+            const camino = n.ruta.slice(1).concat(n.title).join(' › ');
+            opt.textContent = `${camino} (${n.wc}w${n.esCodigo ? ', código' : ''})`;
+            og.appendChild(opt);
+        }
+        sel.appendChild(og);
+    }
+    const inicial = notas.find(n => n.title === 'Aprendizaje de Máquinas');
+    if (inicial) sel.value = inicial.id;
+}
+
+function recetaDesdeControles() {
+    const titulo  = $('r-titulo').value.trim() || 'Mi caminata';
+    const desde   = $('r-desde').value;
+    const nota    = Receta.notas.find(n => n.id === desde);
+    const epigrafe = valorRadio('r-epigrafe');
+    const cobertura = [...document.querySelectorAll('input[name="r-cobertura"]:checked')].map(c => c.value);
+    const semilla = $('r-semilla').value.trim();
+
+    const lineas = [
+        `# Receta: ${titulo}`,
+        '',
+        `formato: ${$('r-formato').value}`,
+        `desde: ${desde}`,
+        `pasos: ${$('r-pasos').value}`,
+        `recorte: ${$('r-recorte').value}`,
+        `afinidad: ${valorRadio('r-afinidad')}`,
+        `codigo: ${valorRadio('r-codigo')}`,
+    ];
+    if (cobertura.length) lineas.push(`cobertura: ${cobertura.join(', ')}`);
+    if (semilla) lineas.push(`semilla: ${semilla}`);
+    if (epigrafe === 'anti') lineas.push('epigrafe: anti');
+    if (nota) lineas.push('', `(arranca en ${nota.ruta.concat(nota.title).join(' › ')})`);
+    const propio = $('r-portada').value.trim();
+    if (epigrafe === 'propio' && propio) lineas.push('', '## Portada', '', propio);
+    return lineas.join('\n') + '\n';
+}
+
+function actualizarTexto() {
+    $('r-portada').hidden = valorRadio('r-epigrafe') !== 'propio';
+    $('r-texto').value = recetaDesdeControles();
+}
+
+function estadoReceta(html, error = false) {
+    const e = $('r-estado');
+    e.innerHTML = html;
+    e.classList.toggle('error', error);
+}
+
+function ocupado(si) {
+    $('r-ver').disabled = si;
+    $('r-pdf').disabled = si;
+}
+
+// La semilla que se manda: la del campo si hay; si no, el servidor sortea y la
+// devuelve, y se escribe en el campo para que el PDF repita la vista previa.
+function cuerpoReceta() {
+    const s = parseInt($('r-semilla').value, 10);
+    return JSON.stringify({ receta: $('r-texto').value, semilla: Number.isFinite(s) ? s : undefined });
+}
+
+async function errorDe(res) {
+    const err = await res.json().catch(() => ({}));
+    return err.error || `error ${res.status}`;
+}
+
+async function verReceta() {
+    ocupado(true);
+    estadoReceta('generando la caminata<span class="puntos"></span>');
+    try {
+        const res = await fetch('/api/comprimidos/receta/instancia', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: cuerpoReceta()
+        });
+        if (!res.ok) return estadoReceta(await errorDe(res), true);
+        const instancia = await res.json();
+        AppState.instancia = instancia;
+        AppState.panelActivo = null;
+        $('r-semilla').value = instancia.params.semilla;
+        actualizarTexto();
+        construirTira(instancia);
+        window.scrollTo({ top: 0 });
+        estadoReceta(`semilla ${instancia.params.semilla} · ${instancia.pasos.length} pasos`);
+    } catch (err) {
+        estadoReceta('no se pudo conectar con el servidor', true);
+    } finally {
+        ocupado(false);
+    }
+}
+
+async function descargarReceta() {
+    ocupado(true);
+    // Con imágenes, la separación a dos tintas tarda unos segundos.
+    estadoReceta('imprimiendo el cuadernillo — puede tardar unos segundos<span class="puntos"></span>');
+    try {
+        const res = await fetch('/api/comprimidos/receta/pdf', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: cuerpoReceta()
+        });
+        if (!res.ok) return estadoReceta(await errorDe(res), true);
+        const blob = await res.blob();
+        const nombre = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || 'cuadernillo.pdf';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nombre;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        estadoReceta(`listo: ${nombre}`);
+    } catch (err) {
+        estadoReceta('no se pudo conectar con el servidor', true);
+    } finally {
+        ocupado(false);
+    }
+}
+
+async function abrirReceta() {
+    const panel = $('receta');
+    panel.style.top = `${$('barra').offsetHeight}px`;
+    panel.hidden = false;
+    $('btn-receta').classList.add('activo');
+    if (!Receta.notas.length) {
+        try {
+            await cargarNotasDeArranque();
+        } catch {
+            return estadoReceta('no se pudo cargar la lista de notas', true);
+        }
+        actualizarTexto();
+    }
+}
+
+function cerrarReceta() {
+    $('receta').hidden = true;
+    $('btn-receta').classList.remove('activo');
+}
+
+function prepararReceta() {
+    $('btn-receta').addEventListener('click', () => {
+        // Dentro de una edición congelada, la receta propia vive en el visor vivo:
+        // la edición es el archivo y no se sobrescribe en sitio.
+        if (EDICION) { window.location.href = '/comprimido.html?escribir'; return; }
+        if ($('receta').hidden) abrirReceta(); else cerrarReceta();
+    });
+    $('receta-cerrar').addEventListener('click', cerrarReceta);
+
+    const controles = document.querySelectorAll('#receta input:not(#r-semilla), #receta select, #r-portada');
+    controles.forEach(c => c.addEventListener('input', actualizarTexto));
+    controles.forEach(c => c.addEventListener('change', actualizarTexto));
+    $('r-semilla').addEventListener('input', actualizarTexto);
+
+    $('r-ver').addEventListener('click', verReceta);
+    $('r-pdf').addEventListener('click', descargarReceta);
+}
+
 // --------------------------------------------------------------------- init
 
 async function init() {
@@ -483,6 +670,9 @@ async function init() {
             deactivateGrains();
         }
     });
+
+    prepararReceta();
+    if (urlParams.has('escribir')) abrirReceta();
 
     await cargarInstancia(sel.value, semilla);
 

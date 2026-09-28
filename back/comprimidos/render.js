@@ -79,10 +79,14 @@ async function cargarImagenes(pasos) {
 // La separación es cara y cada imagen se dibuja dos veces (pliego impuesto y
 // páginas de lectura): se procesa una vez por caja y se reusa.
 const cacheRiso = new Map();
+const CACHE_RISO = 40;
 
 function imagenRiso(blobs, im, wPt, hPt) {
   const clave = `${im.attachmentId}@${Math.round(wPt)}x${Math.round(hPt)}`;
   if (!cacheRiso.has(clave)) {
+    // En el servidor este módulo vive mientras viva el proceso: se sostienen
+    // las últimas CACHE_RISO separaciones y se suelta la más vieja.
+    if (cacheRiso.size >= CACHE_RISO) cacheRiso.delete(cacheRiso.keys().next().value);
     const blob = blobs.get(im.attachmentId);
     const r = procesarImagen(blob.content, blob.mime, wPt, hPt);
     cacheRiso.set(clave, r);
@@ -360,6 +364,40 @@ function renderMapa(doc, paginas, params, pasos) {
   doc.restore();
 }
 
+// ------------------------------------------------------------------- render
+
+// Dibuja el cuadernillo de una instancia y lo entrega como Buffer. Lo usan el
+// script (que además lo escribe a salida/ con su acta) y la ruta del visor que
+// genera el PDF de un visitante, que no escribe nada a disco.
+export async function renderizarPDF(instancia) {
+  const { params, narrativa, pasos, fecha } = instancia;
+  const blobs = await cargarImagenes(pasos);
+
+  const doc = new PDFDocument({ autoFirstPage: false, margin: 0 });
+  doc.registerFont('texto', FUENTE_TEXTO);
+  doc.registerFont('mono', FUENTE_MONO);
+  doc.registerFont('monobold', FUENTE_MONO_B);
+
+  const paginas = [(w, h) => pagPortada(doc, w, h, params, narrativa, fecha, instancia.epigrafe)];
+  const cuerpo = params.formato === 'zine8' ? 6 : pasos.length;
+  for (let i = 0; i < cuerpo; i++) {
+    if (i < pasos.length) paginas.push((w, h) => pagFragmento(doc, w, h, pasos[i], blobs));
+    else paginas.push((w, h) => pagInterludio(doc, w, h, params, i));
+  }
+  paginas.push((w, h) => pagContraportada(doc, w, h, params, pasos, fecha));
+
+  const trozos = [];
+  doc.on('data', t => trozos.push(t));
+  const listo = new Promise((res, rej) => { doc.on('end', res); doc.on('error', rej); });
+
+  if (params.formato === 'zine8') renderZine8(doc, paginas);
+  else renderMapa(doc, paginas, params, pasos);
+
+  doc.end();
+  await listo;
+  return { pdf: Buffer.concat(trozos), imagenes: blobs.size };
+}
+
 // ---------------------------------------------------------------------- main
 
 async function main() {
@@ -374,42 +412,20 @@ async function main() {
 
   const instancia = await generarInstancia(
     path.resolve(__dirname, '..', rutaReceta), semillaOverride);
-  const { params, narrativa, pasos, fecha } = instancia;
+  const { params, pasos } = instancia;
 
   console.log(`Receta: ${params.titulo} · formato ${params.formato} · semilla ${params.semilla}`);
   console.log('Caminata:');
   pasos.forEach((p, i) => console.log(`  ${i + 1}. [${p.via}] ${p.title} (${p.wc}w, ${p.part})`));
-
-  const blobs = await cargarImagenes(pasos);
-  const conImg = pasos.filter(p => (p.imagenes || []).some(im => blobs.has(im.attachmentId)));
-  console.log(`Imágenes: ${blobs.size} adjuntos en ${conImg.length} de ${pasos.length} pasos`);
   console.log(`Riso (mockup): separación cian/magenta, trama de punto ${LPI_MOCKUP} lpi sobre ${DPI} dpi`);
 
-  const paginas = [(w, h) => pagPortada(doc, w, h, params, narrativa, fecha, instancia.epigrafe)];
-  const cuerpo = params.formato === 'zine8' ? 6 : pasos.length;
-  for (let i = 0; i < cuerpo; i++) {
-    if (i < pasos.length) paginas.push((w, h) => pagFragmento(doc, w, h, pasos[i], blobs));
-    else paginas.push((w, h) => pagInterludio(doc, w, h, params, i));
-  }
-  paginas.push((w, h) => pagContraportada(doc, w, h, params, pasos, fecha));
+  const { pdf, imagenes } = await renderizarPDF(instancia);
+  console.log(`Imágenes: ${imagenes} adjuntos`);
 
   const salidaDir = path.join(__dirname, 'salida');
   fs.mkdirSync(salidaDir, { recursive: true });
-  const nombre = `${path.basename(rutaReceta, '.md')}-s${params.semilla}.pdf`;
-  const rutaPdf = path.join(salidaDir, nombre);
-
-  const doc = new PDFDocument({ autoFirstPage: false, margin: 0 });
-  doc.registerFont('texto', FUENTE_TEXTO);
-  doc.registerFont('mono', FUENTE_MONO);
-  doc.registerFont('monobold', FUENTE_MONO_B);
-  const stream = fs.createWriteStream(rutaPdf);
-  doc.pipe(stream);
-
-  if (params.formato === 'zine8') renderZine8(doc, paginas);
-  else renderMapa(doc, paginas, params, pasos);
-
-  doc.end();
-  await new Promise(res => stream.on('finish', res));
+  const rutaPdf = path.join(salidaDir, `${path.basename(rutaReceta, '.md')}-s${params.semilla}.pdf`);
+  fs.writeFileSync(rutaPdf, pdf);
 
   // Acta de la instancia: la caminata depende de la semilla Y del estado de
   // la BD (que se sincroniza por cron), así que el JSON congela lo que este
@@ -420,4 +436,7 @@ async function main() {
   console.log(`Instancia: ${rutaJson}`);
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+// Sólo como script: la ruta del visor importa este módulo por renderizarPDF.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(err => { console.error(err); process.exit(1); });
+}

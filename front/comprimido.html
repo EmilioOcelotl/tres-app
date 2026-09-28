@@ -29,8 +29,77 @@
             <button id="btn-render" title="Renderizar con esta semilla">RENDER</button>
             <button id="btn-regenerar" title="Nueva instancia (semilla nueva)">REGENERAR</button>
             <button id="btn-audio" title="Granulación sobre el snapshot del panel visible">AUD: OFF</button>
+            <button id="btn-receta" title="Escribe tu propia receta y descarga tu cuadernillo">ESCRIBIR RECETA</button>
         </div>
     </header>
+
+    <!-- Receta de visitante: los controles escriben la receta en el texto de
+         abajo, que se muestra pero no se edita. No se publica ni se guarda. -->
+    <aside id="receta" hidden>
+        <div class="receta-cabeza">
+            <span class="eyebrow">TU RECETA</span>
+            <button id="receta-cerrar" title="Cerrar">×</button>
+        </div>
+        <p class="receta-nota">Elige los parámetros; abajo se escribe tu receta. Tu cuadernillo no se publica ni se guarda: sólo se descarga.</p>
+
+        <label>título
+            <input id="r-titulo" type="text" maxlength="80" placeholder="Mi caminata">
+        </label>
+        <label>nota inicial
+            <select id="r-desde"></select>
+        </label>
+        <div class="receta-fila">
+            <label>formato
+                <select id="r-formato">
+                    <option value="zine8">zine de 8</option>
+                    <option value="mapa">mapa desplegable</option>
+                </select>
+            </label>
+            <label>pasos
+                <input id="r-pasos" type="number" min="2" max="8" value="6">
+            </label>
+            <label>recorte
+                <input id="r-recorte" type="number" min="10" max="150" value="50">
+            </label>
+        </div>
+        <fieldset>
+            <legend>camina por</legend>
+            <label class="opcion"><input type="radio" name="r-afinidad" value="termino" checked> palabras compartidas</label>
+            <label class="opcion"><input type="radio" name="r-afinidad" value="enlace"> enlaces del documento</label>
+        </fieldset>
+        <fieldset>
+            <legend>código</legend>
+            <label class="opcion"><input type="radio" name="r-codigo" value="incluir" checked> incluir</label>
+            <label class="opcion"><input type="radio" name="r-codigo" value="evitar"> evitar</label>
+            <label class="opcion"><input type="radio" name="r-codigo" value="solo"> sólo código</label>
+        </fieldset>
+        <fieldset>
+            <legend>que no falte</legend>
+            <label class="opcion"><input type="checkbox" name="r-cobertura" value="prosa"> prosa</label>
+            <label class="opcion"><input type="checkbox" name="r-cobertura" value="codigo"> código</label>
+            <label class="opcion"><input type="checkbox" name="r-cobertura" value="imagen"> imagen</label>
+        </fieldset>
+        <fieldset>
+            <legend>epígrafe</legend>
+            <label class="opcion"><input type="radio" name="r-epigrafe" value="anti" checked> una frase de anti</label>
+            <label class="opcion"><input type="radio" name="r-epigrafe" value="propio"> escribo el mío</label>
+            <label class="opcion"><input type="radio" name="r-epigrafe" value="ninguno"> sin epígrafe</label>
+            <textarea id="r-portada" maxlength="400" rows="3" placeholder="tu epígrafe" hidden></textarea>
+        </fieldset>
+        <label>semilla <span class="receta-nota">(vacía = al azar)</span>
+            <input id="r-semilla" type="number" min="1" max="9999">
+        </label>
+
+        <label>la receta
+            <textarea id="r-texto" rows="12" spellcheck="false" readonly></textarea>
+        </label>
+
+        <div class="receta-acciones">
+            <button id="r-ver">VER</button>
+            <button id="r-pdf">DESCARGAR PDF</button>
+        </div>
+        <div id="r-estado" class="receta-nota" aria-live="polite"></div>
+    </aside>
 
     <main id="tira">
         <div id="estado">cargando instancia…</div>
