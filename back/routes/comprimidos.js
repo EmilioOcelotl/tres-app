@@ -34,7 +34,7 @@ router.get('/recetas', (req, res) => {
 });
 
 // Instancia de un archivo comprimido: receta + semilla → caminata congelada.
-// GET /api/comprimidos/instancia?receta=iteracion-zine&semilla=12
+// GET /api/comprimidos/instancia?receta=primera-caminata&semilla=9
 router.get('/instancia', async (req, res) => {
   try {
     const nombre = path.basename(String(req.query.receta || ''));

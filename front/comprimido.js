@@ -11,8 +11,8 @@ import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
 import { cargarCatalogo, usarCatalogo, catalogo, conTermino, materialParaNota, obtenerBuffer, fijar } from './corpus.js';
 import { snapPortada, hayInterludio, snapInterludio, snapContraportada } from './paneles.js';
 
-const RECETA_DEFAULT  = 'iteracion-zine';
-const SEMILLA_DEFAULT = 12;
+const RECETA_DEFAULT  = 'primera-caminata';
+const SEMILLA_DEFAULT = 9;
 
 // Bajo /comprimidos/<receta>-s<semilla> el visor sirve una edición congelada:
 // lee el acta publicada en vez de pedir una caminata nueva, y toma las imágenes
