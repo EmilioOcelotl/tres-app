@@ -32,7 +32,12 @@ const TIPOS_COBERTURA = ['prosa', 'codigo', 'imagen'];
 const CUE_RE = /^([a-záéíóúñ]+)\s*:\s*(.+)$/i;
 
 export function traducirReceta(rutaReceta) {
-  const texto = fs.readFileSync(rutaReceta, 'utf8');
+  return traducirTexto(fs.readFileSync(rutaReceta, 'utf8'));
+}
+
+// La receta como texto: la de un archivo del autor o la que escribe un visitante
+// en el visor. Pasan por las mismas reglas.
+export function traducirTexto(texto) {
   const params = { ...DEFAULTS };
   const narrativa = { general: [], portada: [] };
   let seccion = 'general';

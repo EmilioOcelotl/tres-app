@@ -10,7 +10,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { NoteService } from '../services/noteService.js';
 import { ContentProcessor } from '../services/contentProcessor.js';
-import { traducirReceta } from './traducir.js';
+import { traducirReceta, traducirTexto } from './traducir.js';
 import { grafoTerminos, rasgosDeNotas } from '../services/semantica.js';
 
 // Mismo hash y LCG que el snapshot sintético del front (front/main.js)
@@ -115,7 +115,7 @@ function extraerImagenes(html) {
 
 function aplanar(root) {
   const nodos = new Map();
-  (function walk(n, level, part) {
+  (function walk(n, level, part, ruta = []) {
     let p = part;
     if (level === 1) {
       if (/Parte I\b/.test(n.title)) p = 'p1';
@@ -134,8 +134,10 @@ function aplanar(root) {
       id: n.noteId, title: n.title, level, part: p || 'root',
       childCount: (n.children || []).length, wc, texto, esCodigo,
       imagenes: esCodigo ? [] : extraerImagenes(contenido),
+      ruta,                       // títulos de los ancestros, sin la raíz
     });
-    (n.children || []).forEach(c => walk(c, level + 1, p));
+    const rutaHijos = level === 0 ? [] : [...ruta, n.title];
+    (n.children || []).forEach(c => walk(c, level + 1, p, rutaHijos));
   })(root, 0, null);
   return nodos;
 }
@@ -165,8 +167,12 @@ function caminata(nodos, crossLinks, params, rng, afinidad = null) {
   const vecindad = id => (porTermino ? porTermino.get(id) : ady.get(id)) || [];
   const terminoEntre = (a, b) => afinidad?.get(a)?.get(b)?.termino || null;
 
+  // `desde` es un título (o fragmento) en las recetas del autor, y un noteId en
+  // las del visor: la lista de arranques manda el id, que no es ambiguo entre
+  // las cuatro notas que se llaman Léeme.
   const buscado = params.desde.toLowerCase();
-  let actual = [...nodos.values()].find(n => n.title.toLowerCase() === buscado)
+  let actual = nodos.get(params.desde)
+            || [...nodos.values()].find(n => n.title.toLowerCase() === buscado)
             || [...nodos.values()].find(n => n.title.toLowerCase().includes(buscado));
   if (!actual) throw new Error(`No encontré la nota de arranque "${params.desde}"`);
 
@@ -296,7 +302,25 @@ function elegirEpigrafe(fuente, pasos, semilla) {
 }
 
 export async function generarInstancia(rutaReceta, semillaOverride = null) {
-  const { params, narrativa } = traducirReceta(rutaReceta);
+  return instanciaDeReceta(traducirReceta(rutaReceta), semillaOverride);
+}
+
+export async function generarInstanciaDeTexto(texto, semillaOverride = null) {
+  return instanciaDeReceta(traducirTexto(texto), semillaOverride);
+}
+
+// Notas donde puede arrancar una caminata: las mismas que la caminata acepta
+// como paso (≥15 palabras, sin fichas de Referencias). Una nota más corta no
+// arranca nunca — el primer paso sería un salto — así que el visor no la ofrece.
+export async function notasDeArranque() {
+  const ns = new NoteService();
+  const nodos = aplanar(await ns.getCompleteTree());
+  return [...nodos.values()]
+    .filter(n => n.wc >= 15 && n.part !== 'refs' && n.level > 0)
+    .map(n => ({ id: n.id, title: n.title, ruta: n.ruta, part: n.part, wc: n.wc, esCodigo: n.esCodigo }));
+}
+
+async function instanciaDeReceta({ params, narrativa }, semillaOverride) {
   if (semillaOverride != null && !Number.isNaN(semillaOverride)) {
     params.semilla = semillaOverride;
   }
