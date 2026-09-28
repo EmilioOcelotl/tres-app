@@ -107,6 +107,17 @@ router.get('/:slug/img/:id.png', (req, res) => {
   res.sendFile(ruta);
 });
 
+// Pozo compartido del sonido congelado: `<material>-<hash>.mp3` (ver publicar.js).
+router.get('/:slug/snd/:archivo', (req, res) => {
+  const { archivo } = req.params;
+  if (!/^[a-z0-9-]+-[0-9a-f]{10}\.mp3$/.test(archivo)) return res.status(404).end();
+  const ruta = path.join(edicionesDir, 'snd', archivo);
+  if (!fs.existsSync(ruta)) return res.status(404).end();
+  // El nombre lleva el hash del contenido: el archivo no cambia nunca.
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.sendFile(ruta);
+});
+
 // La edición se ve con el mismo visor; `?edicion=` le dice de dónde leer.
 router.get('/:slug', (req, res) => {
   const { slug } = req.params;

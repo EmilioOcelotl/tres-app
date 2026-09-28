@@ -49,8 +49,14 @@ export async function cargarCatalogo() {
     if (materiales.length) return materiales;
     const res = await fetch(RUTA_CATALOGO);
     if (!res.ok) throw new Error(`catálogo de sonido: ${res.status}`);
-    const cat = await res.json();
-    materiales = (cat.materiales || []).filter(m => m && m.id && m.archivo);
+    return usarCatalogo(await res.json());
+}
+
+// Instala un catálogo ya leído. Lo usan cargarCatalogo, publicar.js (que en Node
+// lee el archivo de disco para congelar el material de cada panel) y el visor de
+// una edición congelada, que pasa los materiales del acta con su `url` al pozo.
+export function usarCatalogo(cat) {
+    materiales = (cat.materiales || []).filter(m => m && m.id && (m.archivo || m.url));
     porTermino = new Map();
     for (const m of materiales) {
         // Si dos materiales reclaman la misma palabra, gana el primero del
@@ -147,8 +153,9 @@ export async function obtenerBuffer(ctx, id) {
     if (!material) return null;
 
     const tarea = (async () => {
-        const res = await fetch(BASE_CORPUS + material.archivo);
-        if (!res.ok) throw new Error(`${material.archivo}: ${res.status}`);
+        const url = material.url || BASE_CORPUS + material.archivo;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${url}: ${res.status}`);
         const raw = await res.arrayBuffer();
         // decodeAudioData desprende el ArrayBuffer (byteLength queda en 0 después),
         // así que el tamaño se mide antes y el raw no se reusa.

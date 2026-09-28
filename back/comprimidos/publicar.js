@@ -14,14 +14,18 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { NoteService } from '../services/noteService.js';
 import { procesarParaWeb } from './riso.js';
+import { usarCatalogo, materialParaNota } from '../../front/corpus.js';
+import { snapsDePaneles } from '../../front/paneles.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const recetasDir   = path.join(__dirname, 'recetas');
 const salidaDir    = path.join(__dirname, 'salida');
 const edicionesDir = path.join(__dirname, 'ediciones');
+const sndDir       = path.join(__dirname, '..', '..', 'assets', 'snd');
 
 // Cuántas ediciones contempla el alcance C de la Parte III. El índice declara
 // el avance real contra este número: un archivo incompleto es coherente con la
@@ -74,10 +78,59 @@ async function congelarImagenes(pasos, pozoImg) {
   return { escritas, reusadas, omitidas };
 }
 
+// El sonido se congela igual que las imágenes, y por la misma razón: el visor
+// elegía el material contra el catálogo vivo, así que escribir un término en
+// fuentes.json, sumar un material o volver a cortar uno cambiaba cómo suena una
+// edición ya publicada. Con 18→19 materiales, 180 de 190 nodos cambiaron de
+// material, porque el reparto por hash es módulo del tamaño del catálogo.
+//
+// Se decide aquí, con la misma regla que usa el visor (corpus.js) y sobre los
+// mismos paneles (paneles.js), y el acta guarda el material de cada panel —
+// también portada, interludios y contraportada, que suenan aunque no sean notas.
+// Los mp3 van a un pozo compartido con el hash del contenido en el nombre: dos
+// ediciones que usan el mismo material comparten archivo, y un material que se
+// vuelve a cortar con el mismo id entra como archivo nuevo sin pisar al viejo.
+// El pozo no puede pesar más que las versiones del corpus que se hayan usado.
+function congelarSonido(instancia, pozoSnd) {
+  const cat = JSON.parse(fs.readFileSync(path.join(sndDir, 'catalogo.json'), 'utf8'));
+  usarCatalogo(cat);
+
+  const porPanel = {};
+  for (const snap of snapsDePaneles(instancia.params, instancia.pasos)) {
+    porPanel[snap.id] = materialParaNota(snap);
+  }
+
+  const materiales = {};
+  let escritos = 0, reusados = 0;
+  for (const id of new Set(Object.values(porPanel))) {
+    const ficha = cat.materiales.find(m => m.id === id);
+    const bytes = fs.readFileSync(path.join(sndDir, ficha.archivo));
+    const sha = crypto.createHash('sha256').update(bytes).digest('hex');
+    const archivo = `${id}-${sha.slice(0, 10)}.mp3`;
+    const destino = path.join(pozoSnd, archivo);
+    if (fs.existsSync(destino)) reusados++;
+    else {
+      fs.mkdirSync(pozoSnd, { recursive: true });
+      fs.writeFileSync(destino, bytes);
+      escritos++;
+    }
+    materiales[id] = { titulo: ficha.titulo, archivo, sha256: sha, terminos: ficha.terminos || [] };
+  }
+
+  instancia.sonido = {
+    congelado: new Date().toISOString().slice(0, 10),
+    catalogo: cat.generado,
+    materialesEnCatalogo: cat.materiales.length,
+    porPanel,
+    materiales
+  };
+  return { escritos, reusados, usados: Object.keys(materiales).length };
+}
+
 function reconstruirIndice() {
   const ediciones = fs.existsSync(edicionesDir)
     ? fs.readdirSync(edicionesDir, { withFileTypes: true })
-        .filter(d => d.isDirectory() && d.name !== 'img')
+        .filter(d => d.isDirectory() && d.name !== 'img' && d.name !== 'snd')
         .map(d => {
           const dir = path.join(edicionesDir, d.name);
           const inst = JSON.parse(fs.readFileSync(path.join(dir, 'instancia.json'), 'utf8'));
@@ -140,6 +193,7 @@ async function main() {
   const dir  = path.join(edicionesDir, slug);
   fs.mkdirSync(dir, { recursive: true });
 
+  const snd = congelarSonido(instancia, path.join(edicionesDir, 'snd'));
   fs.writeFileSync(path.join(dir, 'instancia.json'), JSON.stringify(instancia, null, 2));
   if (fs.existsSync(pdfSalida)) fs.copyFileSync(pdfSalida, path.join(dir, 'cuadernillo.pdf'));
 
@@ -149,6 +203,7 @@ async function main() {
   console.log(`\n── Edición publicada ──`);
   console.log(`  ${slug} → back/comprimidos/ediciones/${slug}/`);
   console.log(`  imágenes: ${img.escritas} congeladas, ${img.reusadas} ya en el pozo${img.omitidas ? `, ${img.omitidas} omitidas` : ''}`);
+  console.log(`  sonido: ${snd.usados} materiales — ${snd.escritos} congelados, ${snd.reusados} ya en el pozo`);
   console.log(`  índice: ${indice.publicadas} de ${indice.meta}`);
   console.log(`  URL: /comprimidos/${slug}`);
 }
