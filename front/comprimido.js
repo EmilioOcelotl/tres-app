@@ -256,6 +256,18 @@ function construirTira(instancia) {
     portada.appendChild(crearCanvasDither(portadaSnap, 'p2'));
     if (narrativa.portada?.length) {
         portada.appendChild(el('div', 'epigrafe', narrativa.portada.join(' ')));
+    } else if (instancia.epigrafe) {
+        // Portada automática (cue `epigrafe:`): frase, atribución aparte y, si
+        // salió por afinidad con la caminata, el término — igual que el PDF.
+        const ep = instancia.epigrafe;
+        const bloque = el('div', 'epigrafe', ep.texto);
+        bloque.appendChild(document.createElement('br'));
+        bloque.appendChild(document.createTextNode(ep.atribucion));
+        if (ep.termino) {
+            bloque.appendChild(document.createElement('br'));
+            bloque.appendChild(el('span', 'epigrafe-termino', `por «${ep.termino}»`));
+        }
+        portada.appendChild(bloque);
     }
     portada.appendChild(el('div', 'epigrafe', `semilla ${params.semilla} · ${fecha}`));
     tira.appendChild(portada);

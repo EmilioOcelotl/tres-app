@@ -21,7 +21,11 @@ const DEFAULTS = {
                          // lista de prosa | codigo | imagen (al menos una nota de cada uno)
   afinidad: 'enlace',    // por dónde camina: enlace (los crossLinks que escribió el
                          // autor) | termino (el término que pesa en las dos notas)
+  epigrafe: null,        // portada automática: anti (una frase de las escenas de
+                         // 4nt1). Si la receta trae `## Portada`, gana lo escrito.
 };
+
+const FUENTES_EPIGRAFE = ['anti'];
 
 const TIPOS_COBERTURA = ['prosa', 'codigo', 'imagen'];
 
@@ -48,7 +52,7 @@ export function traducirReceta(rutaReceta) {
     }
 
     const m = linea.match(CUE_RE);
-    if (m) m[1] = m[1].toLowerCase().replace(/^código$/, 'codigo');
+    if (m) m[1] = m[1].toLowerCase().replace(/^código$/, 'codigo').replace(/^epígrafe$/, 'epigrafe');
     if (m && m[1] in DEFAULTS) {
       const clave = m[1];
       const valor = m[2].trim();
@@ -75,6 +79,18 @@ export function traducirReceta(rutaReceta) {
   // término daría dos criterios peleando por el mismo paso.
   if (params.afinidad === 'termino' && params.codigo === 'solo') {
     throw new Error('afinidad: termino no combina con codigo: solo');
+  }
+  if (params.epigrafe) {
+    params.epigrafe = params.epigrafe.toLowerCase();
+    if (!FUENTES_EPIGRAFE.includes(params.epigrafe)) {
+      throw new Error(`Cue epigrafe desconocido: "${params.epigrafe}" (usa ${FUENTES_EPIGRAFE.join(', ')})`);
+    }
+    // Lo escrito a mano manda sobre lo automático: el cue queda anotado pero no
+    // actúa, y se avisa para que no parezca que el sorteo falló.
+    if (narrativa.portada.length) {
+      console.warn(`La receta trae ## Portada: se ignora "epigrafe: ${params.epigrafe}"`);
+      params.epigrafe = null;
+    }
   }
   if (params.cobertura) {
     params.cobertura = params.cobertura.split(',')

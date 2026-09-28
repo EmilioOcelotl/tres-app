@@ -125,6 +125,10 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
     margin-top: 26px;
     line-height: 1.7;
 }
+/* el término que trajo el epígrafe automático, en la tinta de la portada */
+.panel-portada .epigrafe-termino {
+    color: var(--p2);
+}
 
 /* fragmento */
 

@@ -5,6 +5,9 @@
 // imprimible y el visor web (front/comprimido.html) la vuelve página navegable.
 // Misma semilla ⇒ misma caminata y mismos fragmentos en ambas.
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { NoteService } from '../services/noteService.js';
 import { ContentProcessor } from '../services/contentProcessor.js';
 import { traducirReceta } from './traducir.js';
@@ -245,6 +248,53 @@ function caminata(nodos, crossLinks, params, rng, afinidad = null) {
 
 const LINEAS_CODIGO = 16;
 
+// Portada automática (cue `epigrafe:`). Las frases son material del autor ya
+// escrito —las escenas de 4nt1, copiadas con su procedencia por
+// scripts/frases-anti.mjs—: el sistema elige una, no redacta.
+const DIR_FUENTES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fuentes');
+const FUENTES_EPIGRAFE = { anti: path.join(DIR_FUENTES, 'anti-escenas.json') };
+
+const palabrasDe = texto => texto.split(/[^\p{L}\p{N}]+/u).map(normalizar).filter(Boolean);
+
+// Una frase, por afinidad con la caminata y, si nada coincide, por semilla.
+// Los términos se recorren en orden de visibilidad: primero los que el
+// cuadernillo imprime entre paso y paso, después los de más peso de cada nota
+// (rango a rango, para que ninguna nota acapare). El primer término que alguna
+// frase contiene decide, y entre las frases que lo contienen elige la semilla.
+// Ese término se imprime bajo el epígrafe, igual que en los pasos: el criterio
+// queda verificable en papel.
+function elegirEpigrafe(fuente, pasos, semilla) {
+  const doc = JSON.parse(fs.readFileSync(FUENTES_EPIGRAFE[fuente], 'utf8'));
+  const frases = doc.frases.map(f => ({ ...f, palabras: new Set(palabrasDe(f.texto)) }));
+  const rng = seededRandom(hashString(`epigrafe#${semilla}`));
+
+  const terminos = [];
+  const agregar = t => {
+    const k = normalizar(t || '');
+    if (k && !terminos.includes(k)) terminos.push(k);
+  };
+  pasos.forEach(p => agregar(p.termino));
+  const listas = pasos.map(p => p.rasgos?.terminos || []);
+  const largo = Math.max(0, ...listas.map(l => l.length));
+  for (let r = 0; r < largo; r++) for (const l of listas) agregar(l[r]);
+
+  let termino = null;
+  let candidatas = frases;
+  for (const t of terminos) {
+    const conT = frases.filter(f => f.palabras.has(t));
+    if (conT.length) { termino = t; candidatas = conT; break; }
+  }
+  const elegida = candidatas[Math.floor(rng() * candidatas.length)];
+  const archivo = doc.archivos[elegida.archivo];
+  return {
+    fuente,
+    texto: elegida.texto,
+    atribucion: `(${doc.autor}, ${archivo.año})`,
+    termino,                       // null = salió por semilla
+    archivo: archivo.ruta,
+  };
+}
+
 export async function generarInstancia(rutaReceta, semillaOverride = null) {
   const { params, narrativa } = traducirReceta(rutaReceta);
   if (semillaOverride != null && !Number.isNaN(semillaOverride)) {
@@ -306,6 +356,7 @@ export async function generarInstancia(rutaReceta, semillaOverride = null) {
   return {
     params,
     narrativa,
+    epigrafe: params.epigrafe ? elegirEpigrafe(params.epigrafe, pasos, params.semilla) : null,
     pasos,
     fecha: new Date().toISOString().slice(0, 10),
   };

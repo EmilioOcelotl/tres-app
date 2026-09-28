@@ -1,0 +1,438 @@
+{
+  "_procedencia": {
+    "repo": "anti",
+    "commit": "8f03e4c",
+    "copiado": "2026-09-28",
+    "criterio": "frases de escena de 4nt1, una por línea, sin vacías ni repetidas",
+    "regenerar": "node back/scripts/frases-anti.mjs (sólo en la máquina del autor)"
+  },
+  "autor": "4nt1",
+  "archivos": {
+    "txtsc1.txt": {
+      "ruta": "anti/txt/txtsc1.txt",
+      "año": 2022
+    },
+    "txtsc2.txt": {
+      "ruta": "anti/txt/txtsc2.txt",
+      "año": 2022
+    },
+    "txtsc3.txt": {
+      "ruta": "anti/txt/txtsc3.txt",
+      "año": 2022
+    },
+    "txtInstrucciones.txt": {
+      "ruta": "anti/txt/txtInstrucciones.txt",
+      "año": 2022
+    }
+  },
+  "frases": [
+    {
+      "texto": "Predicciones y presencias",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Una oportunidad para el desplazamiento",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La sugestión de los anzuelos en la superficie",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La búsqueda por un espacio alejado a la geopolítica del servidor",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Pasos [pequeños, inestables] hacia la ofuscación [analógica, digital]",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La reinterpretación de la [predicción, tecnología]",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Pixeles organizados que enmascaran la presencia",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Interrupción de flujos no autorizados",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "El software como una caja negra de cajas negras",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La ofuscación integrada y conducida por el dato",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Sin descuidar la importancia del gesto",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Continúa el tríptico es breve y se repite",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La ofuscación es un motivo de apertura",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "El efecto es distracción y evidencia",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La inexactitud de las máquinas la retroalimentación humana",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "El flujo es un ciclo con variaciones",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Una oportunidad para cuidar la presencia",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "El disenso fluido de la identidad",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Triangulaciones de la resistencia",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Vértices geométricos que difuminan la presencia pero no la eliminan",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Los QR son referencias para desbordar el momento",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Si hace falta tiempo es posible dar otra vuelta",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Interlocuciones modulares",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "El reflejo de los espejos electrónicos",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Consecuencias de las transfiguraciones corporales",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La percepción analítica de las imágenes que no es solamente técnica",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Autobservación, percepción y encarnación de modos y expectativas",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "[Inclusión, Exclusión] en la escalada de recursos tecnológicos",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Restar agencia a las plataformas",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Manuales para la ofuscación",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Manuales para abrir la vida y arreglarla",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Servidores de audio como Jack para transformar la voz",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La descentralización de la persona en la vida cotidiana",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Distintas posibilidades para distintos problemas",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Ofuscación no es lo mismo que desaparición",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Ofuscación no es lo mismo que invisibilización",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "La persecución de las librerías",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "Este texto no está markovificado",
+      "archivo": "txtsc1.txt"
+    },
+    {
+      "texto": "El texto como un dispositivo multihilo",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La infraestructura como una instancia del trabajo invertido",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Las posibilidades del tríptico",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "[Ejecución, variación] de la reflexión fijada",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Instancias no escritas del conocimiento",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La emergencia del comentario",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La repetición y la reflexión en el bucle",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "¿Es redundante vincular un espacio físico con el entramado digital?",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La [escritura, ejecución] de código como improvisación",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La agencia del error en la práctica performática de escribir",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "[Audio, Imagen] como instancias de conocimiento",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Los ciclos por segundo son subjetivos",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "¿Cuánto texto plano cabe en un 1mb?",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Código y reflexión y escritura automática",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La persecución de premisas históricas",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Espejos o interlocutores",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La revelación del resultado inesperado del procesamiento",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Tiempo insuficiente para extender la reflexión",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Una federación de iniciativas para descentralizar lo sensible",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La escala de tiempo para escapar a la reflexión instantánea",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "1mb de texto plano para iniciar el dialogo dislocado del tiempo",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Tiempo",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Temporalidades que se disocian pero que a veces coinciden",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "anti es un manual",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "una aplicación que se inserta en un conjunto de módulos",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Un motivo para la reflexión",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Intervalos que varían en función de la sintaxis",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Interceptar a la tecnología antes de que se vuelva un producto",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "La farsa de la reinvención",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Horas invertidas trabajo muerto",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "¿Qué pasa cuándo no hay internet?",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Antes de que se conviertan en filtros de Instagram",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "El cansancio que produce la repetición indiscriminada de la palabra reflexión",
+      "archivo": "txtsc2.txt"
+    },
+    {
+      "texto": "Anti es un manual de ofuscación",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Anti corre en modo exhibición",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Anti se ejecuta en modo cotidiano",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "El modo exhibición se activa en el navegador",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Es necesario complementar con la localidad",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "El desplazamiento de los dispositivos",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Los ajustes de la interfaz de usuarix",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "¿Cómo visibilizar el modo exhibición en el manual?",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "¿Cómo visibilizar el manual en la exhibición?",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "OBS Studio es la forma más fácil de transmitir video como una cámara web virtual",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Módulos y herramientas libres",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Opciones ligeras multiplataforma",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "El rodeo y la necedad como un aporte para el futuro",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "v4l2loopback y Ffmpeg",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "modprobe v4l2loopback",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "ffmpeg -f x11grab -r 20 -s 1920x1080 -i :0.0+0,0 -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 /dev/video0",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Rota, no hay un centro",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Bucle de investigación y producción",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Pensamientos transversales",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "Ofuscación audiovisual",
+      "archivo": "txtsc3.txt"
+    },
+    {
+      "texto": "En espera",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "Ausencia y predicciones",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "La pantalla de bloqueo se activa cuando la cámara detecta un rostro",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "Por favor, acércate para activar la interacción",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "Es necesario un rostro dentro del rango de la cámara",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "No es necesario que te quites el cubrebocas",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "Es posible acceder a la versión web de esta aplicación",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "Hay un repositorio que conduce a los módulos que conforman esta aplicación",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "La cámara reconoce rostros no hay datos almacenados",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "Una experiencia y una oportunidad",
+      "archivo": "txtInstrucciones.txt"
+    },
+    {
+      "texto": "Hay un manual de ofuscación: el botón inferior o la tecla M",
+      "archivo": "txtInstrucciones.txt"
+    }
+  ]
+}
