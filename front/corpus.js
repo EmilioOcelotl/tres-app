@@ -26,7 +26,8 @@ const BASE_CORPUS   = '/assets/snd/';
 // Cuántos buffers decodificados se sostienen a la vez. A ~8 MB cada uno, cuatro
 // son ~33 MB: alcanza para que ir y volver entre dos o tres notas no vuelva a
 // descargar, y no le pelea memoria a la escena de Three.js. El que está sonando
-// está fijado y nunca se suelta, así que para navegar quedan tres.
+// está fijado y nunca se suelta; durante un cruce son dos (ver voces.js), así
+// que para navegar quedan dos o tres.
 const PRESUPUESTO = 4;
 
 let materiales = [];            // el catálogo, en su orden
@@ -36,7 +37,8 @@ const cache   = new Map();      // id → AudioBuffer. El orden del Map es el de
                                 // lo más reciente al final, así que el primero que
                                 // devuelve keys() es el candidato a soltarse.
 const enVuelo = new Map();      // id → Promise<AudioBuffer> en curso
-let   fijado  = null;           // id del que está sonando: exento del desalojo
+let   fijados = new Set();      // ids de los que están sonando: exentos del
+                                // desalojo (dos durante un cruce, ver voces.js)
 
 // Los términos del catálogo los escribe el autor a mano y el top-1 de TF-IDF sale
 // del extractor, así que se comparan sin acentos ni mayúsculas para que
@@ -120,16 +122,17 @@ export function enCache(id) {
     return cache.get(id) || null;
 }
 
-// Marca el que está sonando para que el desalojo no se lo lleve.
-export function fijar(id) {
-    fijado = id;
+// Marca los que están sonando para que el desalojo no se los lleve. Reemplaza
+// la marca anterior: se pasan siempre todos los vigentes.
+export function fijar(...ids) {
+    fijados = new Set(ids.filter(Boolean));
 }
 
-// Suelta lo más viejo hasta caber en el presupuesto, sin tocar el que suena.
+// Suelta lo más viejo hasta caber en el presupuesto, sin tocar los que suenan.
 function desalojar() {
     for (const id of [...cache.keys()]) {
         if (cache.size <= PRESUPUESTO) return;
-        if (id === fijado) continue;
+        if (fijados.has(id)) continue;
         cache.delete(id);
         console.log(`[corpus] suelta ${id} — quedan ${[...cache.keys()].join(', ')}`);
     }
