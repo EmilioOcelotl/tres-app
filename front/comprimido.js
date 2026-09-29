@@ -2,13 +2,13 @@
 // La otra cara del cuadernillo impreso: la misma instancia (receta + semilla
 // + estado de la BD) como página navegable solo arriba o abajo. La web
 // regenera: REGENERAR pide una instancia con semilla nueva al servidor.
-// Audio: capa de granulación (GrainEngine + SnapToGrains, igual que el grafo
-// 3D) modulada por el panel visible — el scroll es el modulador.
+// Audio: capa de granulación (GrainEngine + SnapToGrains en dos voces que se
+// cruzan, igual que el grafo 3D — ver voces.js) modulada por el panel visible:
+// el scroll es el modulador.
 
-import { GrainEngine }  from 'treslib/GrainEngine';
-import { SnapToGrains } from 'treslib/SnapToGrains';
 import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
-import { cargarCatalogo, usarCatalogo, catalogo, conTermino, materialParaNota, obtenerBuffer, fijar } from './corpus.js';
+import { cargarCatalogo, usarCatalogo, catalogo, conTermino, materialParaNota } from './corpus.js';
+import { Voces } from './voces.js';
 import { snapPortada, hayInterludio, snapInterludio, snapContraportada } from './paneles.js';
 
 const RECETA_DEFAULT  = 'primera-caminata';
@@ -47,11 +47,8 @@ const AppState = {
 const AudioSystem = {
     initialized:  false,
     grainEnabled: false,
-    grainActive:  false,
-    ctx: null, grainEngine: null, snapToGrains: null,
-    masterGain: null, crossfadeTimer: null,
-    material: null,   // id del material que tiene puesto el motor
-    turno:    0,      // ver main.js: descarta cargas que llegan tarde
+    ctx:   null,
+    voces: null,   // dos motores que se cruzan, ver voces.js
 };
 
 // ------------------------------------------------- snapshot sintético (port)
@@ -86,7 +83,7 @@ async function initAudio() {
         AudioSystem.ctx = new (window.AudioContext || window.webkitAudioContext)();
 
         // Igual que el grafo: el material lo trae el pool cuando se sabe qué panel
-        // suena, así que el motor arranca sin buffer (ver corpus.js). Una edición
+        // suena, así que los motores arrancan sin buffer (ver corpus.js). Una edición
         // con el sonido congelado no mira el catálogo vivo: el pool sólo conoce los
         // materiales del acta, servidos desde el pozo de la edición.
         const congelado = sonidoCongelado();
@@ -98,17 +95,7 @@ async function initAudio() {
             await cargarCatalogo();
         }
 
-        AudioSystem.grainEngine = new GrainEngine(AudioSystem.ctx, null, {
-            masterAmp:  0.7,
-            overlaps:   6,
-            windowSize: 0.12
-        });
-        AudioSystem.masterGain = AudioSystem.ctx.createGain();
-        AudioSystem.masterGain.gain.setValueAtTime(0, AudioSystem.ctx.currentTime);
-        AudioSystem.grainEngine.connect(AudioSystem.masterGain);
-        AudioSystem.masterGain.connect(AudioSystem.ctx.destination);
-
-        AudioSystem.snapToGrains = new SnapToGrains(AudioSystem.ctx, AudioSystem.grainEngine, {
+        AudioSystem.voces = new Voces(AudioSystem.ctx, {
             smoothingTime:        1.5,
             maxRandomPitch:       0.25,
             pointerTransitionTime: 4.0,
@@ -116,6 +103,7 @@ async function initAudio() {
             jitter:               0.04,
             ...OPCIONES_GRANO
         });
+        AudioSystem.voces.connect(AudioSystem.ctx.destination);
 
         AudioSystem.initialized = true;
         console.log(congelado
@@ -141,81 +129,19 @@ function materialDelPanel(node) {
     return materialParaNota(node);
 }
 
-function applyGrainParams(stg, analysis) {
-    stg.currentSnapshot = analysis;
-    const params = stg.mapSnapshotToAudioParams(analysis);
-    stg.generatePointerSequence(analysis);
-    stg.applyToGrainEngine(params);
-}
-
 function activateGrains(node) {
     if (!AudioSystem.initialized || !AudioSystem.grainEnabled) return;
 
-    const stg  = AudioSystem.snapToGrains;
-    const gain = AudioSystem.masterGain.gain;
-    const ctx  = AudioSystem.ctx;
-
     const pixels   = generateSyntheticPixels(node, SNAP_W, SNAP_H);
-    const analysis = stg.analyzePixelData(pixels);
+    const analysis = AudioSystem.voces.analizar(pixels);
     if (!analysis) return;
 
-    const material = materialDelPanel(node);
-    const turno    = ++AudioSystem.turno;
-    const llegando = obtenerBuffer(ctx, material).catch(err => {
-        console.warn('No se pudo cargar el material', material, err);
-        return null;
-    });
-
-    clearTimeout(AudioSystem.crossfadeTimer);
-
-    const arrancar = async (fadeIn) => {
-        const buf = await llegando;
-        if (turno !== AudioSystem.turno || !AudioSystem.grainEnabled) return;
-
-        if (buf && AudioSystem.grainEngine.buffer !== buf) {
-            AudioSystem.grainEngine.buffer = buf;
-            AudioSystem.material = material;
-            fijar(material);
-        }
-        if (!AudioSystem.grainEngine.buffer) return;
-
-        stg.stop();
-        applyGrainParams(stg, analysis);
-        stg.start();
-        AudioSystem.grainActive = true;
-        const t = ctx.currentTime;
-        gain.cancelScheduledValues(t);
-        gain.setValueAtTime(0, t);
-        gain.linearRampToValueAtTime(1, t + fadeIn);
-    };
-
-    if (AudioSystem.grainActive) {
-        // Crossfade: dip → swap → rise (mismo patrón que el grafo 3D)
-        const now = ctx.currentTime;
-        gain.cancelScheduledValues(now);
-        gain.setValueAtTime(gain.value, now);
-        gain.linearRampToValueAtTime(0, now + 0.4);
-        AudioSystem.crossfadeTimer = setTimeout(() => arrancar(1.2), 420);
-    } else {
-        arrancar(1.5);
-    }
+    AudioSystem.voces.sonar(analysis, materialDelPanel(node));
 }
 
 function deactivateGrains() {
-    if (!AudioSystem.initialized || !AudioSystem.masterGain) return;
-    clearTimeout(AudioSystem.crossfadeTimer);
-    AudioSystem.turno++;
-
-    const gain = AudioSystem.masterGain.gain;
-    const now  = AudioSystem.ctx.currentTime;
-    gain.cancelScheduledValues(now);
-    gain.setValueAtTime(gain.value, now);
-    gain.linearRampToValueAtTime(0, now + 1.0);
-
-    AudioSystem.crossfadeTimer = setTimeout(() => {
-        AudioSystem.snapToGrains?.stop();
-        AudioSystem.grainActive = false;
-    }, 1100);
+    if (!AudioSystem.initialized) return;
+    AudioSystem.voces.apagar();
 }
 
 // -------------------------------------------------------------- construcción
