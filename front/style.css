@@ -1,20 +1,17 @@
 :root {
-    --bg: #060606;
+    /* sólo del grafo; los roles compartidos vienen de tokens.css */
     --surface: rgba(6, 6, 8, 0.97);
     --accent: #dde6f0;
     --accent-dim: rgba(221, 230, 240, 0.12);
     --accent-mid: rgba(221, 230, 240, 0.28);
-    --text: #d0d8e0;
-    --text-dim: rgba(208, 216, 224, 0.45);
-    --border: rgba(221, 230, 240, 0.1);
 }
 
 body {
     margin: 0;
     overflow: hidden;
-    font-family: 'Space Mono', monospace;
-    color: var(--text);
-    background-color: var(--bg);
+    font-family: var(--f-control);
+    color: var(--tinta);
+    background-color: var(--soporte);
 }
 
 #welcome-modal {
@@ -23,7 +20,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--bg);
+    background-color: var(--soporte);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -35,7 +32,7 @@ body {
     max-width: 680px;
     max-height: 80vh;
     background-color: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--filete);
     box-shadow: 0 0 80px rgba(221, 230, 240, 0.06);
     border-radius: 2px;
     padding: 40px 40px 32px;
@@ -45,10 +42,18 @@ body {
     overflow-y: auto;
 }
 
+/* Prosa de las notas en la letra de lectura, como en el visor; títulos y
+   código siguen en la de control. */
+#welcome-content,
+#overlay-content {
+    font-family: var(--f-lectura);
+    font-weight: 300;
+    font-size: 0.95em;
+    line-height: 1.75;
+}
+
 #welcome-content {
-    font-size: 0.82em;
-    line-height: 1.9;
-    color: var(--text);
+    color: var(--tinta);
 }
 
 #welcome-content p {
@@ -58,6 +63,8 @@ body {
 #welcome-content h1,
 #welcome-content h2,
 #welcome-content h3 {
+    font-family: var(--f-control);
+    font-weight: 400;
     color: var(--accent);
     margin-top: 1.5em;
     margin-bottom: 0.5em;
@@ -65,9 +72,9 @@ body {
     text-transform: uppercase;
 }
 
-#welcome-content h1 { font-size: 1.1em; }
-#welcome-content h2 { font-size: 1.0em; }
-#welcome-content h3 { font-size: 0.92em; }
+#welcome-content h1 { font-size: 1.0em; }
+#welcome-content h2 { font-size: 0.92em; }
+#welcome-content h3 { font-size: 0.86em; }
 
 #welcome-content a {
     color: rgba(221, 230, 240, 0.65);
@@ -83,11 +90,11 @@ body {
 }
 
 #welcome-papel {
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     font-size: 0.75em;
     letter-spacing: 0.12em;
     text-decoration: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--filete);
     padding-bottom: 2px;
     transition: color 0.2s, border-color 0.2s;
 }
@@ -104,14 +111,14 @@ body {
     padding: 10px 28px;
     border-radius: 2px;
     cursor: pointer;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.75em;
     letter-spacing: 0.2em;
     transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
 #welcome-enter:hover {
-    color: var(--text);
+    color: var(--tinta);
     border-color: var(--accent);
     box-shadow: 0 0 16px rgba(221, 230, 240, 0.15);
 }
@@ -135,11 +142,11 @@ canvas {
     left: 0;
     width: calc(100% - 300px);
     height: 100%;
-    background-color: var(--bg);
+    background-color: var(--soporte);
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     font-size: 0.85em;
     letter-spacing: 0.25em;
     z-index: 1000;
@@ -154,15 +161,15 @@ canvas {
     max-width: 680px;
     height: 80%;
     background-color: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--filete);
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.9);
     border-radius: 2px;
     padding: 32px;
     display: none;
     flex-direction: column;
     z-index: 999;
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
+    color: var(--tinta);
+    font-family: var(--f-control);
     overflow: hidden;
 }
 
@@ -175,19 +182,19 @@ canvas {
     width: 300px;
     height: 100%;
     background-color: #040404;
-    border-left: 1px solid var(--border);
+    border-left: 1px solid var(--filete);
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    scrollbar-color: var(--filete) transparent;
 }
 
 #sidebar-header {
     padding: 28px 20px 20px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--filete);
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -227,7 +234,7 @@ canvas {
 #sidebar-subtitle {
     font-size: 0.6em;
     letter-spacing: 0.18em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     text-transform: uppercase;
 }
 
@@ -242,8 +249,7 @@ canvas {
 .sb-label {
     font-size: 0.6em;
     letter-spacing: 0.22em;
-    color: var(--text-dim);
-    text-transform: uppercase;
+    color: var(--tinta-tenue);
 }
 
 .sb-controls {
@@ -260,7 +266,7 @@ canvas {
     padding: 7px 14px;
     border-radius: 2px;
     cursor: pointer;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.72em;
     letter-spacing: 0.12em;
     text-align: left;
@@ -306,7 +312,7 @@ canvas {
 .snap-key {
     font-size: 0.62em;
     letter-spacing: 0.14em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     text-transform: uppercase;
 }
 
@@ -320,8 +326,7 @@ canvas {
 #audio-hint {
     font-size: 0.6em;
     letter-spacing: 0.16em;
-    color: var(--text-dim);
-    text-transform: uppercase;
+    color: var(--tinta-tenue);
     margin: 0;
     animation: hint-pulse 2.4s ease-in-out infinite;
 }
@@ -338,19 +343,17 @@ canvas {
     text-transform: uppercase;
     margin-bottom: 20px;
     text-align: left;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--filete);
     padding-bottom: 12px;
 }
 
 #overlay-content {
-    font-size: 0.82em;
-    line-height: 1.9;
-    color: var(--text);
+    color: var(--tinta);
     overflow-y: auto;
     flex: 1;
     min-height: 0;
     scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    scrollbar-color: var(--filete) transparent;
 }
 
 #overlay-content::-webkit-scrollbar {
@@ -362,7 +365,7 @@ canvas {
 }
 
 #overlay-content::-webkit-scrollbar-thumb {
-    background-color: var(--border);
+    background-color: var(--filete);
     border-radius: 2px;
 }
 
@@ -377,6 +380,8 @@ canvas {
 #overlay-content h1,
 #overlay-content h2,
 #overlay-content h3 {
+    font-family: var(--f-control);
+    font-weight: 400;
     color: var(--accent);
     margin-top: 1.5em;
     margin-bottom: 0.5em;
@@ -384,9 +389,9 @@ canvas {
     text-transform: uppercase;
 }
 
-#overlay-content h1 { font-size: 1.1em; }
-#overlay-content h2 { font-size: 1.0em; }
-#overlay-content h3 { font-size: 0.92em; }
+#overlay-content h1 { font-size: 1.0em; }
+#overlay-content h2 { font-size: 0.92em; }
+#overlay-content h3 { font-size: 0.86em; }
 
 #overlay-content a {
     color: rgba(221, 230, 240, 0.65);
@@ -396,7 +401,7 @@ canvas {
 }
 
 #overlay-content a:hover {
-    color: var(--text);
+    color: var(--tinta);
     border-bottom-color: rgba(208, 216, 224, 0.3);
 }
 
@@ -404,10 +409,11 @@ canvas {
    con una .code-line por línea lógica */
 #overlay-content pre,
 #welcome-content pre {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.85em;
+    font-family: var(--f-control);
+    font-weight: 400;
+    font-size: 0.73em;
     line-height: 1.6;
-    color: var(--text);
+    color: var(--tinta);
     background: rgba(221, 230, 240, 0.04);
     border: 1px solid rgba(221, 230, 240, 0.08);
     border-radius: 2px;
@@ -444,14 +450,14 @@ canvas {
     top: 16px;
     right: 16px;
     background: none;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
+    border: 1px solid var(--filete);
+    color: var(--tinta-tenue);
     font-size: 1em;
     width: 28px;
     height: 28px;
     border-radius: 2px;
     cursor: pointer;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     transition: color 0.2s, border-color 0.2s;
 }
 
@@ -462,7 +468,7 @@ canvas {
 
 
 .node-label {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 10px;
     color: rgba(208, 216, 224, 0.88);
     letter-spacing: 0.08em;
@@ -530,12 +536,12 @@ canvas {
 #note-display-overlay {
     --parte: var(--accent);
 }
-#note-display-overlay[data-part="part1"] { --parte: #00ddff; }
-#note-display-overlay[data-part="part2"] { --parte: #ff3388; }
-#note-display-overlay[data-part="part3"] { --parte: #aa55ff; }
+#note-display-overlay[data-part="part1"] { --parte: var(--parte-1); }
+#note-display-overlay[data-part="part2"] { --parte: var(--parte-2); }
+#note-display-overlay[data-part="part3"] { --parte: var(--parte-3); }
 
 #overlay-pie {
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--filete);
     margin-top: 16px;
     padding-top: 12px;
     display: flex;
@@ -547,12 +553,12 @@ canvas {
     letter-spacing: 0.08em;
 }
 
-#overlay-meta { color: var(--text-dim); }
+#overlay-meta { color: var(--tinta-tenue); }
 
 #overlay-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
 
 #overlay-acciones .accion {
-    color: var(--text);
+    color: var(--tinta);
     border: 1px solid var(--accent-dim);
     padding: 6px 12px;
     border-radius: 2px;
@@ -574,7 +580,7 @@ canvas {
 
 #overlay-aviso {
     flex-basis: 100%;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
 }
 #overlay-aviso:empty { display: none; }
 

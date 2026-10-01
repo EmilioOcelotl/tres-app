@@ -1,0 +1,40 @@
+/* tokens.css — el lenguaje compartido de las dos vistas del sistema.
+
+   Los mismos roles en el grafo (pantalla) y en el visor y el índice de los
+   archivos comprimidos (papel); cambian los valores, no los nombres. Una
+   página es papel si lleva <html data-soporte="papel">; sin el atributo es
+   pantalla. Lo que sólo usa una vista (superficies, acentos del grafo, fondo
+   del código en papel) vive en su propia hoja.
+
+   Las tintas de papel son las del PDF: back/comprimidos/render.js las repite
+   porque corre en Node y no puede leer esta hoja. Las de pantalla las lee
+   front/main.js al iniciar, para las esferas y los enlaces del grafo. */
+
+:root {
+    --soporte:      #060606;
+    --tinta:        #d0d8e0;
+    --tinta-tenue:  rgba(208, 216, 224, 0.45);
+    --filete:       rgba(221, 230, 240, 0.10);
+
+    --parte-1:      #00ddff;
+    --parte-2:      #ff3388;
+    --parte-3:      #aa55ff;
+    --refs:         #dde6f0;
+
+    /* controles, etiquetas, ids, código */
+    --f-control:    'Space Mono', monospace;
+    /* prosa de las notas */
+    --f-lectura:    'Space Grotesk', sans-serif;
+}
+
+:root[data-soporte="papel"] {
+    --soporte:      #ffffff;
+    --tinta:        #111111;
+    --tinta-tenue:  #8a8a8a;
+    --filete:       #e4e4e0;
+
+    --parte-1:      #0097b2;
+    --parte-2:      #d6007f;
+    --parte-3:      #6d4de0;
+    --refs:         #5b6377;
+}

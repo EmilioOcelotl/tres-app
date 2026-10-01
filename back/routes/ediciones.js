@@ -35,36 +35,38 @@ router.get('/', (req, res) => {
           <span class="tit">${e.titulo}</span>
           <span class="meta">semilla ${e.semilla} · ${e.formato} · ${e.pasos} pasos · ${e.imagenes} imágenes</span>
         </a>
-        ${e.pdf ? `<a class="pdf" href="/comprimidos/${e.slug}/cuadernillo.pdf">PDF</a>` : ''}
+        ${e.pdf ? `<a class="pdf" href="/comprimidos/${e.slug}/cuadernillo.pdf">pdf</a>` : ''}
       </li>`).join('');
 
   res.type('html').send(`<!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8">
+<html lang="es" data-soporte="papel"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Archivos comprimidos — Tres Estudios Abiertos</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tokens.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@300;400&display=swap" rel="stylesheet">
 <style>
-  :root { --cian:#0097b2; --magenta:#d6007f; --tinta:#1a1a1a; --papel:#f4f2ec; }
   * { box-sizing:border-box; }
-  body { margin:0; padding:3rem 1.5rem; background:var(--papel); color:var(--tinta);
-         font:14px/1.6 'Space Mono', monospace; }
+  body { margin:0; padding:3rem 1.5rem; background:var(--soporte); color:var(--tinta);
+         font:14px/1.6 var(--f-control); }
   main { max-width:44rem; margin:0 auto; }
   h1 { font-size:1.3rem; letter-spacing:.02em; margin:0 0 .4rem; }
-  .sub { color:var(--cian); margin:0 0 2.5rem; font-size:.82rem; }
-  .avance { border:1px solid var(--magenta); color:var(--magenta); display:inline-block;
+  .sub { color:var(--parte-1); margin:0 0 2.5rem; font-size:.82rem; }
+  .avance { border:1px solid var(--parte-2); color:var(--parte-2); display:inline-block;
             padding:.15rem .5rem; font-size:.75rem; margin-bottom:2rem; }
   ul { list-style:none; padding:0; margin:0; }
   li { display:flex; align-items:stretch; gap:.6rem; margin-bottom:.7rem; }
   .ed { flex:1; display:block; padding:.9rem 1rem; text-decoration:none; color:inherit;
-        border:1px solid rgba(0,0,0,.25); }
-  .ed:hover { border-color:var(--cian); }
+        border:1px solid var(--filete); border-radius:2px; }
+  .ed:hover { border-color:var(--parte-1); }
   .tit { display:block; font-weight:700; }
-  .meta { display:block; font-size:.74rem; color:rgba(0,0,0,.55); margin-top:.25rem; }
-  .pdf { display:flex; align-items:center; padding:0 .9rem; text-decoration:none;
-         border:1px solid rgba(0,0,0,.25); color:var(--magenta); font-size:.75rem; }
-  .pdf:hover { border-color:var(--magenta); }
-  .nota { margin-top:2.5rem; font-size:.76rem; color:rgba(0,0,0,.55); border-top:1px solid rgba(0,0,0,.15); padding-top:1rem; }
-  a.vuelta { color:var(--cian); }
+  .meta { display:block; font-size:.74rem; color:var(--tinta-tenue); margin-top:.25rem; }
+  .pdf { display:flex; align-items:center; padding:0 .9rem; text-decoration:none; border-radius:2px;
+         border:1px solid var(--filete); color:var(--parte-2); font-size:.75rem; }
+  .pdf:hover { border-color:var(--parte-2); }
+  .nota { margin-top:2.5rem; font:300 .95rem/1.75 var(--f-lectura); color:var(--tinta-tenue);
+          border-top:1px solid var(--filete); padding-top:1rem; }
+  a.vuelta { color:var(--parte-1); font-family:var(--f-control); font-size:.76rem; }
+  :focus-visible { outline:1px solid var(--tinta); outline-offset:2px; }
   @media (max-width:480px) { body { padding:2rem 1rem; } li { flex-direction:column; } .pdf { padding:.6rem; justify-content:center; } }
 </style></head><body><main>
   <h1>Archivos comprimidos</h1>
@@ -74,7 +76,7 @@ router.get('/', (req, res) => {
   <p class="nota">
     Cada edición es una instancia congelada: una caminata por los enlaces internos
     del documento, fijada por su semilla y por el estado de la base en el momento
-    de publicarla. El enlace no cambia. Dentro de cada una, REGENERAR vuelve a
+    de publicarla. El enlace no cambia. Dentro de cada una, «regenerar» vuelve a
     sortear sobre el documento vivo.<br><br>
     <a class="vuelta" href="/">← volver a la visualización</a>
   </p>

@@ -27,6 +27,8 @@ const FUENTE_MONO  = path.join(fontsPath, 'SpaceMono-Regular.ttf');
 const FUENTE_MONO_B = path.join(fontsPath, 'SpaceMono-Bold.ttf');
 
 // Paleta bipolar sobre papel (tintas, no pantalla): cian/magenta ≈ riso
+// Copia de las tintas de papel de front/tokens.css (Node no lee la hoja):
+// si cambian allá, cambian aquí.
 const COLOR_PARTE = {
   p1:   '#0097b2',
   p2:   '#d6007f',

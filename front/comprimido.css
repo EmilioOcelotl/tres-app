@@ -3,26 +3,17 @@
    ≈ riso sobre fondo blanco). Navegación: solo arriba o abajo. */
 
 :root {
-    --bg: #ffffff;
-    --tinta: #111111;
-    --text: #1c1c1c;
-    --text-dim: #8a8a8a;
-    --border: #e4e4e0;
+    /* sólo del visor; los roles compartidos vienen de tokens.css (papel) */
     --code-bg: #f4f4f0;
-    --p1: #0097b2;
-    --p2: #d6007f;
-    --p3: #6d4de0;
-    --refs: #5b6377;
-    --root: #111111;
 }
 
 * { box-sizing: border-box; }
 
 body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Space Grotesk', sans-serif;
+    background: var(--soporte);
+    color: var(--tinta);
+    font-family: var(--f-lectura);
     font-weight: 300;
 }
 
@@ -38,9 +29,9 @@ body {
     gap: 12px;
     padding: 10px 18px;
     background: rgba(255, 255, 255, 0.92);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--filete);
     backdrop-filter: blur(6px);
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
 }
 
 #barra-titulo { display: flex; flex-direction: column; gap: 2px; }
@@ -52,7 +43,7 @@ body {
 #barra-titulo .sub {
     font-size: 0.58em;
     letter-spacing: 0.12em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
 }
 
 #barra-controles { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -60,21 +51,21 @@ body {
 #barra-controles select,
 #barra-controles input,
 #barra-controles button {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.62em;
     letter-spacing: 0.08em;
     background: transparent;
     color: var(--tinta);
-    border: 1px solid var(--border);
+    border: 1px solid var(--filete);
     padding: 6px 10px;
     border-radius: 2px;
 }
 #barra-controles input { width: 70px; }
-#barra-controles button { cursor: pointer; text-transform: uppercase; }
-#barra-controles button:hover { border-color: var(--text-dim); }
-#btn-audio.activo { border-color: var(--p2); color: var(--p2); }
+#barra-controles button { cursor: pointer; }
+#barra-controles button:hover { border-color: var(--tinta-tenue); }
+#btn-audio.activo { border-color: var(--parte-2); color: var(--parte-2); }
 
-#btn-receta.activo { border-color: var(--p1); color: var(--p1); }
+#btn-receta.activo { border-color: var(--parte-1); color: var(--parte-1); }
 
 /* ------------------------------------------------- receta de visitante */
 
@@ -86,21 +77,21 @@ body {
     z-index: 90;
     overflow-y: auto;
     padding: 16px 18px 28px;
-    background: var(--bg);
-    border-left: 1px solid var(--border);
-    font-family: 'Space Mono', monospace;
+    background: var(--soporte);
+    border-left: 1px solid var(--filete);
+    font-family: var(--f-control);
     font-size: 0.7em;
     color: var(--tinta);
 }
 #receta[hidden] { display: none; }
 .receta-cabeza { display: flex; justify-content: space-between; align-items: center; }
 .receta-cabeza .eyebrow { letter-spacing: 0.25em; font-size: 0.9em; }
-#receta-cerrar { border: none; background: none; font-size: 1.6em; cursor: pointer; color: var(--text-dim); }
-.receta-nota { color: var(--text-dim); font-size: 0.92em; line-height: 1.5; }
-#receta label { display: block; margin: 12px 0 0; color: var(--text-dim); }
+#receta-cerrar { border: none; background: none; font-size: 1.6em; cursor: pointer; color: var(--tinta-tenue); }
+.receta-nota { color: var(--tinta-tenue); font-size: 0.92em; line-height: 1.5; }
+#receta label { display: block; margin: 12px 0 0; color: var(--tinta-tenue); }
 #receta label.opcion { display: inline-block; margin: 4px 12px 0 0; color: var(--tinta); }
 #receta fieldset { border: none; padding: 0; margin: 14px 0 0; }
-#receta legend { color: var(--text-dim); padding: 0; }
+#receta legend { color: var(--tinta-tenue); padding: 0; }
 #receta input[type="text"], #receta input[type="number"], #receta select, #receta textarea {
     display: block;
     width: 100%;
@@ -108,13 +99,13 @@ body {
     font: inherit;
     color: var(--tinta);
     background: transparent;
-    border: 1px solid var(--border);
+    border: 1px solid var(--filete);
     border-radius: 2px;
     padding: 6px 8px;
 }
 #receta textarea { resize: vertical; line-height: 1.5; }
 #receta textarea[hidden] { display: none; }
-#r-texto { background: var(--code-bg); color: var(--text-dim); cursor: default; }
+#r-texto { background: var(--code-bg); color: var(--tinta-tenue); cursor: default; }
 .receta-fila { display: flex; gap: 8px; }
 .receta-fila label { flex: 1; }
 .receta-fila label:first-child { flex: 2; }
@@ -134,7 +125,7 @@ body {
 }
 .receta-acciones button:disabled { opacity: 0.4; cursor: wait; }
 #r-estado { margin-top: 10px; min-height: 1.5em; }
-#r-estado.error { color: var(--p2); }
+#r-estado.error { color: var(--parte-2); }
 /* los puntos del indicador «generando…» */
 #r-estado .puntos::after { content: ''; animation: puntos 1.2s steps(4) infinite; }
 @keyframes puntos { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
@@ -152,9 +143,9 @@ body {
 }
 
 #estado {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.7em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     padding: 40vh 0;
     text-align: center;
 }
@@ -165,7 +156,7 @@ body {
     flex-direction: column;
     justify-content: center;
     padding: 8vh 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--filete);
 }
 
 /* modo compacto (?flat): sin alturas de viewport — depuración y capturas */
@@ -174,10 +165,10 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
 /* portada */
 
 .panel-portada .eyebrow {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.6em;
     letter-spacing: 0.3em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     margin-bottom: 26px;
 }
 .panel-portada h1 {
@@ -187,23 +178,23 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
     color: var(--tinta);
 }
 .panel-portada .epigrafe {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.68em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     max-width: 420px;
     margin-top: 26px;
     line-height: 1.7;
 }
 /* el término que trajo el epígrafe automático, en la tinta de la portada */
 .panel-portada .epigrafe-termino {
-    color: var(--p2);
+    color: var(--parte-2);
 }
 
 /* fragmento */
 
 .panel-fragmento { position: relative; }
 .panel-fragmento .noteid {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 1.15em;
     letter-spacing: 0.18em;
     opacity: 0.55;
@@ -216,28 +207,28 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
     color: var(--tinta);
 }
 .panel-fragmento .via {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.6em;
     letter-spacing: 0.08em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     margin-bottom: 4px;
 }
 .panel-fragmento .via + .via { margin-bottom: 22px; }   /* la segunda línea cierra el bloque */
 .panel-fragmento .frag {
     font-size: 1.02em;
     line-height: 1.75;
-    color: var(--text);
+    color: var(--tinta);
     max-width: 540px;
 }
 .panel-fragmento pre.frag {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.72em;
     line-height: 1.6;
     overflow-x: auto;
     white-space: pre;
     padding: 14px;
     background: var(--code-bg);
-    border: 1px solid var(--border);
+    border: 1px solid var(--filete);
     border-radius: 2px;
 }
 
@@ -245,7 +236,7 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
    a dos tintas sobre papel: comentarios en la tinta de la Parte, encabezados
    en bold, el resto en tinta negra — espejo del panel impreso de render.js */
 .panel-fragmento .frag-codigo pre.code-note {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.72em;
     line-height: 1.6;
     color: var(--tinta);
@@ -263,15 +254,15 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
 .frag-codigo .tok-kw,
 .frag-codigo .tok-num,
 .frag-codigo .tok-str { color: var(--tinta); }
-[data-part="p1"]   .tok-comment { color: var(--p1); }
-[data-part="p2"]   .tok-comment { color: var(--p2); }
-[data-part="p3"]   .tok-comment { color: var(--p3); }
+[data-part="p1"]   .tok-comment { color: var(--parte-1); }
+[data-part="p2"]   .tok-comment { color: var(--parte-2); }
+[data-part="p3"]   .tok-comment { color: var(--parte-3); }
 [data-part="refs"] .tok-comment { color: var(--refs); }
-[data-part="root"] .tok-comment { color: var(--root); }
+[data-part="root"] .tok-comment { color: var(--tinta); }
 .panel-fragmento .pie {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.58em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     margin-top: 20px;
 }
 
@@ -280,12 +271,12 @@ body.flat .panel { min-height: auto; padding: 40px 0; }
 .panel-fragmento .imagenes img {
     max-width: 100%;
     display: block;
-    border: 1px solid var(--border);
+    border: 1px solid var(--filete);
 }
 .panel-fragmento .imagenes .pie-img {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.56em;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     margin-top: -8px;
 }
 
@@ -305,10 +296,10 @@ canvas.dither {
 /* contraportada */
 
 .panel-contraportada {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.72em;
     line-height: 2;
-    color: var(--text-dim);
+    color: var(--tinta-tenue);
     border-bottom: none;
 }
 .panel-contraportada .fuerte { color: var(--tinta); }
@@ -318,9 +309,9 @@ canvas.dither {
 /* ----------------------------------------- vista previa de la nota inicial */
 
 #r-previa { --parte: var(--tinta); }
-#r-previa[data-part="p1"] { --parte: var(--p1); }
-#r-previa[data-part="p2"] { --parte: var(--p2); }
-#r-previa[data-part="p3"] { --parte: var(--p3); }
+#r-previa[data-part="p1"] { --parte: var(--parte-1); }
+#r-previa[data-part="p2"] { --parte: var(--parte-2); }
+#r-previa[data-part="p3"] { --parte: var(--parte-3); }
 #r-previa:not(:empty) {
     margin-top: 8px;
     padding: 10px 12px;
@@ -330,18 +321,18 @@ canvas.dither {
 #r-previa .previa-meta { color: var(--parte); line-height: 1.5; }
 #r-previa .previa-cuerpo {
     margin: 8px 0;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: var(--f-lectura);
     font-size: 1.15em;
     line-height: 1.6;
-    color: var(--text);
+    color: var(--tinta);
 }
 #r-previa pre.previa-codigo {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--f-control);
     font-size: 0.95em;
     white-space: pre-wrap;
     overflow-wrap: break-word;
 }
-#r-previa .previa-grafo { color: var(--text-dim); }
+#r-previa .previa-grafo { color: var(--tinta-tenue); }
 #r-previa .previa-grafo:hover { color: var(--parte); }
 
 /* el id del panel lleva a la nota en el grafo */

@@ -169,6 +169,9 @@ function panelConSnap(clase, snapNode, part) {
     return panel;
 }
 
+// Parte de la instancia → token de tinta (tokens.css).
+const TINTA_PARTE = { p1: '--parte-1', p2: '--parte-2', p3: '--parte-3', refs: '--refs', root: '--tinta' };
+
 function construirTira(instancia) {
     const { params, narrativa, pasos, fecha } = instancia;
     const tira = document.getElementById('tira');
@@ -207,7 +210,7 @@ function construirTira(instancia) {
         const id = el('a', 'noteid', paso.id);
         id.href = `/?nota=${encodeURIComponent(paso.id)}`;
         id.title = 'ver esta nota en el grafo';
-        id.style.color = `var(--${paso.part}, var(--accent))`;
+        id.style.color = `var(${TINTA_PARTE[paso.part] || '--tinta'})`;
         panel.appendChild(id);
         panel.appendChild(el('h2', null, paso.title));
 
@@ -655,7 +658,7 @@ async function init() {
     btnAudio.addEventListener('click', async () => {
         await initAudio();   // el click satisface la restricción del navegador
         AudioSystem.grainEnabled = !AudioSystem.grainEnabled;
-        btnAudio.textContent = `AUD: ${AudioSystem.grainEnabled ? 'ON' : 'OFF'}`;
+        btnAudio.textContent = `sonido: ${AudioSystem.grainEnabled ? 'sí' : 'no'}`;
         btnAudio.classList.toggle('activo', AudioSystem.grainEnabled);
         if (AudioSystem.grainEnabled && AppState.panelActivo) {
             activateGrains(AppState.panelActivo._snap);

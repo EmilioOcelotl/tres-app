@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explorador de Notas 3D</title>
+    <link rel="stylesheet" href="tokens.css">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@300;400&display=swap" rel="stylesheet">
     <script type="importmap">
         {
             "imports": {
@@ -51,22 +52,22 @@
         </div>
 
         <div class="sb-section">
-            <div class="sb-label">[ VIS ]</div>
+            <div class="sb-label">vista</div>
             <div class="sb-controls">
-                <button id="toggle-references">REFS: ON</button>
+                <button id="toggle-references">referencias: sí</button>
             </div>
         </div>
 
         <div class="sb-section">
-            <div class="sb-label">[ AUD ]</div>
+            <div class="sb-label">sonido</div>
             <div class="sb-controls">
-                <button id="toggle-grain">GRAIN: OFF</button>
+                <button id="toggle-grain">sonido: no</button>
             </div>
             <p id="audio-hint">▸ activar sonido</p>
         </div>
 
         <div class="sb-section">
-            <div class="sb-label">[ PAPEL ]</div>
+            <div class="sb-label">papel</div>
             <div class="sb-controls">
                 <a class="sb-link" href="/comprimidos">archivos comprimidos</a>
                 <a class="sb-link" href="/comprimido.html?escribir">escribir una receta</a>
@@ -74,7 +75,7 @@
         </div>
 
         <div class="sb-section sb-section--dat">
-            <div class="sb-label">[ DAT ]</div>
+            <div class="sb-label">datos</div>
             <canvas id="snapshot-canvas"></canvas>
             <div id="snapshot-data">
                 <div class="snap-row"><span class="snap-key">bright</span><span class="snap-val" id="val-brightness">—</span></div>

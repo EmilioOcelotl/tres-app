@@ -26,6 +26,8 @@ const CONFIG = {
     colors: {
         background: 0x060606,
         root: 0xffffff,
+        // Los de Parte se leen de tokens.css al iniciar (tintasDeTokens);
+        // estos valores sólo quedan si la hoja no cargó.
         part1: 0x00ddff,
         part2: 0xff3388,
         part3: 0xaa55ff,
@@ -59,6 +61,16 @@ const CONFIG = {
     // y los arcos de cita extienden la escena en vertical
     cameraStart: new THREE.Vector3(0, 50, 240)
 };
+
+// Las tintas de Parte en pantalla son las de tokens.css: la misma fuente que
+// el overlay y la sidebar, para que el grafo y su interfaz no deriven.
+function tintasDeTokens() {
+    const css = getComputedStyle(document.documentElement);
+    for (const n of [1, 2, 3]) {
+        const v = css.getPropertyValue(`--parte-${n}`).trim();
+        if (/^#[0-9a-f]{6}$/i.test(v)) CONFIG.colors[`part${n}`] = parseInt(v.slice(1), 16);
+    }
+}
 
 // ========================================
 // Estado
@@ -314,13 +326,13 @@ function initScene() {
 
     const btnGrain  = document.getElementById('toggle-grain');
     const audioHint = document.getElementById('audio-hint');
-    btnGrain.textContent = 'GRAIN: OFF';
+    btnGrain.textContent = 'sonido: no';
     btnGrain.addEventListener('click', async () => {
         // Sin la bienvenida (?nowelcome, ?nota=) el audio no se inició al
         // entrar: este click es el gesto que el navegador exige.
         await initAudio();
         AudioSystem.grainEnabled = !AudioSystem.grainEnabled;
-        btnGrain.textContent = `GRAIN: ${AudioSystem.grainEnabled ? 'ON' : 'OFF'}`;
+        btnGrain.textContent = `sonido: ${AudioSystem.grainEnabled ? 'sí' : 'no'}`;
         if (audioHint) audioHint.style.display = 'none';
         if (AudioSystem.grainEnabled && AppState.selectedNode) {
             activateGrains(AppState.selectedNode);
@@ -450,7 +462,7 @@ function updateLinkPositions() {
         const s = typeof l.source === 'object' ? l.source : AppState.nodesById.get(l.source);
         const t = typeof l.target === 'object' ? l.target : AppState.nodesById.get(l.target);
         if (!s || !t) return;
-        // Con REFS: OFF los enlaces que tocan referencias colapsan a longitud
+        // Con las referencias ocultas, los enlaces que tocan referencias colapsan a longitud
         // cero (la geometría es un solo buffer; no se pueden ocultar por segmento)
         if (!AppState.referencesVisible && (s.part === 'refs' || t.part === 'refs')) {
             arr.fill(0, i * 6, i * 6 + 6);
@@ -698,7 +710,7 @@ function toggleReferences() {
     // Enlaces jerárquicos: updateLinkPositions los colapsa; arcos: visible por línea
     refreshArcVisibility();
     const btn = document.getElementById('toggle-references');
-    if (btn) btn.textContent = AppState.referencesVisible ? 'REFS: ON' : 'REFS: OFF';
+    if (btn) btn.textContent = AppState.referencesVisible ? 'referencias: sí' : 'referencias: no';
 }
 
 // ========================================
@@ -984,6 +996,7 @@ async function showWelcomeModal(tree) {
 async function init() {
     let destinoInicial = null;
     loadingScreen.style.display = 'flex';
+    tintasDeTokens();
     document.getElementById('toggle-references').addEventListener('click', toggleReferences);
     initScene();
     animate();

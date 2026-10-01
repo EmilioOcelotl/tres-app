@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-soporte="papel">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tres Estudios Abiertos — Archivo Comprimido</title>
+    <link rel="stylesheet" href="/tokens.css">
     <link rel="stylesheet" href="/comprimido.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,10 +27,10 @@
         <div id="barra-controles">
             <select id="sel-receta" title="Receta"></select>
             <input id="inp-semilla" type="number" min="1" max="9999" title="Semilla">
-            <button id="btn-render" title="Renderizar con esta semilla">RENDER</button>
-            <button id="btn-regenerar" title="Nueva instancia (semilla nueva)">REGENERAR</button>
-            <button id="btn-audio" title="Granulación sobre el snapshot del panel visible">AUD: OFF</button>
-            <button id="btn-receta" title="Escribe tu propia receta y descarga tu cuadernillo">ESCRIBIR RECETA</button>
+            <button id="btn-render" title="Renderizar con esta semilla">renderizar</button>
+            <button id="btn-regenerar" title="Nueva instancia (semilla nueva)">regenerar</button>
+            <button id="btn-audio" title="Granulación sobre el snapshot del panel visible">sonido: no</button>
+            <button id="btn-receta" title="Escribe tu propia receta y descarga tu cuadernillo">escribir receta</button>
         </div>
     </header>
 
@@ -98,8 +99,8 @@
         </label>
 
         <div class="receta-acciones">
-            <button id="r-ver">VER</button>
-            <button id="r-pdf">DESCARGAR PDF</button>
+            <button id="r-ver">ver</button>
+            <button id="r-pdf">descargar pdf</button>
         </div>
         <div id="r-estado" class="receta-nota" aria-live="polite"></div>
     </aside>
