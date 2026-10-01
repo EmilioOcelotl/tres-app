@@ -314,3 +314,43 @@ canvas.dither {
 .panel-contraportada .fuerte { color: var(--tinta); }
 .panel-contraportada a { color: var(--refs); }
 .panel-contraportada a:hover { color: var(--tinta); }
+
+/* ----------------------------------------- vista previa de la nota inicial */
+
+#r-previa { --parte: var(--tinta); }
+#r-previa[data-part="p1"] { --parte: var(--p1); }
+#r-previa[data-part="p2"] { --parte: var(--p2); }
+#r-previa[data-part="p3"] { --parte: var(--p3); }
+#r-previa:not(:empty) {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-left: 2px solid var(--parte);
+    background: var(--code-bg);
+}
+#r-previa .previa-meta { color: var(--parte); line-height: 1.5; }
+#r-previa .previa-cuerpo {
+    margin: 8px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15em;
+    line-height: 1.6;
+    color: var(--text);
+}
+#r-previa pre.previa-codigo {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.95em;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+#r-previa .previa-grafo { color: var(--text-dim); }
+#r-previa .previa-grafo:hover { color: var(--parte); }
+
+/* el id del panel lleva a la nota en el grafo */
+a.noteid { display: inline-block; text-decoration: none; }
+a.noteid:hover { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
+
+/* ------------------------------------------------------ foco de teclado */
+
+:focus-visible {
+    outline: 1px solid var(--tinta);
+    outline-offset: 2px;
+}

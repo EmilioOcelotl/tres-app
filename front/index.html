@@ -22,14 +22,25 @@
     <div id="welcome-modal">
         <div id="welcome-modal-inner">
             <div id="welcome-content"></div>
-            <button id="welcome-enter">INICIAR</button>
+            <div id="welcome-acciones">
+                <a id="welcome-papel" href="/comprimidos">leer en papel</a>
+                <button id="welcome-enter">iniciar</button>
+            </div>
         </div>
     </div>
     <div id="scene-container"></div>
     <div id="note-display-overlay">
         <h2 id="overlay-title">Selecciona una nota</h2>
         <div id="overlay-content"></div>
-        <button id="close-overlay">X</button>
+        <div id="overlay-pie">
+            <span id="overlay-meta"></span>
+            <div id="overlay-acciones">
+                <a id="btn-caminar" class="accion" href="#">caminar desde aquí</a>
+                <a id="btn-ediciones" class="accion" href="/comprimidos" hidden>ver ediciones</a>
+            </div>
+            <span id="overlay-aviso"></span>
+        </div>
+        <button id="close-overlay" aria-label="cerrar nota">×</button>
     </div>
     <div id="loading-screen">Cargando escena...</div>
 
@@ -52,6 +63,14 @@
                 <button id="toggle-grain">GRAIN: OFF</button>
             </div>
             <p id="audio-hint">▸ activar sonido</p>
+        </div>
+
+        <div class="sb-section">
+            <div class="sb-label">[ PAPEL ]</div>
+            <div class="sb-controls">
+                <a class="sb-link" href="/comprimidos">archivos comprimidos</a>
+                <a class="sb-link" href="/comprimido.html?escribir">escribir una receta</a>
+            </div>
         </div>
 
         <div class="sb-section sb-section--dat">

@@ -99,6 +99,15 @@ const noteDisplayOverlay = document.getElementById('note-display-overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const overlayContent = document.getElementById('overlay-content');
 const closeOverlayButton = document.getElementById('close-overlay');
+const overlayMeta = document.getElementById('overlay-meta');
+const overlayAviso = document.getElementById('overlay-aviso');
+const btnCaminar = document.getElementById('btn-caminar');
+const btnEdiciones = document.getElementById('btn-ediciones');
+
+const NOMBRE_PARTE = {
+    part1: 'parte I', part2: 'parte II', part3: 'parte III',
+    refs: 'referencias', root: 'raíz'
+};
 
 // ========================================
 // API
@@ -121,6 +130,20 @@ async function fetchNoteContent(noteId, useCache = true) {
     if (!json.success) throw new Error('Error al obtener contenido de la nota');
     AppState.loadedNotes.set(noteId, json.data);
     return json.data;
+}
+
+// Las notas donde puede arrancar una caminata las decide el back (la misma
+// lista que ofrece el panel de receta del visor): el wordCount del grafo se
+// cuenta distinto, así que la regla no se duplica aquí.
+let arranquesPromesa = null;
+function notasDeArranque() {
+    if (!arranquesPromesa) {
+        arranquesPromesa = fetch('/api/comprimidos/notas')
+            .then(r => r.ok ? r.json() : { notas: [] })
+            .then(({ notas }) => new Set((notas || []).map(n => n.id)))
+            .catch(() => { arranquesPromesa = null; return null; });
+    }
+    return arranquesPromesa;
 }
 
 async function searchNote(query) {
@@ -282,7 +305,9 @@ function initScene() {
     window.addEventListener('resize', onWindowResize);
     renderer.domElement.addEventListener('click', onClick);
     window.addEventListener('keydown', e => {
+        if (e.target.closest?.('input, textarea, select')) return;
         if (e.key === 'r' || e.key === 'R') toggleReferences();
+        if (e.key === 'Escape') deselectNode();
     });
     closeOverlayButton.addEventListener('click', deselectNode);
     enlazarRefLinks(overlayContent, selectNode);
@@ -290,7 +315,10 @@ function initScene() {
     const btnGrain  = document.getElementById('toggle-grain');
     const audioHint = document.getElementById('audio-hint');
     btnGrain.textContent = 'GRAIN: OFF';
-    btnGrain.addEventListener('click', () => {
+    btnGrain.addEventListener('click', async () => {
+        // Sin la bienvenida (?nowelcome, ?nota=) el audio no se inició al
+        // entrar: este click es el gesto que el navegador exige.
+        await initAudio();
         AudioSystem.grainEnabled = !AudioSystem.grainEnabled;
         btnGrain.textContent = `GRAIN: ${AudioSystem.grainEnabled ? 'ON' : 'OFF'}`;
         if (audioHint) audioHint.style.display = 'none';
@@ -633,6 +661,7 @@ async function selectNode(id) {
     refreshArcVisibility();
     displaySnapshot(node);
     activateGrains(node);
+    prepararPieOverlay(node);
     try {
         const data = await fetchNoteContent(id);
         displayNoteInOverlay(data);
@@ -697,6 +726,31 @@ function displayNoteInOverlay(note) {
     overlayTitle.textContent = note.title;
     overlayContent.innerHTML = note.content.html || '<p>No hay contenido</p>';
     noteDisplayOverlay.style.display = 'flex';
+}
+
+// Pie del overlay: los puentes de la nota hacia Parte III. «Caminar desde
+// aquí» lleva al visor con la receta abierta y la caminata ya generada.
+async function prepararPieOverlay(node) {
+    noteDisplayOverlay.dataset.part = node.part;
+    const partes = [NOMBRE_PARTE[node.part] || ''];
+    if (node.wordCount) partes.push(`${node.wordCount} palabras`);
+    overlayMeta.textContent = partes.filter(Boolean).join(' · ');
+    btnEdiciones.hidden = node.part !== 'part3';
+
+    btnCaminar.href = `/comprimido.html?escribir&desde=${encodeURIComponent(node.id)}`;
+    btnCaminar.removeAttribute('aria-disabled');
+    btnCaminar.removeAttribute('tabindex');
+    overlayAviso.textContent = '';
+
+    const arranques = await notasDeArranque();
+    if (!arranques || AppState.selectedNode !== node) return;
+    if (!arranques.has(node.id)) {
+        btnCaminar.setAttribute('aria-disabled', 'true');
+        btnCaminar.setAttribute('tabindex', '-1');
+        overlayAviso.textContent = node.part === 'refs'
+            ? 'las referencias no abren caminatas'
+            : 'esta nota es muy corta para empezar una caminata';
+    }
 }
 
 function hideNoteOverlay() {
@@ -937,8 +991,13 @@ async function init() {
     try {
         const { tree, crossLinks } = await fetchTree();
         loadingScreen.style.display = 'none';
-        // ?nowelcome salta el modal (desarrollo/capturas; el audio queda sin iniciar)
-        if (new URLSearchParams(location.search).has('nowelcome')) {
+        // ?nowelcome salta el modal (desarrollo/capturas; el audio queda sin iniciar).
+        // ?nota=<id> también: quien llega desde el visor ya sabe dónde está, y
+        // entra con esa nota abierta.
+        const params = new URLSearchParams(location.search);
+        const notaPedida = params.get('nota');
+        if (params.has('nowelcome') || notaPedida) {
+            destinoInicial = notaPedida;
             document.getElementById('welcome-modal').style.display = 'none';
         } else {
             destinoInicial = await showWelcomeModal(tree);

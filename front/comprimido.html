@@ -38,7 +38,7 @@
     <aside id="receta" hidden>
         <div class="receta-cabeza">
             <span class="eyebrow">TU RECETA</span>
-            <button id="receta-cerrar" title="Cerrar">×</button>
+            <button id="receta-cerrar" title="Cerrar" aria-label="cerrar receta">×</button>
         </div>
         <p class="receta-nota">Elige los parámetros; abajo se escribe tu receta. Tu cuadernillo no se publica ni se guarda: sólo se descarga.</p>
 
@@ -48,6 +48,9 @@
         <label>nota inicial
             <select id="r-desde"></select>
         </label>
+        <!-- Vista previa de la nota inicial: el principio de la nota tal cual,
+             sin reescribir. -->
+        <div id="r-previa" aria-live="polite"></div>
         <div class="receta-fila">
             <label>formato
                 <select id="r-formato">

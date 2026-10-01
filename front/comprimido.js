@@ -203,7 +203,10 @@ function construirTira(instancia) {
         const panel = panelConSnap('panel-fragmento', paso, paso.part);
         // sin número de página: el id de la nota y sus datos relacionales, como
         // en el pliego. La secuencia no jerarquiza.
-        const id = el('div', 'noteid', paso.id);
+        // El id lleva a la misma nota en el grafo: el puente por nota de vuelta.
+        const id = el('a', 'noteid', paso.id);
+        id.href = `/?nota=${encodeURIComponent(paso.id)}`;
+        id.title = 'ver esta nota en el grafo';
         id.style.color = `var(--${paso.part}, var(--accent))`;
         panel.appendChild(id);
         panel.appendChild(el('h2', null, paso.title));
@@ -368,7 +371,55 @@ const Receta = {
 const $ = id => document.getElementById(id);
 const valorRadio = nombre => document.querySelector(`input[name="${nombre}"]:checked`)?.value;
 
-async function cargarNotasDeArranque() {
+// ---------------------------------------------- vista previa de la nota
+
+const PREVIA_PALABRAS = 45;
+const PREVIA_LINEAS   = 8;     // notas de código: primeras líneas, con sangría
+const cachePrevia = new Map();
+let turnoPrevia = 0;
+
+async function mostrarPrevia() {
+    const cont = $('r-previa');
+    const nota = Receta.notas.find(n => n.id === $('r-desde').value);
+    if (!nota) { cont.innerHTML = ''; return; }
+    const turno = ++turnoPrevia;
+
+    cont.dataset.part = nota.part;
+    cont.innerHTML = '';
+    const meta = el('div', 'previa-meta',
+        `${nota.ruta.concat(nota.title).join(' › ')} · ${nota.wc} palabras`);
+    cont.appendChild(meta);
+    const cuerpo = el('div', 'previa-cuerpo', '…');
+    cont.appendChild(cuerpo);
+    const ver = el('a', 'previa-grafo', 'ver en el grafo');
+    ver.href = `/?nota=${encodeURIComponent(nota.id)}`;
+    cont.appendChild(ver);
+
+    try {
+        if (!cachePrevia.has(nota.id)) {
+            const res = await fetch(`/api/3d/note/${encodeURIComponent(nota.id)}/content`);
+            if (!res.ok) throw new Error(res.status);
+            const { data } = await res.json();
+            cachePrevia.set(nota.id, data.content?.plain || '');
+        }
+        if (turno !== turnoPrevia) return;   // se eligió otra mientras cargaba
+        const texto = cachePrevia.get(nota.id);
+        if (nota.esCodigo) {
+            const lineas = texto.split('\n');
+            const pre = el('pre', 'previa-cuerpo previa-codigo',
+                lineas.slice(0, PREVIA_LINEAS).join('\n') + (lineas.length > PREVIA_LINEAS ? '\n…' : ''));
+            cuerpo.replaceWith(pre);
+        } else {
+            const palabras = texto.split(/\s+/).filter(Boolean);
+            cuerpo.textContent = palabras.slice(0, PREVIA_PALABRAS).join(' ')
+                + (palabras.length > PREVIA_PALABRAS ? ' …' : '');
+        }
+    } catch {
+        if (turno === turnoPrevia) cuerpo.textContent = 'no se pudo cargar la nota';
+    }
+}
+
+async function cargarNotasDeArranque(preferida = null) {
     const res = await fetch('/api/comprimidos/notas');
     const { notas } = await res.json();
     Receta.notas = notas;
@@ -393,8 +444,10 @@ async function cargarNotasDeArranque() {
         }
         sel.appendChild(og);
     }
-    const inicial = notas.find(n => n.title === 'Aprendizaje de Máquinas');
+    const inicial = notas.find(n => n.id === preferida)
+                 || notas.find(n => n.title === 'Aprendizaje de Máquinas');
     if (inicial) sel.value = inicial.id;
+    return !preferida || inicial?.id === preferida;
 }
 
 function recetaDesdeControles() {
@@ -502,19 +555,29 @@ async function descargarReceta() {
     }
 }
 
-async function abrirReceta() {
+// `desde`: noteId que llega del grafo («caminar desde aquí»). Devuelve false
+// si esa nota no puede arrancar una caminata.
+async function abrirReceta(desde = null) {
     const panel = $('receta');
     panel.style.top = `${$('barra').offsetHeight}px`;
     panel.hidden = false;
     $('btn-receta').classList.add('activo');
     if (!Receta.notas.length) {
+        let encontrada;
         try {
-            await cargarNotasDeArranque();
+            encontrada = await cargarNotasDeArranque(desde);
         } catch {
-            return estadoReceta('no se pudo cargar la lista de notas', true);
+            estadoReceta('no se pudo cargar la lista de notas', true);
+            return false;
         }
         actualizarTexto();
+        mostrarPrevia();
+        if (!encontrada) {
+            estadoReceta('esa nota es muy corta para empezar una caminata', true);
+            return false;
+        }
     }
+    return true;
 }
 
 function cerrarReceta() {
@@ -534,6 +597,10 @@ function prepararReceta() {
     const controles = document.querySelectorAll('#receta input:not(#r-semilla), #receta select, #r-portada');
     controles.forEach(c => c.addEventListener('input', actualizarTexto));
     controles.forEach(c => c.addEventListener('change', actualizarTexto));
+    $('r-desde').addEventListener('change', mostrarPrevia);
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !$('receta').hidden) cerrarReceta();
+    });
     $('r-semilla').addEventListener('input', actualizarTexto);
 
     $('r-ver').addEventListener('click', verReceta);
@@ -598,7 +665,18 @@ async function init() {
     });
 
     prepararReceta();
-    if (urlParams.has('escribir')) abrirReceta();
+
+    // Llegada desde el grafo («caminar desde aquí»): la receta abre con esa
+    // nota y la caminata se muestra de una vez, en vez de la instancia default.
+    const desde = urlParams.get('desde');
+    if (desde && !EDICION) {
+        if (await abrirReceta(desde)) {
+            await verReceta();
+            return;
+        }
+    } else if (urlParams.has('escribir')) {
+        abrirReceta();
+    }
 
     await cargarInstancia(sel.value, semilla);
 
