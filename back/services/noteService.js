@@ -2,8 +2,16 @@
 import { getDatabase } from '../config/database.js';
 import { buildTree, findNodeByTitle, filtrarHiddenNotes, findNodeById } from '../utils/treeBuilder.js';
 import { rasgosDeNotas } from './semantica.js';
+import { quitarComentarios } from '../utils/comentarios.js';
 
 export class NoteService {
+  // conservarComentarios: por defecto los `//` de la prosa se quitan aquí, en la
+  // entrada, para que no lleguen a ninguna salida (ver utils/comentarios.js).
+  // Sólo el snapshot local los pide conservados.
+  constructor({ conservarComentarios = false } = {}) {
+    this.conservarComentarios = conservarComentarios;
+  }
+
   async getNotesAndBranches() {
     const db = getDatabase();
     
@@ -21,6 +29,12 @@ export class NoteService {
           }
 
           console.log(`Encontradas ${notes.length} notas`);
+
+          if (!this.conservarComentarios) {
+            for (const n of notes) {
+              if (n.type === 'text' && n.content) n.content = quitarComentarios(n.content);
+            }
+          }
 
           db.all(`SELECT branchId, noteId, parentNoteId, notePosition FROM branches WHERE isDeleted = 0`, [], (err, branches) => {
             if (err) {

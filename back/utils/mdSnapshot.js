@@ -59,7 +59,8 @@ function nodoAMarkdown(nodo, nivel) {
 
 export async function generarSnapshot() {
   try {
-    const noteService = new NoteService();
+    // Los comentarios `//` del autor se conservan: el snapshot es material de revisión
+    const noteService = new NoteService({ conservarComentarios: true });
     const tree  = await noteService.getCompleteTree();
     const cuerpo = nodoAMarkdown(tree, 0);
     const timestamp = new Date().toISOString();
