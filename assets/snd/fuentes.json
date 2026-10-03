@@ -158,6 +158,14 @@
       "desde": 317,
       "criterio": "tramo de 45 s más estable en nivel del máster de entrega (velo A); es el desenlace de la pieza: alientos 30–32 del guion",
       "terminos": []
+    },
+    {
+      "id": "insonora",
+      "titulo": "insonora",
+      "archivo": "Música/insonora/audios/insonora-final.wav",
+      "desde": 223,
+      "criterio": "tramo de 45 s más estable en nivel de la mezcla final (334 s)",
+      "terminos": []
     }
   ],
   "compuestas": {

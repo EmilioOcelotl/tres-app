@@ -1,5 +1,5 @@
 {
-  "generado": "2026-09-26",
+  "generado": "2026-10-03",
   "_medicion": {
     "lufs": "sonoridad integrada EBU R128 del fragmento ya normalizado",
     "pico_dbfs": "pico de muestra tras la normalización",
@@ -16,7 +16,7 @@
   "techo_dbtp": -1,
   "duracion_s": 45,
   "bitrate": "96k",
-  "total_bytes": 10274459,
+  "total_bytes": 10815238,
   "materiales": [
     {
       "id": "metro-cdmx",
@@ -434,6 +434,28 @@
       "centroide_hz": 2771.3,
       "planitud": 0.0618,
       "rolloff_hz": 7235.2,
+      "bytes": 540779
+    },
+    {
+      "id": "insonora",
+      "titulo": "insonora",
+      "archivo": "corpus/insonora.mp3",
+      "terminos": [],
+      "fuente": {
+        "ruta": "Música/insonora/audios/insonora-final.wav",
+        "desde": 223,
+        "criterio": "tramo de 45 s más estable en nivel de la mezcla final (334 s)"
+      },
+      "duracion_s": 45,
+      "lufs": -20.4,
+      "pico_dbfs": -1.3,
+      "lra": 3.2,
+      "ganancia_db": -1.3,
+      "picos_limitados_db": 0,
+      "quietud_db": 4.3,
+      "centroide_hz": 2796.5,
+      "planitud": 0.1034,
+      "rolloff_hz": 5814,
       "bytes": 540779
     }
   ]
