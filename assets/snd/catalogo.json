@@ -22,7 +22,12 @@
       "id": "metro-cdmx",
       "titulo": "Metro CDMX, organillero",
       "archivo": "corpus/metro-cdmx.mp3",
-      "terminos": [],
+      "terminos": [
+        "navegación",
+        "mapa",
+        "navegar",
+        "explora"
+      ],
       "fuente": {
         "ruta": "sonidos/grabaciones/2024/enero2024/metroCDMXorg.WAV",
         "desde": 34,
@@ -44,7 +49,9 @@
       "id": "fierro-viejo",
       "titulo": "Fierro viejo, CDMX",
       "archivo": "corpus/fierro-viejo.mp3",
-      "terminos": [],
+      "terminos": [
+        "conservan"
+      ],
       "fuente": {
         "ruta": "sonidos/grabaciones/2024/enero2024/fierroViejoCDMX11dic.WAV",
         "desde": 7,
@@ -66,7 +73,9 @@
       "id": "ofrendas-cu",
       "titulo": "Ofrendas en CU",
       "archivo": "corpus/ofrendas-cu.mp3",
-      "terminos": [],
+      "terminos": [
+        "dedicado"
+      ],
       "fuente": {
         "ruta": "sonidos/grabaciones/2024/cdmx/ofrendasCU2023.wav",
         "desde": 2398,
@@ -88,7 +97,10 @@
       "id": "santa-cruz-muertos",
       "titulo": "Santa Cruz, Día de Muertos",
       "archivo": "corpus/santa-cruz-muertos.mp3",
-      "terminos": [],
+      "terminos": [
+        "virtual",
+        "ocelotl"
+      ],
       "fuente": {
         "ruta": "sonidos/grabaciones/2024/cdmx/staCruzDiaMuertos.wav",
         "desde": 733,
@@ -110,7 +122,9 @@
       "id": "uxmal-trompeta",
       "titulo": "Uxmal, trompeta de Navidad",
       "archivo": "corpus/uxmal-trompeta.mp3",
-      "terminos": [],
+      "terminos": [
+        "ocurrencia"
+      ],
       "fuente": {
         "ruta": "sonidos/grabaciones/2024/enero2024/uxmalTrompetaNavidad.WAV",
         "desde": 65,
@@ -132,7 +146,9 @@
       "id": "uxmal-marimba",
       "titulo": "Uxmal, marimba",
       "archivo": "corpus/uxmal-marimba.mp3",
-      "terminos": [],
+      "terminos": [
+        "límites"
+      ],
       "fuente": {
         "ruta": "sonidos/grabaciones/2024/enero2024/uxmalMarimba.WAV",
         "desde": 23,
@@ -154,7 +170,9 @@
       "id": "sirenas",
       "titulo": "Sirenas, CDMX",
       "archivo": "corpus/sirenas.mp3",
-      "terminos": [],
+      "terminos": [
+        "leido"
+      ],
       "fuente": {
         "ruta": "sonidos/grabaciones/2024/cdmx/cdmxSirenas.wav",
         "desde": 8,

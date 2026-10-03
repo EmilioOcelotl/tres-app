@@ -13,7 +13,7 @@
       "archivo": "sonidos/grabaciones/2024/enero2024/metroCDMXorg.WAV",
       "desde": 34,
       "criterio": "tramo de 45 s más estable en nivel",
-      "terminos": []
+      "terminos": ["navegación", "mapa", "navegar", "explora"]
     },
     {
       "id": "fierro-viejo",
@@ -21,7 +21,7 @@
       "archivo": "sonidos/grabaciones/2024/enero2024/fierroViejoCDMX11dic.WAV",
       "desde": 7,
       "criterio": "tramo de 45 s más estable en nivel",
-      "terminos": []
+      "terminos": ["conservan"]
     },
     {
       "id": "ofrendas-cu",
@@ -29,7 +29,7 @@
       "archivo": "sonidos/grabaciones/2024/cdmx/ofrendasCU2023.wav",
       "desde": 2398,
       "criterio": "de 76 min, el tramo audible más estable (el 69% del archivo es silencio)",
-      "terminos": []
+      "terminos": ["dedicado"]
     },
     {
       "id": "santa-cruz-muertos",
@@ -37,7 +37,7 @@
       "archivo": "sonidos/grabaciones/2024/cdmx/staCruzDiaMuertos.wav",
       "desde": 733,
       "criterio": "de 45 min, el tramo audible más estable",
-      "terminos": []
+      "terminos": ["virtual", "ocelotl"]
     },
     {
       "id": "uxmal-trompeta",
@@ -45,7 +45,7 @@
       "archivo": "sonidos/grabaciones/2024/enero2024/uxmalTrompetaNavidad.WAV",
       "desde": 65,
       "criterio": "tramo de 45 s más estable en nivel",
-      "terminos": []
+      "terminos": ["ocurrencia"]
     },
     {
       "id": "uxmal-marimba",
@@ -53,7 +53,7 @@
       "archivo": "sonidos/grabaciones/2024/enero2024/uxmalMarimba.WAV",
       "desde": 23,
       "criterio": "tramo de 45 s más estable en nivel",
-      "terminos": []
+      "terminos": ["límites"]
     },
     {
       "id": "sirenas",
@@ -61,7 +61,7 @@
       "archivo": "sonidos/grabaciones/2024/cdmx/cdmxSirenas.wav",
       "desde": 8,
       "criterio": "tramo de 45 s más estable en nivel",
-      "terminos": []
+      "terminos": ["leido"]
     },
     {
       "id": "banco",
