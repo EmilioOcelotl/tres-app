@@ -10,7 +10,7 @@ import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
 import { cargarCatalogo, usarCatalogo, catalogo, conTermino, materialParaNota, urlDeMaterial } from './corpus.js';
 import { Voces } from './voces.js';
 import { Grabador, DURACION_MAXIMA, duracionLegible } from './partitura.js';
-import { renderizarPartitura, codificarMp3 } from './render-partitura.js';
+import { renderizarPartitura, masterizar, codificarMp3 } from './render-partitura.js';
 import { snapPortada, hayInterludio, snapInterludio, snapContraportada } from './paneles.js';
 
 const RECETA_DEFAULT  = 'primera-caminata';
@@ -237,6 +237,9 @@ async function alternarGrabacion() {
     const avance = (etapa, x) => { btn.textContent = `${ETAPA[etapa]} ${Math.round(x * 100)}%`; };
     try {
         const audio = await renderizarPartitura(partitura, OPCIONES_VOCES, avance);
+        btn.textContent = 'ajustando nivel';
+        await new Promise(r => setTimeout(r, 0));
+        partitura.master = masterizar(audio);
         const mp3 = await codificarMp3(audio, avance);
         descargar(mp3, `${nombre}.mp3`);
         // La partitura va como enlace y no como segunda descarga automática,

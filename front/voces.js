@@ -28,6 +28,16 @@ const ENTRADA = 1.5;    // s — desde silencio (primera nota, o tras apagar)
 const SALIDA  = 1.0;    // s — al apagar el audio o deseleccionar
 const PASOS   = 24;     // segmentos lineales con que se aproxima la curva
 
+// Salida (2026-10-07). Sonaba bajo: −17 LUFS de típico, contra −14 de las
+// plataformas y −8/−11 de lo comercial, y sin margen para subirlo a secas —el
+// grano deja ~22 dB entre el pico y el promedio, y varios materiales ya
+// pasaban de 0 dBFS—. Así que la mezcla de las dos voces pasa por una ganancia
+// y un limitador antes del destino. El objetivo del autor es −16 LUFS; la
+// ganancia está calibrada midiendo el render de los veinte materiales (ver
+// render-partitura.js, que además normaliza el mp3 exacto a −16).
+const GANANCIA_SALIDA_DB = 0;
+const LIMITADOR = { threshold: -2, knee: 0, ratio: 20, attack: 0.002, release: 0.15 };
+
 // Igual potencia: dos texturas granulares no están correlacionadas, así que
 // sumadas con rampas lineales pierden ~3 dB a la mitad del cruce y se oye un
 // hueco. Con seno/coseno la potencia total se sostiene. Las curvas se trazan con
@@ -95,6 +105,14 @@ export class Voces {
                 timer:    null    // el stop pendiente al final de una bajada
             };
         });
+        // Bus de salida: voces → ganancia → limitador → destino.
+        this.bus = ctx.createGain();
+        this.bus.gain.value = Math.pow(10, GANANCIA_SALIDA_DB / 20);
+        this.limitador = ctx.createDynamicsCompressor();
+        for (const [k, v] of Object.entries(LIMITADOR)) this.limitador[k].value = v;
+        this.bus.connect(this.limitador);
+        for (const v of this.voces) v.gain.connect(this.bus);
+
         this.actual = null;   // la voz de la nota vigente; null = silencio
         // Cada sonar() toma un turno. Si mientras se descargaba un material se
         // eligió otra nota o se apagó el audio, el turno viejo ya no vale y su
@@ -103,7 +121,7 @@ export class Voces {
     }
 
     connect(destino) {
-        for (const v of this.voces) v.gain.connect(destino);
+        this.limitador.connect(destino);
     }
 
     get activa() {
