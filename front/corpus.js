@@ -118,6 +118,14 @@ export function materialParaNota(node) {
     return materiales[hashString(`material#${clave}`) % materiales.length].id;
 }
 
+// De dónde se baja el material: el corpus vivo o, en una edición congelada, el
+// pozo de la edición. La partitura guarda esta ruta para que el render no
+// dependa del catálogo que esté cargado entonces.
+export function urlDeMaterial(id) {
+    const m = materiales.find(x => x.id === id);
+    return m ? (m.url || BASE_CORPUS + m.archivo) : null;
+}
+
 export function enCache(id) {
     return cache.get(id) || null;
 }

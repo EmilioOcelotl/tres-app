@@ -65,6 +65,12 @@ body {
 #barra-controles button:hover { border-color: var(--tinta-tenue); }
 #btn-audio.activo { border-color: var(--parte-2); color: var(--parte-2); }
 
+#btn-grabar.activo { border-color: var(--parte-2); color: var(--parte-2); }
+#btn-grabar:disabled { cursor: wait; }
+#grabar-estado { font-size: 0.62em; letter-spacing: 0.08em; }
+#grabar-estado:empty { display: none; }
+#grabar-estado a { color: var(--tinta); }
+
 #btn-receta.activo { border-color: var(--parte-1); color: var(--parte-1); }
 
 /* ------------------------------------------------- receta de visitante */

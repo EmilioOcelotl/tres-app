@@ -48,6 +48,14 @@ function rampa(param, ctx, destino, duracion, forma) {
     }
 }
 
+// En vivo los fines de bajada se agendan con setTimeout. Para renderizar una
+// partitura (render-partitura.js) el tiempo es virtual y lo maneja quien
+// renderiza, así que el reloj se inyecta.
+const RELOJ_PARED = {
+    despues:  (seg, fn) => setTimeout(fn, seg * 1000),
+    cancelar: id => clearTimeout(id)
+};
+
 function aplicarParametros(stg, analysis) {
     stg.currentSnapshot = analysis;
     const params = stg.mapSnapshotToAudioParams(analysis);
@@ -56,13 +64,24 @@ function aplicarParametros(stg, analysis) {
 }
 
 export class Voces {
-    constructor(ctx, opcionesSnap) {
-        this.ctx   = ctx;
+    // `entorno` sólo hace falta para renderizar fuera de tiempo real: un reloj
+    // virtual, un cargador de materiales que no toque el pool vivo, motores con
+    // reloj externo (treslib ≥1.12.0, se avanzan con tick) y, si se quiere un
+    // render reproducible, un `random` sembrado. Sin él, todo es como en vivo.
+    constructor(ctx, opcionesSnap, entorno = {}) {
+        this.ctx    = ctx;
+        this.reloj  = entorno.reloj  || RELOJ_PARED;
+        this.cargar = entorno.cargar || obtenerBuffer;
+        this.fijar  = entorno.fijar  || fijar;
+        const externo = entorno.relojExterno === true;
+        const azar    = entorno.random ? { random: entorno.random } : {};
         this.voces = [0, 1].map(() => {
             const engine = new GrainEngine(ctx, null, {
                 masterAmp:  0.7,
                 overlaps:   6,
-                windowSize: 0.12
+                windowSize: 0.12,
+                relojExterno: externo,
+                ...azar
             });
             const gain = ctx.createGain();
             gain.gain.setValueAtTime(0, ctx.currentTime);
@@ -70,7 +89,7 @@ export class Voces {
             return {
                 engine,
                 gain,
-                stg:      new SnapToGrains(ctx, engine, opcionesSnap),
+                stg:      new SnapToGrains(ctx, engine, { ...opcionesSnap, relojExterno: externo, ...azar }),
                 material: null,   // id del material que tiene puesto
                 sonando:  false,  // el motor corre (aunque su gain vaya bajando)
                 timer:    null    // el stop pendiente al final de una bajada
@@ -100,33 +119,43 @@ export class Voces {
     // El pool protege del desalojo los materiales de las dos voces: durante un
     // cruce suenan dos y ninguno puede soltarse.
     fijarMateriales() {
-        fijar(...this.voces.map(v => v.material).filter(Boolean));
+        this.fijar(...this.voces.map(v => v.material).filter(Boolean));
+    }
+
+    // Avanza los dos motores y los dos punteros hasta `t`. Sólo con reloj
+    // externo; en vivo cada uno se despierta solo.
+    tick(t) {
+        for (const v of this.voces) {
+            if (!v.sonando) continue;
+            v.engine.tick(t);
+            v.stg.tick(t);
+        }
     }
 
     // Baja la voz a 0 y detiene su motor al terminar.
     bajar(v, duracion, forma) {
-        clearTimeout(v.timer);
+        this.reloj.cancelar(v.timer);
         rampa(v.gain.gain, this.ctx, 0, duracion, forma);
-        v.timer = setTimeout(() => {
+        v.timer = this.reloj.despues(duracion + 0.05, () => {
             v.stg.stop();
             v.sonando = false;
             v.timer = null;
-        }, (duracion + 0.05) * 1000);
+        });
     }
 
     // Deja la voz libre para una nota nueva. Si todavía suena (se estaba yendo de
     // un cruce anterior), se corta en CORTE segundos; la promesa resuelve cuando
     // ya está en silencio.
     liberar(v) {
-        clearTimeout(v.timer);
+        this.reloj.cancelar(v.timer);
         v.timer = null;
         if (!v.sonando) return Promise.resolve();
         rampa(v.gain.gain, this.ctx, 0, CORTE, 'lineal');
-        return new Promise(res => setTimeout(() => {
+        return new Promise(res => this.reloj.despues(CORTE + 0.01, () => {
             v.stg.stop();
             v.sonando = false;
             res();
-        }, (CORTE + 0.01) * 1000));
+        }));
     }
 
     // Hace sonar una nota: `analysis` es el snapshot ya medido (el *cómo*),
@@ -141,7 +170,7 @@ export class Voces {
             ? this.voces.find(v => v !== saliente)
             : this.voces.reduce((a, b) => (a.gain.gain.value <= b.gain.gain.value ? a : b));
 
-        const llegando = obtenerBuffer(this.ctx, material).catch(err => {
+        const llegando = this.cargar(this.ctx, material).catch(err => {
             console.warn('No se pudo cargar el material', material, err);
             return null;
         });
@@ -160,7 +189,7 @@ export class Voces {
             if (!entrante.engine.buffer) return;
             this.fijarMateriales();
 
-            clearTimeout(entrante.timer);
+            this.reloj.cancelar(entrante.timer);
             entrante.stg.stop();
             aplicarParametros(entrante.stg, analysis);
             entrante.stg.start();

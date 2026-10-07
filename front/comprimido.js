@@ -7,8 +7,10 @@
 // el scroll es el modulador.
 
 import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
-import { cargarCatalogo, usarCatalogo, catalogo, conTermino, materialParaNota } from './corpus.js';
+import { cargarCatalogo, usarCatalogo, catalogo, conTermino, materialParaNota, urlDeMaterial } from './corpus.js';
 import { Voces } from './voces.js';
+import { Grabador, DURACION_MAXIMA, duracionLegible } from './partitura.js';
+import { renderizarPartitura, codificarMp3 } from './render-partitura.js';
 import { snapPortada, hayInterludio, snapInterludio, snapContraportada } from './paneles.js';
 
 const RECETA_DEFAULT  = 'primera-caminata';
@@ -49,6 +51,18 @@ const AudioSystem = {
     grainEnabled: false,
     ctx:   null,
     voces: null,   // dos motores que se cruzan, ver voces.js
+    grabador: null, // la partitura de la sesión, ver partitura.js
+};
+
+// El instrumento: lo usan las voces en vivo y el render de la partitura, que
+// tiene que sonar con lo mismo.
+const OPCIONES_VOCES = {
+    smoothingTime:        1.5,
+    maxRandomPitch:       0.25,
+    pointerTransitionTime: 4.0,
+    transitionCurve:      'easeInOut',
+    jitter:               0.04,
+    ...OPCIONES_GRANO
 };
 
 // ------------------------------------------------- snapshot sintético (port)
@@ -95,14 +109,8 @@ async function initAudio() {
             await cargarCatalogo();
         }
 
-        AudioSystem.voces = new Voces(AudioSystem.ctx, {
-            smoothingTime:        1.5,
-            maxRandomPitch:       0.25,
-            pointerTransitionTime: 4.0,
-            transitionCurve:      'easeInOut',
-            jitter:               0.04,
-            ...OPCIONES_GRANO
-        });
+        AudioSystem.voces = new Voces(AudioSystem.ctx, OPCIONES_VOCES);
+        AudioSystem.grabador = new Grabador(AudioSystem.ctx);
         AudioSystem.voces.connect(AudioSystem.ctx.destination);
 
         AudioSystem.initialized = true;
@@ -136,12 +144,117 @@ function activateGrains(node) {
     const analysis = AudioSystem.voces.analizar(pixels);
     if (!analysis) return;
 
-    AudioSystem.voces.sonar(analysis, materialDelPanel(node));
+    const material = materialDelPanel(node);
+    AudioSystem.voces.sonar(analysis, material);
+    AudioSystem.grabador.sonar(node, analysis, material, urlDeMaterial(material));
 }
 
 function deactivateGrains() {
     if (!AudioSystem.initialized) return;
     AudioSystem.voces.apagar();
+    AudioSystem.grabador.apagar();
+}
+
+// ------------------------------------------------------------- grabación
+//
+// Grabar no graba sonido: anota una partitura (partitura.js) y al detener la
+// renderiza fuera de tiempo real (render-partitura.js). Más de 10 min se
+// reparten proporcionalmente en 10. Se descargan el mp3 y la partitura (JSON),
+// que es el acta: con ella el mismo audio se puede volver a producir.
+
+function anotarInstancia(instancia) {
+    if (!AudioSystem.grabador || !instancia) return;
+    const { params } = instancia;
+    AudioSystem.grabador.instancia({
+        receta:  params.receta || 'visitante',
+        semilla: params.semilla,
+        titulo:  params.titulo || null,
+        edicion: EDICION
+    });
+}
+
+function relojGrabacion(seg) {
+    const s = Math.floor(seg);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    const mm = String(m).padStart(2, '0'), ss = String(r).padStart(2, '0');
+    return h ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
+function descargar(blob, nombre) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function nombreGrabacion(partitura) {
+    const inst = partitura.eventos.find(e => e.tipo === 'instancia');
+    const base = inst ? `${inst.receta}-s${inst.semilla}` : 'archivo-comprimido';
+    const T = partitura.duracion;
+    return T > DURACION_MAXIMA
+        ? `${base}_${duracionLegible(T)}-a-${duracionLegible(DURACION_MAXIMA)}`
+        : `${base}_${duracionLegible(T)}`;
+}
+
+let intervaloGrabacion = null;
+
+async function alternarGrabacion() {
+    const btn = document.getElementById('btn-grabar');
+    const estado = document.getElementById('grabar-estado');
+
+    if (!AudioSystem.grabador?.grabando) {
+        await initAudio();   // el click satisface la restricción del navegador
+        if (!AudioSystem.initialized) return;
+        const g = AudioSystem.grabador;
+        g.iniciar();
+        anotarInstancia(AppState.instancia);
+        // Si ya suena algo, la partitura empieza con eso.
+        if (AudioSystem.grainEnabled && AppState.panelActivo) {
+            const node = AppState.panelActivo._snap;
+            const analysis = AudioSystem.voces.analizar(generateSyntheticPixels(node, SNAP_W, SNAP_H));
+            const material = materialDelPanel(node);
+            if (analysis) g.sonar(node, analysis, material, urlDeMaterial(material));
+        }
+        btn.classList.add('activo');
+        estado.textContent = '';
+        const pintar = () => { btn.textContent = `detener ${relojGrabacion(g.transcurrido)}`; };
+        pintar();
+        intervaloGrabacion = setInterval(pintar, 500);
+        return;
+    }
+
+    clearInterval(intervaloGrabacion);
+    const partitura = AudioSystem.grabador.detener();
+    const nombre = nombreGrabacion(partitura);
+    btn.classList.remove('activo');
+    btn.disabled = true;
+
+    const ETAPA = { materiales: 'cargando materiales', render: 'renderizando', mp3: 'codificando' };
+    const avance = (etapa, x) => { btn.textContent = `${ETAPA[etapa]} ${Math.round(x * 100)}%`; };
+    try {
+        const audio = await renderizarPartitura(partitura, OPCIONES_VOCES, avance);
+        const mp3 = await codificarMp3(audio, avance);
+        descargar(mp3, `${nombre}.mp3`);
+        // La partitura va como enlace y no como segunda descarga automática,
+        // que el navegador frena con un permiso.
+        const json = new Blob([JSON.stringify(partitura, null, 1)], { type: 'application/json' });
+        estado.innerHTML = '';
+        const a = el('a', null, 'partitura');
+        a.href = URL.createObjectURL(json);
+        a.download = `${nombre}.json`;
+        a.title = 'La partitura de esta grabación (JSON): con ella se vuelve a producir el mismo audio';
+        estado.appendChild(a);
+    } catch (err) {
+        console.error('Error renderizando la partitura:', err);
+        estado.textContent = 'no se pudo renderizar';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'grabar';
+    }
 }
 
 // -------------------------------------------------------------- construcción
@@ -328,6 +441,7 @@ async function cargarInstancia(receta, semilla) {
     }
     const instancia = await res.json();
     AppState.instancia = instancia;
+    anotarInstancia(instancia);
 
     document.getElementById('inp-semilla').value = instancia.params.semilla;
     if (!EDICION) {
@@ -518,6 +632,7 @@ async function verReceta() {
         if (!res.ok) return estadoReceta(await errorDe(res), true);
         const instancia = await res.json();
         AppState.instancia = instancia;
+        anotarInstancia(instancia);
         AppState.panelActivo = null;
         $('r-semilla').value = instancia.params.semilla;
         actualizarTexto();
@@ -666,6 +781,8 @@ async function init() {
             deactivateGrains();
         }
     });
+
+    document.getElementById('btn-grabar').addEventListener('click', alternarGrabacion);
 
     prepararReceta();
 
