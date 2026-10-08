@@ -8,6 +8,10 @@ import { NoteService } from '../services/noteService.js';
 // de tesis; 150 aprovecha el hueco real de la distribución (nada entre 138 y 187).
 const PARTIAL_MIN_WORDS = 1;
 const COMPLETE_MIN_WORDS = 150;
+// Parte II es glosario y ensayo breve, como las «Notas» de tresEnero: se mide
+// con otro umbral (decisión del autor, 2026-10-08). Las líneas `//` ya vienen
+// filtradas por NoteService, así que la planeación comentada no cuenta.
+const COMPLETE_MIN_WORDS_BY_PART = { 'Parte II': 50 };
 const EXCLUDED_TITLES = ['Eliminar'];      // material tresEnero, ver CLAUDE.md > Pendientes técnicos
 const SEPARATE_SUBTREES = ['Referencias']; // se reportan aparte, no puntúan
 
@@ -24,8 +28,14 @@ function wordCount(content) {
     .filter(w => w.length > 0).length;
 }
 
-function classify(words, childCount) {
-  if (words >= COMPLETE_MIN_WORDS) return 'completa';
+function completeThreshold(partTitle) {
+  const key = Object.keys(COMPLETE_MIN_WORDS_BY_PART)
+    .find(prefix => partTitle.startsWith(prefix + ' '));
+  return key ? COMPLETE_MIN_WORDS_BY_PART[key] : COMPLETE_MIN_WORDS;
+}
+
+function classify(words, childCount, minWords) {
+  if (words >= minWords) return 'completa';
   if (words >= PARTIAL_MIN_WORDS) return 'parcial';
   return childCount > 0 ? 'contenedor' : 'vacía';
 }
@@ -41,7 +51,7 @@ function walk(node, depth, acc) {
   }
 
   const words = wordCount(node.content);
-  const state = classify(words, node.children?.length || 0);
+  const state = classify(words, node.children?.length || 0, acc.minWords);
   acc.rows.push({ depth, title: node.title, words, state });
   if (state !== 'contenedor') {
     acc.scored.push(state);
@@ -98,12 +108,12 @@ async function main() {
 
   const allScored = [];
   for (const parte of partes) {
-    const acc = { rows: [], scored: [], words: 0 };
+    const acc = { rows: [], scored: [], words: 0, minWords: completeThreshold(parte.title) };
     walk(parte, 0, acc);
     allScored.push(...acc.scored);
 
     console.log('');
-    console.log(`${parte.title.toUpperCase().padEnd(52)}${String(percent(acc.scored)).padStart(3)}%  (${acc.words} palabras)`);
+    console.log(`${parte.title.toUpperCase().padEnd(52)}${String(percent(acc.scored)).padStart(3)}%  (${acc.words} palabras, completa ≥${acc.minWords}w)`);
     printPart(acc);
   }
 
