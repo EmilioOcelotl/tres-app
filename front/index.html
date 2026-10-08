@@ -24,8 +24,8 @@
         <div id="welcome-modal-inner">
             <div id="welcome-content"></div>
             <div id="welcome-acciones">
-                <a id="welcome-papel" href="/comprimidos">leer en papel</a>
-                <button id="welcome-enter">iniciar</button>
+                <a id="welcome-papel" data-icono="papel" href="/comprimidos">leer en papel</a>
+                <button id="welcome-enter" data-icono="iniciar">iniciar</button>
             </div>
         </div>
     </div>
@@ -36,12 +36,12 @@
         <div id="overlay-pie">
             <span id="overlay-meta"></span>
             <div id="overlay-acciones">
-                <a id="btn-caminar" class="accion" href="#">caminar desde aquí</a>
-                <a id="btn-ediciones" class="accion" href="/comprimidos" hidden>ver ediciones</a>
+                <a id="btn-caminar" data-icono="caminar" class="accion" href="#">caminar desde aquí</a>
+                <a id="btn-ediciones" data-icono="ediciones" class="accion" href="/comprimidos" hidden>ver ediciones</a>
             </div>
             <span id="overlay-aviso"></span>
         </div>
-        <button id="close-overlay" aria-label="cerrar nota">×</button>
+        <button id="close-overlay" data-icono="cerrar" aria-label="cerrar nota">×</button>
     </div>
     <div id="loading-screen">Cargando escena...</div>
 
@@ -54,14 +54,14 @@
         <div class="sb-section">
             <div class="sb-label">vista</div>
             <div class="sb-controls">
-                <button id="toggle-references">referencias: sí</button>
+                <button id="toggle-references" data-icono="refs-si">referencias: sí</button>
             </div>
         </div>
 
         <div class="sb-section">
             <div class="sb-label">sonido</div>
             <div class="sb-controls">
-                <button id="toggle-grain">sonido: no</button>
+                <button id="toggle-grain" data-icono="sonido-no">sonido: no</button>
             </div>
             <p id="audio-hint">▸ activar sonido</p>
         </div>
@@ -69,8 +69,8 @@
         <div class="sb-section">
             <div class="sb-label">papel</div>
             <div class="sb-controls">
-                <a class="sb-link" href="/comprimidos">archivos comprimidos</a>
-                <a class="sb-link" href="/comprimido.html?escribir">escribir una receta</a>
+                <a class="sb-link" data-icono="ediciones" href="/comprimidos">archivos comprimidos</a>
+                <a class="sb-link" data-icono="receta" href="/comprimido.html?escribir">escribir una receta</a>
             </div>
         </div>
 

@@ -11,6 +11,7 @@ import { cargarCatalogo, usarCatalogo, catalogo, conTermino, materialParaNota, u
 import { Voces } from './voces.js';
 import { Grabador, DURACION_MAXIMA, duracionLegible } from './partitura.js';
 import { renderizarPartitura, masterizar, codificarMp3 } from './render-partitura.js';
+import { ponerIconos, rotular } from './iconos.js';
 import { snapPortada, hayInterludio, snapInterludio, snapContraportada } from './paneles.js';
 
 const RECETA_DEFAULT  = 'primera-caminata';
@@ -221,7 +222,7 @@ async function alternarGrabacion() {
         }
         btn.classList.add('activo');
         estado.textContent = '';
-        const pintar = () => { btn.textContent = `detener ${relojGrabacion(g.transcurrido)}`; };
+        const pintar = () => rotular(btn, 'detener', `detener ${relojGrabacion(g.transcurrido)}`, { parpadea: true });
         pintar();
         intervaloGrabacion = setInterval(pintar, 500);
         return;
@@ -234,10 +235,10 @@ async function alternarGrabacion() {
     btn.disabled = true;
 
     const ETAPA = { materiales: 'cargando materiales', render: 'renderizando', mp3: 'codificando' };
-    const avance = (etapa, x) => { btn.textContent = `${ETAPA[etapa]} ${Math.round(x * 100)}%`; };
+    const avance = (etapa, x) => rotular(btn, 'progreso', `${ETAPA[etapa]} ${Math.round(x * 100)}%`, { progreso: x });
     try {
         const audio = await renderizarPartitura(partitura, OPCIONES_VOCES, avance);
-        btn.textContent = 'ajustando nivel';
+        rotular(btn, 'progreso', 'ajustando nivel', { progreso: 1 });
         await new Promise(r => setTimeout(r, 0));
         partitura.master = masterizar(audio);
         const mp3 = await codificarMp3(audio, avance);
@@ -246,7 +247,8 @@ async function alternarGrabacion() {
         // que el navegador frena con un permiso.
         const json = new Blob([JSON.stringify(partitura, null, 1)], { type: 'application/json' });
         estado.innerHTML = '';
-        const a = el('a', null, 'partitura');
+        const a = el('a');
+        rotular(a, 'descargar', 'partitura');
         a.href = URL.createObjectURL(json);
         a.download = `${nombre}.json`;
         a.title = 'La partitura de esta grabación (JSON): con ella se vuelve a producir el mismo audio';
@@ -256,7 +258,7 @@ async function alternarGrabacion() {
         estado.textContent = 'no se pudo renderizar';
     } finally {
         btn.disabled = false;
-        btn.textContent = 'grabar';
+        rotular(btn, 'grabar', 'grabar');
     }
 }
 
@@ -731,6 +733,7 @@ function prepararReceta() {
 // --------------------------------------------------------------------- init
 
 async function init() {
+    ponerIconos();
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('flat')) document.body.classList.add('flat');
     const receta  = urlParams.get('receta') || RECETA_DEFAULT;
@@ -776,7 +779,7 @@ async function init() {
     btnAudio.addEventListener('click', async () => {
         await initAudio();   // el click satisface la restricción del navegador
         AudioSystem.grainEnabled = !AudioSystem.grainEnabled;
-        btnAudio.textContent = `sonido: ${AudioSystem.grainEnabled ? 'sí' : 'no'}`;
+        rotular(btnAudio, AudioSystem.grainEnabled ? 'sonido-si' : 'sonido-no', `sonido: ${AudioSystem.grainEnabled ? 'sí' : 'no'}`);
         btnAudio.classList.toggle('activo', AudioSystem.grainEnabled);
         if (AudioSystem.grainEnabled && AppState.panelActivo) {
             activateGrains(AppState.panelActivo._snap);

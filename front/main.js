@@ -18,6 +18,7 @@ import {
 import { generateSyntheticPixels, OPCIONES_GRANO } from './snapshot.js';
 import { cargarCatalogo, catalogo, conTermino, materialParaNota } from './corpus.js';
 import { Voces } from './voces.js';
+import { ponerIconos, rotular } from './iconos.js';
 
 const SIDEBAR_W = 300;
 
@@ -326,13 +327,13 @@ function initScene() {
 
     const btnGrain  = document.getElementById('toggle-grain');
     const audioHint = document.getElementById('audio-hint');
-    btnGrain.textContent = 'sonido: no';
+    rotular(btnGrain, 'sonido-no', 'sonido: no');
     btnGrain.addEventListener('click', async () => {
         // Sin la bienvenida (?nowelcome, ?nota=) el audio no se inició al
         // entrar: este click es el gesto que el navegador exige.
         await initAudio();
         AudioSystem.grainEnabled = !AudioSystem.grainEnabled;
-        btnGrain.textContent = `sonido: ${AudioSystem.grainEnabled ? 'sí' : 'no'}`;
+        rotular(btnGrain, AudioSystem.grainEnabled ? 'sonido-si' : 'sonido-no', `sonido: ${AudioSystem.grainEnabled ? 'sí' : 'no'}`);
         if (audioHint) audioHint.style.display = 'none';
         if (AudioSystem.grainEnabled && AppState.selectedNode) {
             activateGrains(AppState.selectedNode);
@@ -710,7 +711,7 @@ function toggleReferences() {
     // Enlaces jerárquicos: updateLinkPositions los colapsa; arcos: visible por línea
     refreshArcVisibility();
     const btn = document.getElementById('toggle-references');
-    if (btn) btn.textContent = AppState.referencesVisible ? 'referencias: sí' : 'referencias: no';
+    rotular(btn, AppState.referencesVisible ? 'refs-si' : 'refs-no', AppState.referencesVisible ? 'referencias: sí' : 'referencias: no');
 }
 
 // ========================================
@@ -997,6 +998,7 @@ async function init() {
     let destinoInicial = null;
     loadingScreen.style.display = 'flex';
     tintasDeTokens();
+    ponerIconos();
     document.getElementById('toggle-references').addEventListener('click', toggleReferences);
     initScene();
     animate();
