@@ -219,6 +219,57 @@ criterio; `assets/snd/catalogo.json` guarda la ficha medida de cada uno
 
 Requiere `ffmpeg` en el PATH.
 
+## Escribir desde la terminal
+
+`npm run escribir` permite escribir las notas de la tesis en `emacs -nw` y
+devolverlas a Trilium. Sólo `bajar` y `subir` necesitan red; escribir, no.
+
+```
+npm run escribir -- bajar       trae las notas a la copia local
+npm run escribir                lista → número → emacs; sesiones de 45 min
+npm run escribir -- --minutos 30 --descanso 5
+npm run escribir -- estado      qué cambió localmente
+npm run escribir -- subir       manda a Trilium lo que cambió
+```
+
+**Configuración, una vez.** En Trilium: Opciones → ETAPI → crear token. Guardarlo
+fuera del repo:
+
+```
+mkdir -p ~/.config/escribir
+echo '{ "token": "…" }' > ~/.config/escribir/config.json
+chmod 600 ~/.config/escribir/config.json
+```
+
+Por defecto se conecta por SSH al host `ocelotl` y al Trilium del puerto 8085 del
+servidor (contenedor `trilium-tesis`). `bajar` y `subir` abren un túnel sólo
+mientras trabajan y piden la contraseña de SSH. Si ya hay uno abierto en el
+puerto local, lo usan sin pedir nada:
+
+```ssh -N -L 37840:localhost:8085 ocelotl```
+
+Todo se puede cambiar en el mismo `config.json` (`ssh.host`, `ssh.puertoRemoto`,
+`ssh.puertoLocal`, `carpeta`, `raices`, `minutos`, `descanso`, `editor`).
+
+**En la copia local** (`~/.local/share/escribir/tres-app/`) cada nota de texto es
+un `.md`. Las figuras aparecen como `<!-- trilium:bloque N · figura: … -->`:
+se pueden mover o borrar, pero no editar por dentro. Los enlaces internos son
+`[[título]]`.
+
+**En emacs:**
+- `@` busca una nota por nombre e inserta el enlace. En pantalla se ve sólo el
+  título, en azul. Un retroceso justo después lo borra entero. `C-g` cancela y
+  escribe una `@` normal.
+- El tiempo del bloque aparece en la línea de modo (`⏱ 32:10`). Al cumplirse
+  sólo avisa; `M-x escribir-mas` lo alarga.
+- Al cerrar emacs, el programa dice cuántas palabras cambió la nota y vuelve a
+  la lista. Con el bloque cumplido ofrece el descanso.
+
+**Al subir**, cada nota se compara con la versión que se bajó. Si cambió en
+Trilium mientras tanto, no se sube y la versión del servidor queda en
+`remotos/` para comparar. Una nota con un `[[enlace]]` que no apunta a ninguna
+nota tampoco se sube.
+
 ## Endpoints
 
 - GET / - Documentación de la API y endpoints disponibles

@@ -24,6 +24,8 @@ function wordCount(content) {
     : '';
   return str
     .replace(/<[^>]*>/g, ' ')
+    // Un &nbsp; suelto (un párrafo vacío) no es una palabra.
+    .replace(/&nbsp;/g, ' ')
     .split(/\s+/)
     .filter(w => w.length > 0).length;
 }
