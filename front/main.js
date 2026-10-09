@@ -25,7 +25,7 @@ const SIDEBAR_W = 300;
 const CONFIG = {
     apiBase: '/api/3d',
     colors: {
-        background: 0x060606,
+        background: 0x000000,
         root: 0xffffff,
         // Los de Parte se leen de tokens.css al iniciar (tintasDeTokens);
         // estos valores sólo quedan si la hoja no cargó.
