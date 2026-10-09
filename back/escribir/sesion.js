@@ -29,12 +29,13 @@ function avisar(titulo, cuerpo) {
   n.on('error', () => {});
 }
 
-// El elisp vive en escribir.el; aquí sólo se le pasan los archivos.
+// El elisp vive en escribir.el; aquí sólo se le pasan los archivos y el umbral.
 const ESCRIBIR_EL = fileURLToPath(new URL('./escribir.el', import.meta.url));
 
-function elisp(archivoFin, archivoEnlaces) {
+function elisp(archivoFin, archivoEnlaces, umbralNota) {
   const q = (v) => (v ? JSON.stringify(v) : 'nil');
-  return `(progn (setq escribir-archivo-fin ${q(archivoFin)} escribir-archivo-enlaces ${q(archivoEnlaces)})` +
+  return `(progn (setq escribir-archivo-fin ${q(archivoFin)} escribir-archivo-enlaces ${q(archivoEnlaces)}` +
+    ` escribir-umbral ${q(umbralNota)})` +
     ` (load ${q(ESCRIBIR_EL)} nil t) (escribir-iniciar))`;
 }
 
@@ -149,7 +150,7 @@ function abrirEditor(cfg, e, archivoFin) {
   const [cmd, ...args] = cfg.editor;
   return new Promise((resolve) => {
     const enlaces = e.tipo === 'text' ? rutas(cfg.carpeta).enlaces : null;
-    const p = spawn(cmd, [...args, archivoDe(cfg.carpeta, e), '--eval', elisp(archivoFin, enlaces)], { stdio: 'inherit' });
+    const p = spawn(cmd, [...args, archivoDe(cfg.carpeta, e), '--eval', elisp(archivoFin, enlaces, umbral(e))], { stdio: 'inherit' });
     p.on('exit', resolve);
     p.on('error', (err) => { console.error(`✗ no se pudo abrir ${cmd}: ${err.message}`); resolve(); });
   });

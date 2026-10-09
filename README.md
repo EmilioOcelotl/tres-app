@@ -262,6 +262,11 @@ se pueden mover o borrar, pero no editar por dentro. Los enlaces internos son
   escribe una `@` normal.
 - El tiempo del bloque aparece en la línea de modo (`⏱ 32:10`). Al cumplirse
   sólo avisa; `M-x escribir-mas` lo alarga.
+- Ortografía siempre encendida, en español e inglés a la vez (paquete `jinx` de
+  GNU ELPA; pide `libenchant-2-dev`). `M-$` corrige; en sus opciones,
+  `@palabra` la agrega a `back/escribir/palabras.txt` (versionado) y
+  `+palabra` la acepta sólo por la sesión. Sin `jinx` instalado, emacs abre
+  igual, sin revisión.
 - Al cerrar emacs, el programa dice cuántas palabras cambió la nota y vuelve a
   la lista. Con el bloque cumplido ofrece el descanso.
 
