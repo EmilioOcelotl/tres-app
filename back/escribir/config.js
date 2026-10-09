@@ -14,7 +14,7 @@ const DEFAULTS = {
   carpeta: path.join(os.homedir(), '.local', 'share', 'escribir', 'tres-app'),
   // Sólo se baja lo que cuelga de estas notas (las tres Partes de la tesis).
   raices: ['e3tzs8MTlFZM', '6EJm5Rn6VLOJ', 'LEUrQ0gOqXEd'],
-  minutos: 45,
+  minutos: 30,
   descanso: 10,
   editor: ['emacs', '-nw']
 };

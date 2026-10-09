@@ -226,8 +226,8 @@ devolverlas a Trilium. Sólo `bajar` y `subir` necesitan red; escribir, no.
 
 ```
 npm run escribir -- bajar       trae las notas a la copia local
-npm run escribir                lista → número → emacs; sesiones de 45 min
-npm run escribir -- --minutos 30 --descanso 5
+npm run escribir                lista → número → emacs; sesiones de 30 min
+npm run escribir -- --minutos 45 --descanso 5
 npm run escribir -- estado      qué cambió localmente
 npm run escribir -- subir       manda a Trilium lo que cambió
 ```

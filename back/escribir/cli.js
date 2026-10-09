@@ -5,7 +5,7 @@
 //   npm run escribir -- estado   sin red: qué cambió localmente
 //   npm run escribir -- subir    con red: manda lo que cambió
 //   npm run escribir             sin red: elegir nota → emacs -nw, con bloques
-//                                de trabajo y descansos (--minutos 45 --descanso 10)
+//                                de trabajo y descansos (--minutos 30 --descanso 10)
 //
 // Plan y decisiones en texto/plan-escritura-terminal.md (local).
 
