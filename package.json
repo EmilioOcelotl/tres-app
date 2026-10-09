@@ -7,6 +7,7 @@
     "start": "cd back && node app.js",
     "dev": "nodemon app.js",
     "avance": "node back/scripts/avance.js",
+    "escribir": "node back/escribir/cli.js",
     "comprimido": "node back/comprimidos/render.js",
     "publicar": "node back/comprimidos/publicar.js",
     "corpus": "node back/scripts/corpus-sonoro.mjs"
@@ -15,6 +16,7 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "jpeg-js": "^0.4.4",
+    "marked": "^14.1.4",
     "nodemon": "^3.1.10",
     "pdfkit": "^0.13.0",
     "pngjs": "^7.0.0",
