@@ -34,7 +34,10 @@ const CODE_PAD  = 9;    // padding interno del bloque
 // Geometría de página
 const PAGE_W  = 595;
 const PAGE_H  = 595;
-const MARGIN  = 72;
+const MARGIN  = 72;   // laterales: fijan la medida de la línea
+const MARGIN_V = 56;  // superior e inferior
+const LINE_GAP = 3;   // interlineado adicional del cuerpo
+const PARRAFO_GAP = 0.25; // entre párrafos, en líneas (moveDown)
 
 // Regla horizontal fina
 function reglaTenue(doc, y, color = '#dddddd', grosor = 0.4) {
@@ -82,7 +85,7 @@ function insertarImagen(doc, rutaImagen, caption, fontPath, figNum) {
   const maxWidth = PAGE_W - MARGIN * 2;
   const espacioMin = 180;
 
-  if (doc.y + espacioMin > PAGE_H - MARGIN) {
+  if (doc.y + espacioMin > PAGE_H - MARGIN_V) {
     doc.addPage();
   }
 
@@ -155,7 +158,7 @@ async function contarPaginasIndice(entradas, fontPath) {
   const nullStream = new Writable({ write(chunk, enc, cb) { cb(); } });
   const tempDoc = new PDFDocument({
     size: [PAGE_W, PAGE_H],
-    margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
+    margins: { top: MARGIN_V, bottom: MARGIN_V, left: MARGIN, right: MARGIN },
     bufferPages: true
   });
   tempDoc.pipe(nullStream);
@@ -189,14 +192,14 @@ async function contarPaginasIndice(entradas, fontPath) {
 function insertarIndiceConPaginas(doc, tocCtx, fontPath, paginasNoNumeradas, indicePageStart, indicePagesCount) {
   const colWidth    = PAGE_W - MARGIN * 2;
   const pageCol     = 28;
-  const bottomLimit = PAGE_H - MARGIN - 18; // 18pt reservados para footer
+  const bottomLimit = PAGE_H - MARGIN_V - 18; // 18pt reservados para footer
 
   let paginaActual = 0;
 
   const irAPagina = (offset) => {
     paginaActual = offset;
     doc.switchToPage(indicePageStart + offset);
-    doc.y = MARGIN;
+    doc.y = MARGIN_V;
   };
 
   irAPagina(0);
@@ -261,7 +264,7 @@ function renderizarEncabezadoInterno(doc, texto, nivelMd, fontPath) {
   // Encabezado dentro del contenido de una nota: siempre por debajo del
   // título del nodo que lo contiene (los títulos estructurales van de 18 a 10pt).
   const fontSize = nivelMd <= 2 ? 10.5 : 9.5;
-  if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
+  if (doc.y + fontSize * 4 > PAGE_H - MARGIN_V) doc.addPage();
 
   // En un encabezado el enlace se reduce a su texto (sin anotación)
   const textoPlano = desescaparMarkdown(texto.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1'));
@@ -304,7 +307,7 @@ function renderizarParrafo(doc, texto, fontPath, linkCtx, estilo = null) {
       renderizarSegmentosInline(doc, renglon, fontPath, linkCtx,
         ultimo ? estilo : { ...estilo, paragraphGap: 0 });
     });
-    if (idx < parrafos.length - 1) doc.moveDown(1);
+    if (idx < parrafos.length - 1) doc.moveDown(PARRAFO_GAP);
   });
 }
 
@@ -334,7 +337,7 @@ function renderizarLista(doc, items, fontPath, linkCtx) {
   for (const item of items) {
     const base = item.nivel * SANGRIA_NIVEL;
     doc.font(fontPath).fontSize(10.5);
-    if (doc.y + doc.currentLineHeight(true) + 4 > PAGE_H - MARGIN) doc.addPage();
+    if (doc.y + doc.currentLineHeight(true) + 4 > PAGE_H - MARGIN_V) doc.addPage();
 
     const y = doc.y;
     const marcador = /^\d+\.$/.test(item.marcador) ? item.marcador : '•';
@@ -370,7 +373,7 @@ function renderizarSegmentosInline(doc, texto, fontPath, linkCtx, estilo = null)
       goTo: null,
       link: null,
       paragraphGap: estilo?.paragraphGap ?? 6,
-      lineGap: 4
+      lineGap: LINE_GAP
     };
     if (estilo?.sangria) opciones.width = PAGE_W - MARGIN * 2 - estilo.sangria;
 
@@ -445,7 +448,7 @@ function renderizarBloqueCodigo(doc, codigo, fontMono, fontMonoBold) {
   const anchoCaja = PAGE_W - MARGIN * 2;
   const maxChars  = Math.floor((anchoCaja - CODE_PAD * 2) / charW);
   const lineH     = CODE_SIZE + CODE_GAP;
-  const maxY      = PAGE_H - MARGIN - 18; // 18pt de zona de footer
+  const maxY      = PAGE_H - MARGIN_V - 18; // 18pt de zona de footer
 
   const visuales = [];
   for (const linea of lineasLogicas) {
@@ -590,7 +593,7 @@ async function renderizarConImagenes(doc, markdown, fontPath, noteService, figCt
           const footerBuf   = 18;
           const captionH    = 20;
 
-          const disponible = PAGE_H - MARGIN - footerBuf - doc.y - 8 - captionH;
+          const disponible = PAGE_H - MARGIN_V - footerBuf - doc.y - 8 - captionH;
           const fitHeight  = disponible >= minUtil
             ? Math.min(disponible, maxHeight)
             : maxHeight;
@@ -654,7 +657,7 @@ function insertarIndiceFiguras(doc, figCtx, fontPath, paginasNoNumeradas) {
 
     // Salto de página si la entrada completa no cabe (evita que pdfkit
     // parta el caption solo, dejando Fig./página huérfanos arriba)
-    if (doc.y + alturaCaption > PAGE_H - MARGIN - 18) {
+    if (doc.y + alturaCaption > PAGE_H - MARGIN_V - 18) {
       doc.addPage();
     }
 
@@ -708,7 +711,7 @@ function insertarIndiceNotasCodigo(doc, codeCtx, fontPath, paginasNoNumeradas) {
     doc.font(fontPath).fontSize(8.5);
     const alturaTitulo = doc.heightOfString(nota.titulo, { width: tituloCol, lineGap: 2 });
 
-    if (doc.y + alturaTitulo > PAGE_H - MARGIN - 18) {
+    if (doc.y + alturaTitulo > PAGE_H - MARGIN_V - 18) {
       doc.addPage();
     }
 
@@ -799,7 +802,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
       case 2:
         fontSize = 12;
         isTitle  = true;
-        if (doc.y + fontSize * 5 > PAGE_H - MARGIN) doc.addPage();
+        if (doc.y + fontSize * 5 > PAGE_H - MARGIN_V) doc.addPage();
 
         registrarDestino();
 
@@ -818,7 +821,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
       case 3:
         fontSize = 11;
         isTitle  = true;
-        if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
+        if (doc.y + fontSize * 4 > PAGE_H - MARGIN_V) doc.addPage();
 
         registrarDestino();
 
@@ -837,7 +840,7 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
       case 4:
         fontSize = 10;
         isTitle  = true;
-        if (doc.y + fontSize * 4 > PAGE_H - MARGIN) doc.addPage();
+        if (doc.y + fontSize * 4 > PAGE_H - MARGIN_V) doc.addPage();
 
         registrarDestino();
 
@@ -918,7 +921,7 @@ router.get('/', async (req, res) => {
 
     const doc = new PDFDocument({
       size: [PAGE_W, PAGE_H],
-      margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
+      margins: { top: MARGIN_V, bottom: MARGIN_V, left: MARGIN, right: MARGIN },
       bufferPages: true
     });
 
