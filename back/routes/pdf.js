@@ -289,25 +289,39 @@ function extraerNoteIdDeEnlace(url) {
   return segmentos[segmentos.length - 1];
 }
 
-function renderizarParrafo(doc, texto, fontPath, linkCtx) {
+function renderizarParrafo(doc, texto, fontPath, linkCtx, estilo = null) {
   // Cada párrafo (separado por línea en blanco) es una cadena `continued`
   // independiente: si la cadena cruza el salto de párrafo, pdfkit arrastra
   // la posición X del último fragmento y desplaza la primera línea siguiente.
   const parrafos = texto.split(/\n[ \t]*\n+/).map(p => p.trim()).filter(p => p.length > 0);
 
   parrafos.forEach((parrafo, idx) => {
-    renderizarSegmentosInline(doc, parrafo, fontPath, linkCtx);
+    renderizarSegmentosInline(doc, parrafo, fontPath, linkCtx, estilo);
     if (idx < parrafos.length - 1) doc.moveDown(1);
   });
 }
 
-function renderizarSegmentosInline(doc, texto, fontPath, linkCtx) {
+// Cita en bloque (`> ` en el markdown, <blockquote> en Trilium): sangrada a
+// la izquierda y un punto más chica, sin el `>`. La referencia va dentro del
+// bloque, al final, como en APA.
+const SANGRIA_CITA = 28;
+const ESTILO_CITA = { sangria: SANGRIA_CITA, tamano: 9.5 };
+
+function renderizarCita(doc, texto, fontPath, linkCtx) {
+  doc.moveDown(0.3);
+  renderizarParrafo(doc, texto, fontPath, linkCtx, ESTILO_CITA);
+  doc.x = MARGIN;
+  doc.moveDown(0.6);
+}
+
+function renderizarSegmentosInline(doc, texto, fontPath, linkCtx, estilo = null) {
   // Además de negritas y enlaces markdown, las URLs sueltas (Referencias las
   // traen como texto con href vacío) se anotan como enlace URI.
   const segmentos = texto
     .split(/(\*\*[\s\S]+?\*\*|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<>()[\]"]+[^\s<>()[\]".,;:])/g)
     .filter(s => s.length > 0);
-  doc.font(fontPath).fontSize(10.5);
+  doc.font(fontPath).fontSize(estilo?.tamano ?? 10.5);
+  if (estilo?.sangria) doc.x = MARGIN + estilo.sangria;
 
   segmentos.forEach((seg, i) => {
     // En texto `continued`, pdfkit hereda las opciones de la llamada anterior:
@@ -322,6 +336,7 @@ function renderizarSegmentosInline(doc, texto, fontPath, linkCtx) {
       paragraphGap: 6,
       lineGap: 4
     };
+    if (estilo?.sangria) opciones.width = PAGE_W - MARGIN * 2 - estilo.sangria;
 
     const mEnlace = seg.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (mEnlace) {
@@ -455,8 +470,22 @@ function renderizarBloqueMarkdown(doc, markdown, fontPath, linkCtx) {
     parrafo = [];
   };
 
+  let cita = [];
+  const vaciarCita = () => {
+    const texto = cita.join('\n').trim();
+    if (texto) renderizarCita(doc, texto, fontPath, linkCtx);
+    cita = [];
+  };
+
   for (const linea of lineas) {
     const encabezado = linea.match(/^(#{1,6})\s+(.+)$/);
+    const enCita = linea.match(/^>\s?(.*)$/);
+    if (enCita) {
+      vaciarParrafo();
+      cita.push(enCita[1]);
+      continue;
+    }
+    vaciarCita();
     if (encabezado) {
       vaciarParrafo();
       renderizarEncabezadoInterno(doc, encabezado[2], encabezado[1].length, fontPath);
@@ -464,6 +493,7 @@ function renderizarBloqueMarkdown(doc, markdown, fontPath, linkCtx) {
       parrafo.push(linea);
     }
   }
+  vaciarCita();
   vaciarParrafo();
 }
 

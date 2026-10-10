@@ -12,7 +12,15 @@ import { marked } from 'marked';
 // título de la nota destino (con la ruta delante sólo si el título se repite:
 // `[[Parte III - Archivos comprimidos › Léeme]]`). Como en Trilium, el texto
 // del enlace es siempre el título vigente, no el que tenía al insertarse.
-const RE_ENLACE = /\[\[([^\]\n]+)\]\]/g;
+//
+// `[[clave|texto]]` es un enlace con texto propio, para citas con página o
+// «citado en»: `[[(de Assis, 2018)|(Rheinberger, 1997, p. 2, citado en de
+// Assis, 2018, p. 114)]]`. En Trilium es un enlace interno sin la clase
+// `reference-link` (la que hace que se muestre el título), así que el texto se
+// conserva y no se reescribe al subir. El PDF y el grafo lo resuelven por el
+// href, igual que los demás.
+const RE_ENLACE = /\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g;
+const ALIAS = 'TRILIUMALIAS';
 const idDeHref = (href) => href.split('/').pop();
 const escaparHtml = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -51,6 +59,16 @@ function servicioTurndown(bloques, claveDe) {
     filter: (node) => node.nodeName === 'A' && /reference-link/.test(node.className || '')
       && !!claveDe?.(idDeHref(node.getAttribute('href') || '')),
     replacement: (_c, node) => `[[${claveDe(idDeHref(node.getAttribute('href')))}]]`
+  });
+  // Enlace interno con texto propio → [[clave|texto]].
+  td.addRule('enlaceConTexto', {
+    filter: (node) => node.nodeName === 'A' && !/reference-link/.test(node.className || '')
+      && /^#root\//.test(node.getAttribute('href') || '')
+      && !!claveDe?.(idDeHref(node.getAttribute('href') || '')),
+    replacement: (_c, node) => {
+      const texto = node.textContent.replace(/\s+/g, ' ').trim();
+      return `[[${claveDe(idDeHref(node.getAttribute('href')))}|${texto}]]`;
+    }
   });
   return td;
 }
@@ -96,12 +114,17 @@ export function markdownAHtml(md, bloques = [], { resolver, faltantes } = {}) {
       html += original;
     } else if (p.md.trim()) {
       // gfm apagado: una URL suelta en la nota es texto, no enlace.
-      const conEnlaces = p.md.replace(RE_ENLACE, (todo, clave) => {
+      const conEnlaces = p.md.replace(RE_ENLACE, (todo, clave, texto) => {
         const destino = resolver?.(clave.trim());
         if (!destino) { faltantes?.push(clave.trim()); return todo; }
+        if (texto?.trim()) {
+          // La marca evita que ajustarATrilium le ponga la clase reference-link.
+          return `<a href="${ALIAS}${destino.href}">${escaparHtml(texto.trim())}</a>`;
+        }
         return `<a class="reference-link" href="${destino.href}">${escaparHtml(destino.titulo)}</a>`;
       });
-      html += ajustarATrilium(marked.parse(conEnlaces, { gfm: false, breaks: false }));
+      html += ajustarATrilium(marked.parse(conEnlaces, { gfm: false, breaks: false }))
+        .replaceAll(`href="${ALIAS}`, 'href="');
     }
   }
   return html;
@@ -126,6 +149,8 @@ export function normalizarHtml(html) {
     // Un enlace interno se compara por su destino: el texto y la ruta intermedia
     // se reescriben a propósito (título vigente, ruta actual del árbol).
     .replace(/\s*<a class="reference-link" href="[^"]*?([A-Za-z0-9_]+)">[^<]*<\/a>\s*/g, '<ref $1>')
+    // Con texto propio, el texto sí cuenta; la ruta intermedia no.
+    .replace(/\s*<a href="#root\/[^"]*?([A-Za-z0-9_]+)">([^<]*)<\/a>\s*/g, '<ref $1|$2>')
     .replace(/ style="margin-left:0(\.0)?px;"/g, '')
     .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
     .replace(/&gt;/g, '>')

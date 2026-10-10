@@ -16,7 +16,8 @@ import { htmlAMarkdown, markdownAHtml } from './convertir.js';
 // Sube cuando cambia cómo se convierte el HTML a Markdown: las notas sin
 // cambios locales se regeneran desde originales/ al siguiente `bajar`.
 // 2 = enlaces internos como [[clave]].
-export const CONVERSION = 2;
+// 3 = enlaces internos con texto propio como [[clave|texto]].
+export const CONVERSION = 3;
 
 export const hash = (t) => crypto.createHash('sha1').update(t).digest('hex');
 

@@ -64,7 +64,7 @@
                                                 0))
                            " ")
                          texto))
-            (dolist (r '(("\\[\\[\\(?:[^]\n]*› \\)?\\([^]\n]*\\)\\]\\]" . " \\1 ")
+            (dolist (r '(("\\[\\[\\(?:[^]\n]*› \\)?\\(?:[^]|\n]*|\\)?\\([^]\n]*\\)\\]\\]" . " \\1 ")
                          ("\\[\\([^]\n]*\\)\\]([^)\n]*)" . " \\1 ")
                          ("\\(^\\|[^:/]\\)//.*$" . "\\1")
                          ("^[ \t]*\\(?:#+\\|[-*+]\\|[0-9]+\\.\\|>\\)[ \t]+" . "")
@@ -104,9 +104,13 @@
 ;; y la ruta que desambigua (`Parte III - Archivos comprimidos › Léeme') quedan
 ;; ocultos. Retroceso justo después de un enlace lo borra entero. Un enlace a
 ;; una nota que no existe se pinta como advertencia.
+;;
+;; Con texto propio, `[[clave|texto]]' (citas con página o «citado en»): la
+;; clave de la ficha y la barra se ven en gris y el texto que se imprime, en
+;; azul.
 
 (defconst escribir--re-enlace
-  "\\(\\[\\[\\(?:[^]\n]*› \\)?\\)\\([^]\n]+?\\)\\(\\]\\]\\)")
+  "\\(\\[\\[\\(?:[^]|\n]*› \\)?\\)\\([^]|\n]+?\\)\\(?:\\(|\\)\\([^]\n]+?\\)\\)?\\(\\]\\]\\)")
 (defconst escribir--re-enlace-viejo "\\[[^]\n]*\\](#root/[^)\n]*)")
 
 (defvar escribir--candidatos nil)
@@ -125,11 +129,12 @@
               escribir--candidatos))))
   (setq escribir--candidatos (nreverse escribir--candidatos)))
 
-(defun escribir--cara-enlace ()
+(defun escribir--cara-enlace (&optional con-texto)
+  "Cara de la clave: azul (o gris si el enlace trae texto propio) si existe."
   (if (gethash (downcase (buffer-substring-no-properties
-                          (+ (match-beginning 0) 2) (- (match-end 0) 2)))
+                          (+ (match-beginning 0) 2) (match-end 2)))
                escribir--claves)
-      'link
+      (if con-texto 'shadow 'link)
     'font-lock-warning-face))
 
 (defun escribir-arroba ()
@@ -150,6 +155,26 @@ Pegada a una letra (un correo) o al cancelar con C-g, escribe un @ normal."
            (par (and eleccion (assoc eleccion escribir--candidatos))))
       (if par (insert "[[" (cdr par) "]]") (insert "@")))))
 
+;;;; Citas ──────────────────────────────────────────────────────────────────
+;; Una línea que empieza con `> ' es una cita en bloque (<blockquote> en
+;; Trilium, sangrada en el PDF): el `>' en gris, el texto en otro tono y las
+;; líneas largas continúan con sangría. La referencia va dentro del bloque, al
+;; final, como en APA.
+;;
+;; `"' escribe comillas tipográficas: “ al abrir (inicio de línea, tras un
+;; espacio o tras ( [ — > “) y ” en los demás casos. C-q " escribe la recta.
+
+(defface escribir-cita '((t :inherit font-lock-doc-face))
+  "Texto de una cita en bloque.")
+
+(defconst escribir--re-cita "^\\(>[ \t]?\\)\\(.*\\)$")
+
+(defun escribir-comillas ()
+  "Comilla tipográfica de apertura o de cierre según lo que hay antes."
+  (interactive)
+  (insert (if (or (bolp) (memq (char-before) '(?\s ?\t ?\n ?\( ?\[ ?— ?> ?“ ?«)))
+              "“" "”")))
+
 (defun escribir-borrar ()
   "Retroceso: si justo antes del cursor hay un enlace, lo borra entero."
   (interactive)
@@ -163,6 +188,7 @@ Pegada a una letra (un correo) o al cancelar con C-g, escribe un @ normal."
   :keymap (let ((m (make-sparse-keymap)))
             (define-key m "@" #'escribir-arroba)
             (define-key m (kbd "DEL") #'escribir-borrar)
+            (define-key m "\"" #'escribir-comillas)
             m)
   (if escribir-enlaces-mode
       (progn
@@ -170,13 +196,19 @@ Pegada a una letra (un correo) o al cancelar con C-g, escribe un @ normal."
         (font-lock-mode 1)
         (font-lock-add-keywords
          nil
-         `((,escribir--re-enlace
+         `((,escribir--re-cita
+            (1 'shadow prepend)
+            (2 'escribir-cita prepend)
+            (0 '(face nil wrap-prefix "  ") prepend))
+           (,escribir--re-enlace
             (1 '(face nil invisible escribir-oculto) prepend)
-            (2 (escribir--cara-enlace) prepend)
-            (3 '(face nil invisible escribir-oculto) prepend))
+            (2 (escribir--cara-enlace (match-beginning 4)) prepend)
+            (3 'shadow prepend t)
+            (4 'link prepend t)
+            (5 '(face nil invisible escribir-oculto) prepend))
            (,escribir--re-enlace-viejo 0 'font-lock-warning-face prepend)))
         (setq-local font-lock-extra-managed-props
-                    (cons 'invisible font-lock-extra-managed-props))
+                    (append '(invisible wrap-prefix) font-lock-extra-managed-props))
         (add-to-invisibility-spec 'escribir-oculto)
         (font-lock-flush))
     (remove-from-invisibility-spec 'escribir-oculto)

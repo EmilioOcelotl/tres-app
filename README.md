@@ -256,10 +256,22 @@ un `.md`. Las figuras aparecen como `<!-- trilium:bloque N · figura: … -->`:
 se pueden mover o borrar, pero no editar por dentro. Los enlaces internos son
 `[[título]]`.
 
+**Citas.** Una cita en bloque es una línea que empieza con `> ` (en Trilium,
+`<blockquote>`; en el PDF, sangrada y sin el `>`). La referencia va dentro del
+bloque, al final, como en APA. Para citar con página o «citado en», el enlace
+lleva texto propio: `[[(de Assis, 2018)|(Rheinberger, 1997, p. 2, citado en
+de Assis, 2018, p. 114)]]` apunta a la ficha `(de Assis, 2018)` e imprime lo
+que va después de la barra. Ese texto no se reescribe al subir.
+
 **En emacs:**
 - `@` busca una nota por nombre e inserta el enlace. En pantalla se ve sólo el
   título, en azul. Un retroceso justo después lo borra entero. `C-g` cancela y
   escribe una `@` normal.
+- En un enlace con texto propio, la clave de la ficha se ve en gris y el texto
+  que se imprime, en azul.
+- `"` escribe comillas tipográficas: “ al abrir y ” al cerrar, según lo que
+  haya antes. `C-q "` escribe la recta.
+- Las líneas de cita (`> `) se ven en otro tono y continúan con sangría.
 - El tiempo del bloque aparece en la línea de modo (`⏱ 32:10`). Al cumplirse
   sólo avisa; `M-x escribir-mas` lo alarga.
 - Ortografía siempre encendida, en español e inglés a la vez (paquete `jinx` de
