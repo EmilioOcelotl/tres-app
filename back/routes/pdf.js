@@ -296,7 +296,14 @@ function renderizarParrafo(doc, texto, fontPath, linkCtx, estilo = null) {
   const parrafos = texto.split(/\n[ \t]*\n+/).map(p => p.trim()).filter(p => p.length > 0);
 
   parrafos.forEach((parrafo, idx) => {
-    renderizarSegmentosInline(doc, parrafo, fontPath, linkCtx, estilo);
+    // Un salto simple (<br> en Trilium) parte la cadena por la misma razón:
+    // cada renglón es su propia cadena, sin espacio de párrafo entre ellos.
+    const renglones = parrafo.split('\n').map(r => r.trim()).filter(r => r.length > 0);
+    renglones.forEach((renglon, j) => {
+      const ultimo = j === renglones.length - 1;
+      renderizarSegmentosInline(doc, renglon, fontPath, linkCtx,
+        ultimo ? estilo : { ...estilo, paragraphGap: 0 });
+    });
     if (idx < parrafos.length - 1) doc.moveDown(1);
   });
 }
@@ -312,6 +319,35 @@ function renderizarCita(doc, texto, fontPath, linkCtx) {
   renderizarParrafo(doc, texto, fontPath, linkCtx, ESTILO_CITA);
   doc.x = MARGIN;
   doc.moveDown(0.6);
+}
+
+// Listas (<ul>/<ol> en Trilium; turndown las deja como `-   item` o `1.  item`).
+// Cada item es una cadena propia: la viñeta va colgada y el texto en sangría
+// francesa. Sin esto la lista entera era un solo párrafo con saltos simples
+// y los enlaces al inicio de un renglón caían encima del texto.
+const SANGRIA_LISTA = 16;   // de la viñeta al texto
+const SANGRIA_NIVEL = 16;   // por nivel de anidación
+const RE_ITEM_LISTA = /^(\s*)([-*+]|\d+\.)\s+(.*)$/;
+
+function renderizarLista(doc, items, fontPath, linkCtx) {
+  doc.moveDown(0.3);
+  for (const item of items) {
+    const base = item.nivel * SANGRIA_NIVEL;
+    doc.font(fontPath).fontSize(10.5);
+    if (doc.y + doc.currentLineHeight(true) + 4 > PAGE_H - MARGIN) doc.addPage();
+
+    const y = doc.y;
+    const marcador = /^\d+\.$/.test(item.marcador) ? item.marcador : '•';
+    doc.fillColor(COLOR_TEXT)
+       .text(marcador, MARGIN + base, y, { lineBreak: false, continued: false, lineGap: 4 });
+    doc.x = MARGIN;
+    doc.y = y;
+
+    renderizarSegmentosInline(doc, item.texto.trim(), fontPath, linkCtx,
+      { sangria: base + SANGRIA_LISTA, tamano: 10.5, paragraphGap: 4 });
+    doc.x = MARGIN;
+  }
+  doc.moveDown(0.4);
 }
 
 function renderizarSegmentosInline(doc, texto, fontPath, linkCtx, estilo = null) {
@@ -333,7 +369,7 @@ function renderizarSegmentosInline(doc, texto, fontPath, linkCtx, estilo = null)
       underline: false,
       goTo: null,
       link: null,
-      paragraphGap: 6,
+      paragraphGap: estilo?.paragraphGap ?? 6,
       lineGap: 4
     };
     if (estilo?.sangria) opciones.width = PAGE_W - MARGIN * 2 - estilo.sangria;
@@ -477,9 +513,37 @@ function renderizarBloqueMarkdown(doc, markdown, fontPath, linkCtx) {
     cita = [];
   };
 
+  let lista = [];
+  let blancoEnLista = false;
+  const vaciarLista = () => {
+    if (lista.length) renderizarLista(doc, lista, fontPath, linkCtx);
+    lista = [];
+    blancoEnLista = false;
+  };
+
   for (const linea of lineas) {
     const encabezado = linea.match(/^(#{1,6})\s+(.+)$/);
     const enCita = linea.match(/^>\s?(.*)$/);
+    const item = linea.match(RE_ITEM_LISTA);
+
+    if (item) {
+      vaciarCita();
+      vaciarParrafo();
+      lista.push({ nivel: Math.floor(item[1].replace(/\t/g, '    ').length / 4), marcador: item[2], texto: item[3] });
+      blancoEnLista = false;
+      continue;
+    }
+    if (lista.length) {
+      if (linea.trim() === '') { blancoEnLista = true; continue; }
+      // Continuación del item (sangrada, o pegada sin línea en blanco)
+      if (/^\s{2,}\S/.test(linea) || !blancoEnLista) {
+        lista[lista.length - 1].texto += ' ' + linea.trim();
+        blancoEnLista = false;
+        continue;
+      }
+      vaciarLista();
+    }
+
     if (enCita) {
       vaciarParrafo();
       cita.push(enCita[1]);
@@ -493,6 +557,7 @@ function renderizarBloqueMarkdown(doc, markdown, fontPath, linkCtx) {
       parrafo.push(linea);
     }
   }
+  vaciarLista();
   vaciarCita();
   vaciarParrafo();
 }
