@@ -50,11 +50,20 @@ function reglaTenue(doc, y, color = '#dddddd', grosor = 0.4) {
      .restore();
 }
 
+// Hoja en blanco sin folio: insertarFooters la salta
+function hojaEnBlanco(doc) {
+  doc.addPage();
+  doc.paginasEnBlanco ??= new Set();
+  doc.paginasEnBlanco.add(doc.bufferedPageRange().count - 1);
+}
+
 // Footers con número de página — se llama antes de doc.end()
 function insertarFooters(doc, fontPath, primeraPaginaContenido) {
   const range = doc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     if (i < primeraPaginaContenido) continue;
+    // Convención de libro: una hoja en blanco no lleva folio (sí cuenta)
+    if (doc.paginasEnBlanco?.has(range.start + i)) continue;
     doc.switchToPage(range.start + i);
 
     // Suspender el margen inferior para poder dibujar en esa zona
@@ -169,10 +178,19 @@ async function contarPaginasIndice(entradas, fontPath) {
          .moveDown(0.5);
   tempDoc.moveDown(1);
 
-  const colWidth = PAGE_W - MARGIN * 2;
-  const pageCol  = 28;
+  const colWidth    = PAGE_W - MARGIN * 2;
+  const pageCol     = 28;
+  const bottomLimit = PAGE_H - MARGIN_V - 18;
 
   for (const entry of entradas) {
+    // Mismo salto manual que insertarIndiceConPaginas: si se deja que pdfkit
+    // pagine solo, el texto con y explícita abre páginas de más y el índice
+    // reserva hojas que luego quedan en blanco.
+    const alturaEst = (entry.nivel === 0 ? 11 : entry.nivel === 1 ? 10 : 9) * 2;
+    if (tempDoc.y + alturaEst > bottomLimit) {
+      tempDoc.addPage();
+      tempDoc.y = MARGIN_V;
+    }
     const indent    = entry.nivel * 16;
     const textWidth = colWidth - indent - pageCol;
     const fontSize  = entry.nivel === 0 ? 11 : entry.nivel === 1 ? 10 : 9;
@@ -752,6 +770,9 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
   if (!omitirTitulo) {
     switch (nivel) {
       case 0:
+        // Convención de libro: la portada de Parte abre en página impar
+        // (derecha, índice par desde 0); si no cae ahí, va una hoja en blanco.
+        if (doc.bufferedPageRange().count % 2 === 1) hojaEnBlanco(doc);
         doc.addPage();
         fontSize = 18;
         isTitle  = true;
@@ -775,7 +796,8 @@ async function procesarContenidoJerarquico(doc, nodo, turndownService, nivel = 0
              });
           reglaTenue(doc, titleY + fontSize * 1.6, COLOR_ACCENT, 0.5);
         }
-        doc.addPage();
+        // El reverso de la portada de Parte queda en blanco
+        hojaEnBlanco(doc);
         break;
 
       case 1:
@@ -1055,8 +1077,13 @@ router.get('/', async (req, res) => {
     const indicePageIndex = 2;
     for (let i = 0; i < indicePagesCount; i++) doc.addPage();
 
+    // La Parte I abre en impar: si el índice ocupa un número impar de hojas,
+    // va una en blanco detrás. Se reserva aquí y no en la regla de paridad de
+    // las Partes para que el folio 1 siga siendo la portada de la Parte I.
+    const blancaTrasIndice = indicePagesCount % 2 === 1;
+
     // Página 0: portada / Página 1: en blanco / Páginas 2..(2+N-1): índice
-    const PAGINAS_NO_NUMERADAS = 2 + indicePagesCount;
+    const PAGINAS_NO_NUMERADAS = 2 + indicePagesCount + (blancaTrasIndice ? 1 : 0);
 
     const tocCtx = [];
 
