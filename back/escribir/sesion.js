@@ -69,7 +69,6 @@ export async function sesion(cfg, { minutos, descanso }) {
 
   const rl = readline.createInterface({ input: stdin, output: stdout });
   let filtro = null;
-  let todas = false;
 
   try {
     for (;;) {
@@ -88,12 +87,12 @@ export async function sesion(cfg, { minutos, descanso }) {
         fijarFin(ahora() + minutos * 60);
       }
 
-      const lista = elegibles(cfg, editables, { filtro, todas });
-      pintarLista(cfg, lista, { bloque, resta: fin() - ahora(), filtro, todas });
+      const grupos = elegibles(cfg, editables, { filtro });
+      const lista = grupos.flatMap((g) => g.notas);
+      pintarLista(cfg, grupos, { bloque, resta: fin() - ahora() });
       const r = (await rl.question('› ')).trim();
 
       if (r === 'q') break;
-      if (r === 't') { todas = !todas; filtro = null; continue; }
       if (r.startsWith('/')) { filtro = r.slice(1).trim().toLowerCase() || null; continue; }
       if (r.startsWith('+') && /^\+\d+$/.test(r)) { fijarFin(Math.max(fin(), ahora()) + Number(r.slice(1)) * 60); avisado = false; continue; }
       if (!/^\d+$/.test(r)) continue;
@@ -119,31 +118,38 @@ export async function sesion(cfg, { minutos, descanso }) {
   resumen(cfg, editables, { inicio, palabrasAlInicio, tocadas, bloques: bloque });
 }
 
-function elegibles(cfg, editables, { filtro, todas }) {
-  const fuera = (e) => e.ruta.includes('Referencias');
+// Grupos de la lista, numerados de corrido. Sin búsqueda: arriba lo que no
+// llega al umbral (sólo si hay algo) y abajo el árbol entero.
+function elegibles(cfg, editables, { filtro }) {
   if (filtro) {
-    return editables.filter((e) => e.ruta.join(' ').toLowerCase().includes(filtro));
+    const notas = editables.filter((e) => e.ruta.join(' ').toLowerCase().includes(filtro));
+    return [{ vista: `búsqueda «${filtro}»`, notas, arbol: false }];
   }
-  if (todas) return editables.filter((e) => !fuera(e));
-  // Por defecto: lo modificado y lo que no llega al umbral, en orden del árbol.
-  return editables.filter((e) => {
-    if (fuera(e)) return false;
+  const dentro = editables.filter((e) => !e.ruta.includes('Referencias'));
+  const bajo = dentro.filter((e) => {
     const w = palabras(cfg.carpeta, e);
-    return modificada(cfg.carpeta, e) || (w > 0 && w < umbral(e)) || (w === 0 && e.hijos === 0);
+    return (w > 0 && w < umbral(e)) || (w === 0 && e.hijos === 0);
   });
+  const grupos = [];
+  if (bajo.length) grupos.push({ vista: 'bajo el umbral', notas: bajo, arbol: false });
+  grupos.push({ vista: 'todas', notas: dentro, arbol: true });
+  return grupos;
 }
 
-function pintarLista(cfg, lista, { bloque, resta, filtro, todas }) {
-  const vista = filtro ? `búsqueda «${filtro}»` : todas ? 'todas' : 'por escribir';
-  console.log(`\n── ${vista} · bloque ${bloque} · ⏱ ${resta > 0 ? mmss(resta) : '¡tiempo!'} ──`);
-  lista.forEach((e, i) => {
-    const w = palabras(cfg.carpeta, e);
-    const marca = modificada(cfg.carpeta, e) ? '✎' : ' ';
-    const sangria = '  '.repeat(Math.max(0, e.nivel - 1));
-    const lugar = e.nivel > 1 && !todas ? `  · ${e.ruta.slice(1, -1).join(' › ')}` : '';
-    console.log(`${String(i + 1).padStart(3)} ${marca}${estadoDe(e, w)} ${todas ? sangria : ''}${e.titulo}  ${w}w${lugar}`);
-  });
-  console.log('número abre · /texto busca · t todas/por escribir · +N alarga el bloque · q termina');
+function pintarLista(cfg, grupos, { bloque, resta }) {
+  console.log(`\n── bloque ${bloque} · ⏱ ${resta > 0 ? mmss(resta) : '¡tiempo!'} ──`);
+  let i = 0;
+  for (const { vista, notas, arbol } of grupos) {
+    console.log(`\n· ${vista}`);
+    for (const e of notas) {
+      const w = palabras(cfg.carpeta, e);
+      const marca = modificada(cfg.carpeta, e) ? '✎' : ' ';
+      const sangria = '  '.repeat(Math.max(0, e.nivel - 1));
+      const lugar = e.nivel > 1 && !arbol ? `  · ${e.ruta.slice(1, -1).join(' › ')}` : '';
+      console.log(`${String(++i).padStart(3)} ${marca}${estadoDe(e, w)} ${arbol ? sangria : ''}${e.titulo}  ${w}w${lugar}`);
+    }
+  }
+  console.log('número abre · /texto busca · / vuelve · +N alarga el bloque · q termina');
 }
 
 function abrirEditor(cfg, e, archivoFin) {
